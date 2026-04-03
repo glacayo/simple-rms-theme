@@ -1,0 +1,22 @@
+{
+  "name": "simple-rms-theme",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "touch hot && vite",
+    "build": "rm -f hot && tsc && vite build"
+  },
+  "keywords": [],
+  "author": "Geovanny Lacayo",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "sass": "^1.99.0",
+    "sharp": "^0.34.5",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3",
+    "vite-plugin-image-optimizer": "^2.0.3",
+    "vite-plugin-live-reload": "^3.1.0"
+  }
+}
