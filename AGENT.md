@@ -85,4 +85,48 @@ Antes de dar una tarea por terminada, verifica:
 4. ¿El TTFB es estable (revisar Query Monitor para consultas lentas)?
 
 ---
+
+## 🧩 Skills del Proyecto — Guía de Uso
+
+El proyecto tiene 16 skills instaladas en `.agents/skills/`. **NO todas son relevantes.** Antes de invocar una skill, consultá esta tabla.
+
+### ⭐ Skills Prioritarias (usar SIEMPRE que aplique)
+
+| Skill | Cuándo usar | Por qué importa |
+|---|---|---|
+| **core-web-vitals** | Cada vez que creás o modificás una sección, template o asset | El objetivo del proyecto es PSI 100/100. LCP, CLS e INP son innegociables. |
+| **seo** | Al estructurar HTML, metas, headings, URLs, structured data | SEO es un pilar del proyecto junto con performance. |
+| **accessibility** | En todo markup HTML, formularios, navegación, contraste | WCAG compliance. Sin accesibilidad, no hay proyecto serio. |
+| **vite** | Al modificar `vite.config.ts`, entry points, plugins, builds | La integración Vite es el core del build system. |
+| **wp-performance** | Al escribir PHP, queries, hooks, enqueue, caching | Cada línea de PHP afecta TTFB y métricas del servidor. |
+| **frontend-design** | Al construir componentes visuales, layouts, UI | Calidad de diseño y consistencia visual del tema. |
+
+### 🔧 Skills de Soporte (usar cuando aplique)
+
+| Skill | Cuándo usar |
+|---|---|
+| **wordpress-router** | Cuando necesitás clasificar el repo o decidir qué workflow seguir |
+| **wp-project-triage** | Para inspección estructurada del proyecto y generar reportes JSON |
+| **wp-rest-api** | Si exponemos datos de CPT o ACF via REST API |
+| **wp-wpcli-and-ops** | Para operaciones WP-CLI, migraciones, search-replace, deploy |
+| **wp-plugin-development** | Solo si creamos un plugin companion (no planificado actualmente) |
+| **typescript-advanced-types** | Para lógica TypeScript compleja (tipos genéricos, conditional types) |
+| **nodejs-best-practices** | Para decisiones arquitectónicas en Node/Vite config |
+| **nodejs-backend-patterns** | Si construimos microservicios o APIs (no planificado) |
+
+### 🚫 Skills NO Relevantes para este proyecto
+
+| Skill | Razón |
+|---|---|
+| **wp-block-development** | **No se usan bloques Gutenberg.** Este es un tema clásico (Classic Theme), no un Block Theme. No hay `block.json`, no hay `register_block_type`. |
+| **wp-block-themes** | **No se usa theme.json ni Full Site Editing.** La arquitectura es PHP templates clásicos + Vite assets. |
+
+### Regla General
+> Si la tarea es visual → **frontend-design** + **core-web-vitals** + **accessibility**.
+> Si la tarea es PHP → **wp-performance** + **seo**.
+> Si la tarea es build/config → **vite**.
+> Si la task menciona "bloques", "Gutenberg", "FSE", "block theme", "theme.json" → **NO APLICA a este proyecto.**
+
+---
+
 **Firmado:** Geovanny - Senior Web Dev & SEO Specialist.
