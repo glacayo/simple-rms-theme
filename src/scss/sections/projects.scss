@@ -1,0 +1,64 @@
+// ============================================
+// Projects Section
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.projects {
+  padding: $space-20 $container-padding;
+  background-color: $color-gray-50;
+
+  &__container {
+    @include container;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: $space-12;
+  }
+
+  &__grid {
+    display: grid;
+    gap: $space-8;
+
+    @include breakpoint($breakpoint-md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include breakpoint($breakpoint-lg) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+.project-card {
+  border-radius: $radius-lg;
+  overflow: hidden;
+  background-color: $color-white;
+  box-shadow: $shadow-sm;
+  transition: box-shadow $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+
+  &__image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  &__content {
+    padding: $space-6;
+  }
+
+  &__title {
+    font-size: $font-size-xl;
+    margin-bottom: $space-2;
+  }
+
+  &__description {
+    color: $color-gray-600;
+    font-size: $font-size-sm;
+  }
+}

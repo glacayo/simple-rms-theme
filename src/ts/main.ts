@@ -1,4 +1,2 @@
-// Main entry point — imports SCSS so Vite compiles it
-import '../scss/main.scss'
-
-// JavaScript/TypeScript goes here tomorrow
+// Main JS entry point — Global scripts only
+// No SCSS imports here; CSS is loaded via PHP (wp_enqueue_style / critical inline)

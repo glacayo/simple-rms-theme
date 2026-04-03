@@ -1,0 +1,63 @@
+// ============================================
+// Content Section — Generic reusable section
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.content-section {
+  padding: $space-20 $container-padding;
+
+  &__container {
+    @include container;
+  }
+
+  &__inner {
+    @include breakpoint($breakpoint-lg) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $space-16;
+      align-items: center;
+    }
+  }
+
+  &__text {
+    margin-bottom: $space-8;
+
+    @include breakpoint($breakpoint-lg) {
+      margin-bottom: 0;
+    }
+  }
+
+  &__title {
+    margin-bottom: $space-4;
+  }
+
+  &__description {
+    color: $color-gray-600;
+    font-size: $font-size-lg;
+  }
+
+  &__media {
+    img {
+      width: 100%;
+      border-radius: $radius-lg;
+    }
+  }
+
+  // Modifiers
+  &--reverse {
+    .content-section__inner {
+      @include breakpoint($breakpoint-lg) {
+        direction: rtl;
+
+        > * {
+          direction: ltr;
+        }
+      }
+    }
+  }
+
+  &--gray {
+    background-color: $color-gray-50;
+  }
+}

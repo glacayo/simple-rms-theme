@@ -39,7 +39,17 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       input: {
+        // JS global
         main: path.resolve(__dirname, 'src/ts/main.ts'),
+        // Base CSS (reset, typography, utilities) — loaded on every page
+        'main-css': path.resolve(__dirname, 'src/scss/main.scss'),
+        // Section CSS — loaded conditionally per page
+        hero: path.resolve(__dirname, 'src/scss/sections/hero.scss'),
+        services: path.resolve(__dirname, 'src/scss/sections/services.scss'),
+        projects: path.resolve(__dirname, 'src/scss/sections/projects.scss'),
+        testimonials: path.resolve(__dirname, 'src/scss/sections/testimonials.scss'),
+        cta: path.resolve(__dirname, 'src/scss/sections/cta.scss'),
+        'content-section': path.resolve(__dirname, 'src/scss/sections/content-section.scss'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',

@@ -1,47 +1,45 @@
 // ============================================
-// Hero Section — Above the fold (Critical CSS candidate)
+// CTA Section
 // ============================================
 @use '../base/variables' as *;
 @use '../base/mixins' as *;
 
-.hero {
-  @include flex-center;
-  min-height: 100vh;
-  padding: $space-16 $container-padding;
+.cta {
+  padding: $space-20 $container-padding;
+  background-color: $color-primary;
+  color: $color-white;
+  text-align: center;
 
   &__container {
     @include container;
-    text-align: center;
+    max-width: 800px;
   }
 
   &__title {
-    font-size: $font-size-4xl;
     margin-bottom: $space-4;
-
-    @include breakpoint($breakpoint-md) {
-      font-size: $font-size-5xl;
-    }
+    color: $color-white;
   }
 
-  &__subtitle {
+  &__description {
     font-size: $font-size-lg;
-    color: $color-gray-600;
+    opacity: 0.9;
+    margin-bottom: $space-8;
     max-width: 600px;
     margin-inline: auto;
-    margin-bottom: $space-8;
   }
 
-  &__cta {
+  &__button {
     display: inline-flex;
-    padding: $space-3 $space-8;
-    background-color: $color-primary;
-    color: $color-white;
+    padding: $space-4 $space-10;
+    background-color: $color-white;
+    color: $color-primary;
     font-weight: $font-weight-semibold;
+    font-size: $font-size-lg;
     border-radius: $radius-md;
     transition: background-color $transition-fast;
 
     &:hover {
-      background-color: $color-primary-dark;
+      background-color: $color-gray-100;
     }
 
     @include focus-ring;

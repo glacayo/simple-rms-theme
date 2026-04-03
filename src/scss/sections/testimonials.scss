@@ -1,0 +1,79 @@
+// ============================================
+// Testimonials Section
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.testimonials {
+  padding: $space-20 $container-padding;
+
+  &__container {
+    @include container;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: $space-12;
+  }
+
+  &__grid {
+    display: grid;
+    gap: $space-8;
+
+    @include breakpoint($breakpoint-md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include breakpoint($breakpoint-lg) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+.testimonial-card {
+  padding: $space-8;
+  border-radius: $radius-lg;
+  background-color: $color-gray-50;
+  border: 1px solid $color-gray-200;
+
+  &__quote {
+    font-size: $font-size-lg;
+    font-style: italic;
+    color: $color-gray-700;
+    margin-bottom: $space-6;
+    position: relative;
+    padding-left: $space-6;
+
+    &::before {
+      content: '\201C';
+      position: absolute;
+      left: 0;
+      top: -4px;
+      font-size: $font-size-4xl;
+      color: $color-primary;
+      line-height: 1;
+    }
+  }
+
+  &__author {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+  }
+
+  &__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-full;
+    object-fit: cover;
+  }
+
+  &__name {
+    font-weight: $font-weight-semibold;
+  }
+
+  &__role {
+    font-size: $font-size-sm;
+    color: $color-gray-500;
+  }
+}

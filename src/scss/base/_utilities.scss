@@ -1,0 +1,41 @@
+// ============================================
+// Utilities — Reusable layout and spacing classes
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.container {
+  @include container;
+}
+
+.flex-center {
+  @include flex-center;
+}
+
+.flex-between {
+  @include flex-between;
+}
+
+.sr-only {
+  @include sr-only;
+}
+
+// --- Spacing utilities ---
+@each $size, $value in (
+  '1': $space-1,
+  '2': $space-2,
+  '3': $space-3,
+  '4': $space-4,
+  '6': $space-6,
+  '8': $space-8,
+  '10': $space-10,
+  '12': $space-12,
+  '16': $space-16,
+) {
+  .mt-#{$size}  { margin-top: $value; }
+  .mb-#{$size}  { margin-bottom: $value; }
+  .pt-#{$size}  { padding-top: $value; }
+  .pb-#{$size}  { padding-bottom: $value; }
+  .py-#{$size}  { padding-top: $value; padding-bottom: $value; }
+  .px-#{$size}  { padding-left: $value; padding-right: $value; }
+}

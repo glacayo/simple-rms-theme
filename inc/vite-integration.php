@@ -1,6 +1,7 @@
 <?php
 /**
- * Vite Integration for WordPress - Versión Optimizada para ROI & PSI
+ * Vite Integration for WordPress
+ * Connects PHP with Vite assets (HMR in dev, manifest in production).
  */
 
 class Vite_Icons_Integration {
@@ -16,15 +17,16 @@ class Vite_Icons_Integration {
     }
 
     private function __construct() {
-        // Flag de desarrollo: Prioriza la existencia del archivo 'hot'
         $this->is_development = file_exists(get_template_directory() . '/hot');
-        
+
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_filter('script_loader_tag', [$this, 'set_script_module'], 10, 3);
     }
 
+    // ─── URL Resolution ─────────────────────────────────────────────────
+
     /**
-     * Resuelve la URL del asset JS principal
+     * Resolves the URL for a JS or CSS entry.
      */
     public function get_asset($entry) {
         if ($this->is_development) {
@@ -38,7 +40,8 @@ class Vite_Icons_Integration {
     }
 
     /**
-     * Devuelve las URLs CSS asociadas a un entry del manifest
+     * Returns the CSS file URLs associated with a JS entry from the manifest.
+     * (Only relevant for entries that import CSS via JS — not used with standalone CSS entries)
      */
     public function get_css_assets($entry) {
         if ($this->is_development) {
@@ -56,16 +59,50 @@ class Vite_Icons_Integration {
     }
 
     /**
-     * Lee y devuelve el contenido del CSS para inyectarlo en el <head>
-     * Crucial para alcanzar el 100% en PageSpeed (Elimina Render Blocking)
+     * Inlines the compiled CSS for a given entry directly into <head>.
+     * This eliminates render-blocking requests — critical for PSI 100/100.
+     *
+     * @param string $entry  The Vite entry name (e.g., 'hero', 'main-css')
+     * @param string $id     Optional custom style id attribute
+     * @return string  HTML <style> tag or empty string
      */
+    public function get_critical_css($entry, $id = '') {
+        // In dev mode, load as a normal link tag so HMR still works
+        if ($this->is_development) {
+            wp_enqueue_style(
+                'critical-dev-' . sanitize_title($entry),
+                $this->vite_server . '/' . $entry,
+                [],
+                null
+            );
+            return '';
+        }
+
+        $manifest = $this->get_manifest();
+        if (!$manifest || !isset($manifest[$entry])) return '';
+
+        $file_path = get_template_directory() . '/dist/' . $manifest[$entry]['file'];
+
+        if (file_exists($file_path)) {
+            $style_id = $id ?: 'critical-' . sanitize_title($entry);
+            return '<style id="' . esc_attr($style_id) . '">' . file_get_contents($file_path) . '</style>';
+        }
+
+        return '';
+    }
+
+    // ─── Manifest ────────────────────────────────────────────────────────
+
     private function get_manifest() {
         $path = get_template_directory() . '/dist/.vite/manifest.json';
         if (!file_exists($path)) return null;
         return json_decode(file_get_contents($path), true);
     }
 
+    // ─── Enqueue ─────────────────────────────────────────────────────────
+
     public function enqueue_scripts() {
+        // 1. Vite client (dev only — enables HMR)
         if ($this->is_development) {
             wp_enqueue_script(
                 'vite-client',
@@ -76,17 +113,20 @@ class Vite_Icons_Integration {
             );
         }
 
-        // JS principal
+        // 2. Main JS
         $main_js = $this->get_asset('src/ts/main.ts');
         if ($main_js) {
             wp_enqueue_script('raven-main', $main_js, [], null, true);
         }
 
-        // CSS compilado por Vite (solo producción)
-        foreach ($this->get_css_assets('src/ts/main.ts') as $index => $css_url) {
-            wp_enqueue_style('raven-main-' . $index, $css_url, [], null);
+        // 3. Base CSS (reset, typography, utilities — loaded on every page)
+        $base_css = $this->get_asset('src/scss/main.scss');
+        if ($base_css) {
+            wp_enqueue_style('raven-base', $base_css, [], null);
         }
     }
+
+    // ─── Script Tag Modifier ─────────────────────────────────────────────
 
     public function set_script_module($tag, $handle, $src) {
         if (!in_array($handle, ['vite-client', 'raven-main'])) return $tag;
