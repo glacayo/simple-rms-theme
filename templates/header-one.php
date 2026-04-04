@@ -81,7 +81,7 @@
                         'menu_class'     => 'rms-header__nav-list',
                         'walker'         => new RMS_Walker_Nav_Primary(),
                         'fallback_cb'    => false,
-                        'depth'          => 2,
+                        'depth'          => 3,
                     ]);
                     ?>
                 </nav>
@@ -116,7 +116,7 @@
             'menu_class'     => 'rms-header__mobile-nav-list',
             'walker'         => new RMS_Walker_Nav_Mobile(),
             'fallback_cb'    => false,
-            'depth'          => 2,
+            'depth'          => 3,
         ]);
         ?>
     </nav>

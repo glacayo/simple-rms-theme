@@ -1,0 +1,54 @@
+@use '../../base/variables' as *;
+@use '../../base/mixins' as *;
+
+.rms-header__main-bar {
+  border-bottom: 1px solid $color-gray-200;
+
+  &-inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-3;
+    padding: $space-4 0;
+
+    @include breakpoint($breakpoint-sm) {
+      grid-template-columns: 30% 70%;
+      align-items: center;
+    }
+  }
+}
+
+.rms-header__logo {
+  display: flex;
+  justify-content: center;
+
+  @include breakpoint($breakpoint-sm) {
+    justify-content: flex-start;
+  }
+
+  img {
+    height: auto;
+  }
+}
+
+.rms-header__contact-info {
+  display: none;
+
+  @include breakpoint($breakpoint-sm) {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+.rms-header__contact-list {
+  display: flex;
+  align-items: center;
+  gap: $space-6;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    color: $color-gray-600;
+    font-size: $font-size-sm;
+  }
+}

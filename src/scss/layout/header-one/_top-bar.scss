@@ -1,0 +1,64 @@
+@use '../../base/variables' as *;
+@use '../../base/mixins' as *;
+@use './shared' as *;
+
+.rms-header__top-bar {
+  border-bottom: 1px solid $color-gray-200;
+
+  &-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $space-2 0;
+
+    @include breakpoint($breakpoint-sm) {
+      justify-content: space-between;
+    }
+  }
+
+  &-left {
+    display: none;
+
+    @include breakpoint($breakpoint-sm) {
+      display: block;
+    }
+  }
+
+  &-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-3;
+  }
+}
+
+.rms-header__cta-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: $color-primary;
+  color: $color-white;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
+  padding: $space-2 $space-5;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  @include focus-ring;
+}
+
+.rms-header__social-label {
+  color: $color-gray-500;
+  font-size: $font-size-sm;
+}
+
+.rms-header__social-list {
+  display: flex;
+  gap: $space-2;
+
+  a {
+    @include interactive-link($color-gray-600, $color-primary);
+  }
+}

@@ -1,0 +1,33 @@
+@use '../../base/variables' as *;
+@use '../../base/mixins' as *;
+
+@mixin interactive-link($color, $hover-color, $hover-bg: transparent, $font-size: $font-size-sm) {
+  color: $color;
+  font-size: $font-size;
+  transition: background-color $transition-fast, color $transition-fast;
+
+  &:hover {
+    color: $hover-color;
+    background-color: $hover-bg;
+  }
+
+  @include focus-ring;
+}
+
+@mixin dropdown-surface($radius: $radius-md) {
+  background-color: $color-white;
+  box-shadow: $shadow-lg;
+  border-radius: $radius;
+}
+
+@mixin hidden-panel($transform) {
+  opacity: 0;
+  visibility: hidden;
+  transform: $transform;
+}
+
+@mixin shown-panel($transform) {
+  opacity: 1;
+  visibility: visible;
+  transform: $transform;
+}
