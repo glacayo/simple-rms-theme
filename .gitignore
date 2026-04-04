@@ -41,3 +41,7 @@ wp-content/backup-db/
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Agent tooling (local, not project source)
+.claude/
+.windsurf/
