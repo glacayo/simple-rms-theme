@@ -41,11 +41,12 @@
   &--secondary {
     background-color: rgba(100, 116, 139, 0.80);
   }
-  // Content above overlay
-  > .container {
-    position: relative;
-    z-index: 1;
-  }
+}
+
+// Content above overlay
+.hero > .container {
+  position: relative;
+  z-index: 1;
 }
 
 // ─── Left Column ─────────────────────────────────────────────────────
