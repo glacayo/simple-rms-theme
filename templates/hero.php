@@ -1,7 +1,7 @@
 <!-- Hero Section -->
 <section class="hero" style="--hero-bg: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80');">
     <div class="hero__overlay hero__overlay--dark"></div>
-    <div class="hero__container">
+    <div class="container">
         <div class="grid-2">
 
             <!-- Left Column -->
