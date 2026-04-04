@@ -38,10 +38,10 @@
     </div>
 
     <!-- Scroll indicators -->
-    <div class="slider__dots" aria-hidden="true">
-        <span class="slider__dot slider__dot--active"></span>
-        <span class="slider__dot"></span>
-        <span class="slider__dot"></span>
+    <div class="slider__dots">
+        <button class="slider__dot slider__dot--active" type="button" aria-label="Go to slide 1" data-slide="0"></button>
+        <button class="slider__dot" type="button" aria-label="Go to slide 2" data-slide="1"></button>
+        <button class="slider__dot" type="button" aria-label="Go to slide 3" data-slide="2"></button>
     </div>
 
     <!-- Bottom shape — transitions to next section -->

@@ -31,6 +31,7 @@
   min-height: 100vh;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   background-image: var(--slide-bg);
   background-size: cover;
   background-position: center;
@@ -126,12 +127,22 @@
   width: 12px;
   height: 12px;
   border-radius: $radius-full;
+  border: none;
   background-color: rgba(255, 255, 255, 0.3);
-  transition: background-color $transition-fast;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color $transition-fast, transform $transition-fast;
 
   &--active {
     background-color: $color-white;
   }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+    transform: scale(1.2);
+  }
+
+  @include focus-ring;
 }
 
 // ─── Bottom Shape — wave transition ─────────────────────────────────

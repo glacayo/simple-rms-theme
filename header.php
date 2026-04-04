@@ -20,6 +20,12 @@
                 wp_enqueue_style('section-' . $section, $css, [], null);
             }
         }
+
+        // Slider JS (auto-advance + dot navigation)
+        $slider_js = $vite->get_asset('src/ts/slider.ts');
+        if ($slider_js) {
+            wp_enqueue_script('slider-js', $slider_js, [], null, true);
+        }
     }
 
     // Header — loaded as separate <link> (not inline)

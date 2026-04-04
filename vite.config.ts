@@ -56,6 +56,8 @@ export default defineConfig({
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS
         'header-one-menu': path.resolve(__dirname, 'src/ts/header-one-menu.ts'),
+        // Slider JS
+        'slider-js': path.resolve(__dirname, 'src/ts/slider.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',
