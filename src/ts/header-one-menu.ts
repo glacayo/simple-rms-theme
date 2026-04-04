@@ -104,18 +104,19 @@ export function initHeaderMenu(): void {
   })
 
   // ─── Mobile submenu accordion ───────────────────────────────────
-  menu.querySelectorAll<HTMLButtonElement>('.rms-header__mobile-nav-item--has-submenu > button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const isExpanded = btn.getAttribute('aria-expanded') === 'true'
-      const submenu = btn.nextElementSibling as HTMLUListElement | null
+  menu.querySelectorAll<HTMLAnchorElement>('.rms-header__mobile-nav-item--has-submenu > a[aria-haspopup]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault()
+      const isExpanded = link.getAttribute('aria-expanded') === 'true'
+      const submenu = link.nextElementSibling as HTMLUListElement | null
 
       if (!submenu) return
 
       if (isExpanded) {
-        btn.setAttribute('aria-expanded', 'false')
+        link.setAttribute('aria-expanded', 'false')
         submenu.classList.remove(CLASS_OPEN)
       } else {
-        btn.setAttribute('aria-expanded', 'true')
+        link.setAttribute('aria-expanded', 'true')
         submenu.classList.add(CLASS_OPEN)
       }
     })

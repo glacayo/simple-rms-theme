@@ -126,11 +126,11 @@
             <li><a href="#">Home</a></li>
             <li><a href="#">About</a></li>
             <li class="rms-header__mobile-nav-item--has-submenu">
-                <button aria-expanded="false" aria-haspopup="true">Services</button>
+                <a href="#" aria-expanded="false" aria-haspopup="true">Services</a>
                 <ul class="rms-header__mobile-submenu">
                     <li><a href="#">Service 1</a></li>
                     <li class="rms-header__mobile-nav-item--has-submenu">
-                        <button aria-expanded="false" aria-haspopup="true">Service 2</button>
+                        <a href="#" aria-expanded="false" aria-haspopup="true">Service 2</a>
                         <ul class="rms-header__mobile-submenu">
                             <li><a href="#">Service 2.1</a></li>
                             <li><a href="#">Service 2.2</a></li>
