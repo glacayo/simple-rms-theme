@@ -11,15 +11,19 @@
   &-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: $space-2 0;
+
+    @include breakpoint($breakpoint-lg) {
+      justify-content: space-between;
+    }
   }
 
   // CTA button — hidden on mobile, visible on desktop
   &-left {
     display: none;
 
-    @include breakpoint($breakpoint-lg) {
+    @include breakpoint($breakpoint-sm) {
       display: block;
     }
   }
@@ -28,8 +32,8 @@
   &-right {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: $space-3;
-    margin-left: auto;
   }
 }
 
@@ -53,11 +57,6 @@
 .rms-header__social-label {
   font-size: $font-size-sm;
   color: $color-gray-500;
-  display: none;
-
-  @include breakpoint($breakpoint-sm) {
-    display: inline;
-  }
 }
 
 .rms-header__social-list {
@@ -180,9 +179,11 @@
     span:nth-child(1) {
       transform: translateY(7px) rotate(45deg);
     }
+
     span:nth-child(2) {
       opacity: 0;
     }
+
     span:nth-child(3) {
       transform: translateY(-7px) rotate(-45deg);
     }
@@ -212,7 +213,7 @@
   position: relative;
 
   // Level 1 hover
-  &--has-dropdown:hover > .rms-header__dropdown {
+  &--has-dropdown:hover>.rms-header__dropdown {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
@@ -265,10 +266,10 @@
   transition: opacity $transition-fast, transform $transition-fast, visibility $transition-fast;
   z-index: $z-dropdown;
 
-  > li {
+  >li {
     position: relative;
 
-    > a {
+    >a {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -287,7 +288,7 @@
     }
 
     // Level 2 trigger — right arrow
-    &:hover > .rms-header__dropdown--submenu {
+    &:hover>.rms-header__dropdown--submenu {
       opacity: 1;
       visibility: visible;
       transform: translateX(0);
@@ -295,8 +296,8 @@
   }
 
   // Nested dropdown gets arrow indicator
-  li > a[aria-haspopup="true"]::after,
-  li:has(.rms-header__dropdown--submenu) > a::after {
+  li>a[aria-haspopup="true"]::after,
+  li:has(.rms-header__dropdown--submenu)>a::after {
     content: '';
     display: inline-block;
     width: 0;
@@ -324,7 +325,7 @@
   transition: opacity $transition-fast, transform $transition-fast, visibility $transition-fast;
   z-index: $z-dropdown + 1;
 
-  > li > a {
+  >li>a {
     display: block;
     padding: $space-3 $space-5;
     color: $color-gray-700;
@@ -424,9 +425,10 @@
 .rms-header__mobile-nav-list {
   padding: $space-4 0;
 
-  > li {
-    > a,
-    > button {
+  >li {
+
+    >a,
+    >button {
       display: flex;
       align-items: center;
       width: 100%;
@@ -448,7 +450,7 @@
       @include focus-ring;
     }
 
-    > button {
+    >button {
       justify-content: space-between;
 
       &::after {
