@@ -50,6 +50,8 @@ export default defineConfig({
         testimonials: path.resolve(__dirname, 'src/scss/sections/testimonials.scss'),
         cta: path.resolve(__dirname, 'src/scss/sections/cta.scss'),
         'content-section': path.resolve(__dirname, 'src/scss/sections/content-section.scss'),
+        slider: path.resolve(__dirname, 'src/scss/sections/slider.scss'),
+        badges: path.resolve(__dirname, 'src/scss/sections/badges.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS

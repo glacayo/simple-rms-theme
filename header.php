@@ -12,6 +12,14 @@
     // Page-specific critical CSS (e.g., hero on front page)
     if (is_front_page()) {
         echo $vite->get_critical_css('src/scss/sections/hero.scss', 'critical-hero');
+
+        // Slider + Badges CSS (front page)
+        foreach (['slider', 'badges'] as $section) {
+            $css = $vite->get_asset('src/scss/sections/' . $section . '.scss');
+            if ($css) {
+                wp_enqueue_style('section-' . $section, $css, [], null);
+            }
+        }
     }
 
     // Header — loaded as separate <link> (not inline)
