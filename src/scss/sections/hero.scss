@@ -1,49 +1,218 @@
 // ============================================
-// Hero Section — Above the fold (Critical CSS candidate)
+// Hero Section
 // ============================================
 @use '../base/variables' as *;
 @use '../base/mixins' as *;
 
+// ─── Section Background ──────────────────────────────────────────────
 .hero {
-  @include flex-center;
+  position: relative;
   min-height: 100vh;
-  padding: $space-16 $container-padding;
+  padding: $space-20 $container-padding;
+  background-image: var(--hero-bg);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
 
-  &__container {
-    @include container;
-    text-align: center;
+  @include breakpoint($breakpoint-md) {
+    min-height: 80vh;
+  }
+}
+
+// ─── Overlay — toggles with modifier class ───────────────────────────
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background-color $transition-slow;
+
+  // Default — dark overlay
+  &--dark {
+    background-color: rgba(15, 23, 42, 0.75);
   }
 
-  &__title {
-    font-size: $font-size-4xl;
-    margin-bottom: $space-4;
-
-    @include breakpoint($breakpoint-md) {
-      font-size: $font-size-5xl;
-    }
+  // Primary brand overlay
+  &--primary {
+    background-color: rgba(37, 99, 235, 0.80);
   }
 
-  &__subtitle {
-    font-size: $font-size-lg;
-    color: $color-gray-600;
-    max-width: 600px;
-    margin-inline: auto;
-    margin-bottom: $space-8;
+  // Secondary brand overlay
+  &--secondary {
+    background-color: rgba(100, 116, 139, 0.80);
+  }
+}
+
+// ─── Container ───────────────────────────────────────────────────────
+.hero__container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: $container-max;
+  margin-inline: auto;
+}
+
+// ─── Left Column ─────────────────────────────────────────────────────
+.hero__col-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: $space-12;
+
+  @include breakpoint($breakpoint-sm) {
+    margin-bottom: 0;
+    padding-right: $space-8;
+  }
+}
+
+.hero__reviews {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  margin-bottom: $space-6;
+}
+
+.hero__reviews-stars {
+  color: $color-accent;
+  font-size: $font-size-xl;
+  letter-spacing: 2px;
+}
+
+.hero__reviews-label {
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  opacity: 0.9;
+}
+
+.hero__title {
+  color: $color-white;
+  font-size: $font-size-4xl;
+  line-height: $line-height-tight;
+  margin-bottom: $space-6;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-5xl;
+  }
+}
+
+.hero__text {
+  color: $color-gray-300;
+  font-size: $font-size-lg;
+  line-height: $line-height-relaxed;
+  max-width: 540px;
+  margin-bottom: $space-8;
+}
+
+// ─── Right Column — Form Card ────────────────────────────────────────
+.hero__col-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero__form-card {
+  width: 100%;
+  max-width: 480px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: $radius-lg;
+  padding: $space-8;
+  box-shadow: $shadow-xl;
+
+  @include breakpoint($breakpoint-sm) {
+    padding: $space-10;
+  }
+}
+
+.hero__form-title {
+  color: $color-gray-900;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  margin-bottom: $space-6;
+}
+
+// ─── Form Fields ─────────────────────────────────────────────────────
+.hero__form-group {
+  margin-bottom: $space-4;
+
+  label {
+    display: block;
+    color: $color-gray-700;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    margin-bottom: $space-1;
   }
 
-  &__cta {
-    display: inline-flex;
-    padding: $space-3 $space-8;
-    background-color: $color-primary;
-    color: $color-white;
-    font-weight: $font-weight-semibold;
+  input,
+  select,
+  textarea {
+    width: 100%;
+    padding: $space-3 $space-4;
+    border: 1px solid $color-gray-300;
     border-radius: $radius-md;
-    transition: background-color $transition-fast;
+    font-size: $font-size-base;
+    color: $color-gray-800;
+    background-color: $color-white;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
 
-    &:hover {
-      background-color: $color-primary-dark;
+    &::placeholder {
+      color: $color-gray-400;
     }
 
-    @include focus-ring;
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
   }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+}
+
+// Two-column row (phone + zip)
+.hero__form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-4;
+
+  @include breakpoint($breakpoint-sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+// Submit button
+.hero__form-submit {
+  width: 100%;
+  padding: $space-4;
+  background-color: $color-primary;
+  color: $color-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  @include focus-ring;
 }
