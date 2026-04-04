@@ -7,11 +7,6 @@
 // ─── Top Bar ─────────────────────────────────────────────────────────
 .rms-header__top-bar {
   border-bottom: 1px solid $color-gray-200;
-  display: none;
-
-  @include breakpoint($breakpoint-md) {
-    display: block;
-  }
 
   &-inner {
     display: flex;
@@ -20,6 +15,7 @@
     padding: $space-2 0;
   }
 
+  // CTA button — hidden on mobile, visible on desktop
   &-left {
     display: none;
 
@@ -28,6 +24,7 @@
     }
   }
 
+  // Social icons — always visible
   &-right {
     display: flex;
     align-items: center;
@@ -56,6 +53,11 @@
 .rms-header__social-label {
   font-size: $font-size-sm;
   color: $color-gray-500;
+  display: none;
+
+  @include breakpoint($breakpoint-sm) {
+    display: inline;
+  }
 }
 
 .rms-header__social-list {
@@ -133,77 +135,9 @@
   &-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     height: 48px;
-  }
-}
-
-// ─── Desktop Nav ─────────────────────────────────────────────────────
-.rms-header__nav {
-  display: none;
-
-  @include breakpoint($breakpoint-md) {
-    display: flex;
-  }
-}
-
-.rms-header__nav-list {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-.rms-header__nav-item {
-  position: relative;
-
-  &--has-dropdown:hover .rms-header__dropdown {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-}
-
-.rms-header__nav-link {
-  display: block;
-  padding: $space-3 $space-5;
-  color: $color-white;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
-  transition: background-color $transition-fast;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  @include focus-ring;
-}
-
-// ─── Desktop Dropdown ────────────────────────────────────────────────
-.rms-header__dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  min-width: 200px;
-  background-color: $color-white;
-  box-shadow: $shadow-lg;
-  border-radius: 0 0 $radius-md $radius-md;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-8px);
-  transition: opacity $transition-fast, transform $transition-fast, visibility $transition-fast;
-  z-index: $z-dropdown;
-
-  li a {
-    display: block;
-    padding: $space-3 $space-5;
-    color: $color-gray-700;
-    font-size: $font-size-sm;
-    transition: background-color $transition-fast, color $transition-fast;
-
-    &:hover {
-      background-color: $color-gray-50;
-      color: $color-primary;
-    }
+    position: relative;
   }
 }
 
@@ -252,6 +186,158 @@
     span:nth-child(3) {
       transform: translateY(-7px) rotate(-45deg);
     }
+  }
+}
+
+// ─── Desktop Nav ─────────────────────────────────────────────────────
+.rms-header__nav {
+  display: none;
+
+  @include breakpoint($breakpoint-md) {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+.rms-header__nav-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+// ─── Nav Items ───────────────────────────────────────────────────────
+.rms-header__nav-item {
+  position: relative;
+
+  // Level 1 hover
+  &--has-dropdown:hover > .rms-header__dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+}
+
+.rms-header__nav-link {
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-3 $space-5;
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: background-color $transition-fast;
+  white-space: nowrap;
+
+  // Arrow indicator for dropdown parents
+  &[aria-haspopup="true"]::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid currentColor;
+    margin-left: $space-1;
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  @include focus-ring;
+}
+
+// ─── Desktop Dropdown — Level 1 ──────────────────────────────────────
+.rms-header__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background-color: $color-white;
+  box-shadow: $shadow-lg;
+  border-radius: 0 0 $radius-md $radius-md;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity $transition-fast, transform $transition-fast, visibility $transition-fast;
+  z-index: $z-dropdown;
+
+  > li {
+    position: relative;
+
+    > a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: $space-3 $space-5;
+      color: $color-gray-700;
+      font-size: $font-size-sm;
+      transition: background-color $transition-fast, color $transition-fast;
+      white-space: nowrap;
+
+      &:hover {
+        background-color: $color-gray-50;
+        color: $color-primary;
+      }
+
+      @include focus-ring;
+    }
+
+    // Level 2 trigger — right arrow
+    &:hover > .rms-header__dropdown--submenu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+  }
+
+  // Nested dropdown gets arrow indicator
+  li > a[aria-haspopup="true"]::after,
+  li:has(.rms-header__dropdown--submenu) > a::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 4px solid currentColor;
+    margin-left: auto;
+    padding-left: $space-3;
+  }
+}
+
+// ─── Desktop Dropdown — Level 2 (submenu) ────────────────────────────
+.rms-header__dropdown--submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  min-width: 220px;
+  background-color: $color-white;
+  box-shadow: $shadow-lg;
+  border-radius: $radius-md;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity $transition-fast, transform $transition-fast, visibility $transition-fast;
+  z-index: $z-dropdown + 1;
+
+  > li > a {
+    display: block;
+    padding: $space-3 $space-5;
+    color: $color-gray-700;
+    font-size: $font-size-sm;
+    transition: background-color $transition-fast, color $transition-fast;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: $color-gray-50;
+      color: $color-primary;
+    }
+
+    @include focus-ring;
   }
 }
 

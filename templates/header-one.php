@@ -78,9 +78,18 @@
                         </li>
                         <li class="rms-header__nav-item rms-header__nav-item--has-dropdown">
                             <a href="#" class="rms-header__nav-link" aria-haspopup="true" aria-expanded="false">Services</a>
+                            <!-- Level 1 dropdown -->
                             <ul class="rms-header__dropdown">
                                 <li><a href="#">Service 1</a></li>
-                                <li><a href="#">Service 2</a></li>
+                                <li class="rms-header__nav-item--has-dropdown">
+                                    <a href="#" aria-haspopup="true">Service 2</a>
+                                    <!-- Level 2 dropdown -->
+                                    <ul class="rms-header__dropdown--submenu">
+                                        <li><a href="#">Service 2.1</a></li>
+                                        <li><a href="#">Service 2.2</a></li>
+                                        <li><a href="#">Service 2.3</a></li>
+                                    </ul>
+                                </li>
                                 <li><a href="#">Service 3</a></li>
                             </ul>
                         </li>
@@ -120,7 +129,14 @@
                 <button aria-expanded="false" aria-haspopup="true">Services</button>
                 <ul class="rms-header__mobile-submenu">
                     <li><a href="#">Service 1</a></li>
-                    <li><a href="#">Service 2</a></li>
+                    <li class="rms-header__mobile-nav-item--has-submenu">
+                        <button aria-expanded="false" aria-haspopup="true">Service 2</button>
+                        <ul class="rms-header__mobile-submenu">
+                            <li><a href="#">Service 2.1</a></li>
+                            <li><a href="#">Service 2.2</a></li>
+                            <li><a href="#">Service 2.3</a></li>
+                        </ul>
+                    </li>
                     <li><a href="#">Service 3</a></li>
                 </ul>
             </li>
