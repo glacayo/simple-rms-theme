@@ -118,18 +118,12 @@ class Vite_Icons_Integration {
         if ($main_js) {
             wp_enqueue_script('raven-main', $main_js, [], null, true);
         }
-
-        // 3. Base CSS (reset, typography, utilities — loaded on every page)
-        $base_css = $this->get_asset('src/scss/main.scss');
-        if ($base_css) {
-            wp_enqueue_style('raven-base', $base_css, [], null);
-        }
     }
 
     // ─── Script Tag Modifier ─────────────────────────────────────────────
 
     public function set_script_module($tag, $handle, $src) {
-        if (!in_array($handle, ['vite-client', 'raven-main'])) return $tag;
+        if (!in_array($handle, ['vite-client', 'raven-main', 'header-one-menu'])) return $tag;
         return '<script type="module" src="' . esc_url($src) . '" crossorigin></script>';
     }
 }

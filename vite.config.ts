@@ -50,6 +50,10 @@ export default defineConfig({
         testimonials: path.resolve(__dirname, 'src/scss/sections/testimonials.scss'),
         cta: path.resolve(__dirname, 'src/scss/sections/cta.scss'),
         'content-section': path.resolve(__dirname, 'src/scss/sections/content-section.scss'),
+        // Layout CSS
+        'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
+        // Layout JS
+        'header-one-menu': path.resolve(__dirname, 'src/ts/header-one-menu.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',
