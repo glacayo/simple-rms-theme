@@ -14,3 +14,7 @@ require_once get_template_directory() . '/inc/optimize.php';
 
 // ─── Vite Asset Integration ─────────────────────────────────────────
 require_once get_template_directory() . '/inc/vite-integration.php';
+
+// ─── TGM Plugin Activation ────────────────────────────────────────
+require_once get_template_directory() . '/inc/tgmpa.php';
+
