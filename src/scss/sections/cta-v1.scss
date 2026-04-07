@@ -96,9 +96,10 @@
 
 // ─── Button ─────────────────────────────────────────────────────────
 .cta-v1__button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  margin-inline: auto;
   padding: $space-4 $space-10;
   font-size: $font-size-base;
   font-weight: $font-weight-semibold;
