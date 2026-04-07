@@ -1,0 +1,156 @@
+// ============================================
+// CTA V2 — Split Layout with Professional Feel
+// ============================================
+// Two-column layout: text left, buttons right.
+// Dark gray background for a corporate aesthetic.
+// Thin gold accent line as a subtle design detail.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.cta-v2 {
+  background-color: $color-gray-900;
+  padding: $space-12 $container-padding;
+  position: relative;
+  overflow: hidden;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-16 $container-padding;
+  }
+
+  // Decorative accent stripe on the left edge
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      $color-accent 20%,
+      $color-primary 80%,
+      transparent 100%
+    );
+  }
+
+  @include breakpoint($breakpoint-md) {
+    &::before {
+      width: 6px;
+    }
+  }
+}
+
+// ─── Inner Layout ───────────────────────────────────────────────────
+.cta-v2__inner {
+  display: flex;
+  flex-direction: column;
+  gap: $space-8;
+
+  @include breakpoint($breakpoint-md) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-12;
+  }
+}
+
+// ─── Content (left side) ────────────────────────────────────────────
+.cta-v2__content {
+  flex: 1;
+}
+
+.cta-v2__headline {
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-sm) {
+    font-size: $font-size-3xl;
+  }
+
+  @include breakpoint($breakpoint-lg) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.cta-v2__text {
+  color: $color-gray-400;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  max-width: 520px;
+
+  @include breakpoint($breakpoint-sm) {
+    font-size: $font-size-lg;
+  }
+}
+
+// ─── Actions (right side) ───────────────────────────────────────────
+.cta-v2__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  flex-shrink: 0;
+
+  @include breakpoint($breakpoint-sm) {
+    flex-direction: row;
+    gap: $space-4;
+  }
+}
+
+// ─── Shared Button Base ─────────────────────────────────────────────
+.cta-v2__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4 $space-8;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast,
+              color $transition-fast,
+              border-color $transition-fast,
+              box-shadow $transition-base;
+  white-space: nowrap;
+
+  // ─── Primary filled variant ───────────────────────────────────
+  &--primary {
+    color: $color-white;
+    background-color: $color-primary;
+    border: 2px solid $color-primary;
+
+    &:hover {
+      background-color: $color-primary-hover;
+      border-color: $color-primary-hover;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    @include focus-ring;
+  }
+
+  // ─── Outline variant ──────────────────────────────────────────
+  &--outline {
+    color: $color-white;
+    background-color: transparent;
+    border: 2px solid $color-gray-600;
+
+    &:hover {
+      border-color: $color-white;
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    @include focus-ring;
+  }
+}

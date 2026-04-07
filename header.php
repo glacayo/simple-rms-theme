@@ -22,7 +22,7 @@
         }
 
         // Below the fold — deferred (non-render-blocking)
-        foreach (['about-us', 'services-v1', 'services-v2', 'services-v3'] as $section) {
+        foreach (['about-us', 'services-v1', 'services-v2', 'services-v3', 'cta-v1', 'cta-v2', 'cta-v3'] as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/sections/' . $section . '.scss');
         }
 

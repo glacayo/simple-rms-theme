@@ -56,6 +56,9 @@ export default defineConfig({
         'services-v1': path.resolve(__dirname, 'src/scss/sections/services-v1.scss'),
         'services-v2': path.resolve(__dirname, 'src/scss/sections/services-v2.scss'),
         'services-v3': path.resolve(__dirname, 'src/scss/sections/services-v3.scss'),
+        'cta-v1': path.resolve(__dirname, 'src/scss/sections/cta-v1.scss'),
+        'cta-v2': path.resolve(__dirname, 'src/scss/sections/cta-v2.scss'),
+        'cta-v3': path.resolve(__dirname, 'src/scss/sections/cta-v3.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS

@@ -1,0 +1,175 @@
+// ============================================
+// CTA V3 — Stats + CTA Combined
+// ============================================
+// Social proof section: a row of bold stat
+// counters followed by a centered headline
+// and CTA button. Builds credibility before
+// asking for action.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.cta-v3 {
+  background-color: $color-gray-900;
+  padding: $space-16 $container-padding;
+  position: relative;
+  overflow: hidden;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+
+  // Subtle geometric accent in the background
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -120px;
+    left: -80px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -60px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+  }
+}
+
+// ─── Stats Row ──────────────────────────────────────────────────────
+.cta-v3__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-8;
+  margin-bottom: $space-16;
+  position: relative;
+  z-index: 1;
+
+  @include breakpoint($breakpoint-md) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: $space-6;
+  }
+}
+
+// ─── Individual Stat ────────────────────────────────────────────────
+.cta-v3__stat {
+  text-align: center;
+  padding: $space-6 $space-4;
+
+  // Subtle separator between stats (visible on desktop)
+  @include breakpoint($breakpoint-md) {
+    position: relative;
+
+    // Vertical divider (except last)
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 20%;
+      right: 0;
+      bottom: 20%;
+      width: 1px;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+      );
+    }
+  }
+}
+
+// ─── Stat Number ────────────────────────────────────────────────────
+.cta-v3__stat-number {
+  display: block;
+  color: $color-primary;
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: -0.02em;
+  margin-bottom: $space-2;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-5xl;
+  }
+}
+
+// ─── Stat Label ─────────────────────────────────────────────────────
+.cta-v3__stat-label {
+  display: block;
+  color: $color-gray-400;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+
+  @include breakpoint($breakpoint-sm) {
+    font-size: $font-size-sm;
+  }
+}
+
+// ─── Action Area ────────────────────────────────────────────────────
+.cta-v3__action {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+// ─── Headline ───────────────────────────────────────────────────────
+.cta-v3__headline {
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-8;
+  max-width: 640px;
+  margin-inline: auto;
+
+  @include breakpoint($breakpoint-sm) {
+    font-size: $font-size-3xl;
+  }
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+// ─── Button ─────────────────────────────────────────────────────────
+.cta-v3__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4 $space-10;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $color-white;
+  background-color: $color-primary;
+  border: 2px solid $color-primary;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast,
+              border-color $transition-fast,
+              box-shadow $transition-base,
+              transform $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    border-color: $color-primary-hover;
+    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  @include focus-ring;
+}
