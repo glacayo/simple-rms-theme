@@ -14,7 +14,7 @@
             <!-- Right Column -->
             <div class="about-us__col-right">
                 <div class="about-us__image-wrapper">
-                    <img class="about-us__image" src="https://images.unsplash.com/photo-1632759145351-1d592919c04c?w=800&q=80" alt="Professional roofing team working on a residential roof">
+                    <img class="about-us__image" src="https://placehold.co/600x600" alt="Professional roofing team working on a residential roof" width="600" height="600" decoding="async" loading="lazy">
                     <div class="about-us__badge">
                         <span class="about-us__badge-years">25</span>
                         <span class="about-us__badge-label">Years Of Experience</span>
