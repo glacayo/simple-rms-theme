@@ -120,6 +120,22 @@ class Vite_Icons_Integration {
         }
     }
 
+    // ─── Deferred CSS (below the fold) ─────────────────────────────────
+
+    /**
+     * Outputs a non-render-blocking <link> using the media="print" swap trick.
+     * CSS loads without blocking, then applies to all media once loaded.
+     *
+     * @param string $handle  Unique handle for deduplication
+     * @param string $entry   Vite entry path
+     */
+    public function get_deferred_style($handle, $entry): void {
+        $css = $this->get_asset($entry);
+        if (!$css) return;
+        echo '<link rel="stylesheet" href="' . esc_url($css) . '" media="print" onload="this.media=\'all\'">';
+        echo '<noscript><link rel="stylesheet" href="' . esc_url($css) . '"></noscript>';
+    }
+
     // ─── Script Tag Modifier ─────────────────────────────────────────────
 
     public function set_script_module($tag, $handle, $src) {

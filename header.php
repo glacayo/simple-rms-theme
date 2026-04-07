@@ -13,12 +13,17 @@
     if (is_front_page()) {
         echo $vite->get_critical_css('src/scss/sections/hero.scss', 'critical-hero');
 
-        // Slider + Badges CSS (front page)
-        foreach (['slider', 'badges', 'about-us'] as $section) {
+        // Above the fold — eager load
+        foreach (['slider', 'badges'] as $section) {
             $css = $vite->get_asset('src/scss/sections/' . $section . '.scss');
             if ($css) {
                 wp_enqueue_style('section-' . $section, $css, [], null);
             }
+        }
+
+        // Below the fold — deferred (non-render-blocking)
+        foreach (['about-us'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/sections/' . $section . '.scss');
         }
 
         // Slider JS (auto-advance + dot navigation)
