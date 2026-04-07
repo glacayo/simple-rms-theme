@@ -1,0 +1,96 @@
+// ============================================
+// Services V2 — Image Boxes on Solid Background
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.services-v2 {
+  padding: $space-16 $container-padding;
+  background-color: $color-gray-50;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+}
+
+// ─── Headline & Subheadline ─────────────────────────────────────────
+.services-v2__headline {
+  color: $color-gray-900;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  text-align: center;
+  margin-bottom: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.services-v2__subheadline {
+  color: $color-gray-600;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-12;
+}
+
+// ─── Box ────────────────────────────────────────────────────────────
+.services-v2__box {
+  background-color: $color-white;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-md;
+  transition: box-shadow $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+}
+
+// ─── Image ──────────────────────────────────────────────────────────
+.services-v2__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+// ─── Box Title & Text ──────────────────────────────────────────────
+.services-v2__box-title {
+  color: $color-gray-900;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  padding: $space-6 $space-6 $space-2;
+}
+
+.services-v2__box-text {
+  color: $color-gray-600;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  padding: 0 $space-6 $space-6;
+}
+
+// ─── CTA ────────────────────────────────────────────────────────────
+.services-v2__cta {
+  text-align: center;
+  margin-top: $space-12;
+}
+
+.services-v2__cta-btn {
+  display: inline-flex;
+  padding: $space-4 $space-10;
+  background-color: $color-primary;
+  color: $color-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  @include focus-ring;
+}

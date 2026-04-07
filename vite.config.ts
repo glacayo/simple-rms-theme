@@ -53,6 +53,9 @@ export default defineConfig({
         slider: path.resolve(__dirname, 'src/scss/sections/slider.scss'),
         badges: path.resolve(__dirname, 'src/scss/sections/badges.scss'),
         'about-us': path.resolve(__dirname, 'src/scss/sections/about-us.scss'),
+        'services-v1': path.resolve(__dirname, 'src/scss/sections/services-v1.scss'),
+        'services-v2': path.resolve(__dirname, 'src/scss/sections/services-v2.scss'),
+        'services-v3': path.resolve(__dirname, 'src/scss/sections/services-v3.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS

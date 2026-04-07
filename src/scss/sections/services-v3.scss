@@ -1,0 +1,135 @@
+// ============================================
+// Services V3 — Hover Reveal Boxes with Background Images
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.services-v3 {
+  padding: $space-16 $container-padding;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+}
+
+// ─── Headline & Subheadline ─────────────────────────────────────────
+.services-v3__headline {
+  color: $color-gray-900;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  text-align: center;
+  margin-bottom: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.services-v3__subheadline {
+  color: $color-gray-600;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-12;
+}
+
+// ─── Box ────────────────────────────────────────────────────────────
+.services-v3__box {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  height: 300px;
+  cursor: pointer;
+}
+
+// ─── Background Image ──────────────────────────────────────────────
+.services-v3__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// ─── Service Name (always visible, centered on top) ────────────────
+.services-v3__name {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  padding: $space-4;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  transition: opacity $transition-base;
+}
+
+// ─── Hover Overlay ─────────────────────────────────────────────────
+.services-v3__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $space-6;
+  opacity: 0;
+  transition: opacity $transition-base;
+  z-index: 2;
+}
+
+// Hide default name when overlay is visible
+.services-v3__box:hover .services-v3__name {
+  opacity: 0;
+}
+
+// Show overlay on hover
+.services-v3__box:hover .services-v3__overlay {
+  opacity: 1;
+}
+
+// ─── Overlay Content ───────────────────────────────────────────────
+.services-v3__overlay-name {
+  color: $color-white;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $space-3;
+}
+
+.services-v3__overlay-text {
+  color: $color-gray-300;
+  font-size: $font-size-sm;
+  line-height: $line-height-relaxed;
+  text-align: center;
+  max-width: 280px;
+}
+
+// ─── CTA ────────────────────────────────────────────────────────────
+.services-v3__cta {
+  text-align: center;
+  margin-top: $space-12;
+}
+
+.services-v3__cta-btn {
+  display: inline-flex;
+  padding: $space-4 $space-10;
+  background-color: $color-primary;
+  color: $color-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  @include focus-ring;
+}

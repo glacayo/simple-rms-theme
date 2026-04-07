@@ -1,0 +1,124 @@
+// ============================================
+// Services V1 — Cards with Icons on Image Background
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.services-v1 {
+  position: relative;
+  padding: $space-16 $container-padding;
+  background-image: var(--services-bg);
+  background-size: cover;
+  background-position: center;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+}
+
+// ─── Dark Overlay ───────────────────────────────────────────────────
+.services-v1__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.80);
+  pointer-events: none;
+}
+
+// ─── Content above overlay ──────────────────────────────────────────
+.services-v1 > .container {
+  position: relative;
+  z-index: 1;
+}
+
+// ─── Headline & Subheadline ─────────────────────────────────────────
+.services-v1__headline {
+  color: $color-white;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  text-align: center;
+  margin-bottom: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.services-v1__subheadline {
+  color: $color-gray-300;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-12;
+}
+
+// ─── Card ───────────────────────────────────────────────────────────
+.services-v1__card {
+  background-color: $color-white;
+  border-radius: $radius-lg;
+  padding: $space-8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: box-shadow $transition-base, transform $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+    transform: translateY(-4px);
+  }
+}
+
+// ─── Icon Placeholder ──────────────────────────────────────────────
+.services-v1__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background-color: $color-gray-100;
+  border-radius: $radius-md;
+  margin-bottom: $space-4;
+  color: $color-gray-500;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// ─── Card Title & Text ─────────────────────────────────────────────
+.services-v1__card-title {
+  color: $color-gray-900;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $space-2;
+}
+
+.services-v1__card-text {
+  color: $color-gray-600;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+}
+
+// ─── CTA ────────────────────────────────────────────────────────────
+.services-v1__cta {
+  text-align: center;
+  margin-top: $space-12;
+}
+
+.services-v1__cta-btn {
+  display: inline-flex;
+  padding: $space-4 $space-10;
+  background-color: $color-primary;
+  color: $color-white;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  @include focus-ring;
+}
