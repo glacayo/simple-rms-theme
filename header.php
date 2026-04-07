@@ -14,7 +14,7 @@
         echo $vite->get_critical_css('src/scss/sections/hero.scss', 'critical-hero');
 
         // Slider + Badges CSS (front page)
-        foreach (['slider', 'badges'] as $section) {
+        foreach (['slider', 'badges', 'about-us'] as $section) {
             $css = $vite->get_asset('src/scss/sections/' . $section . '.scss');
             if ($css) {
                 wp_enqueue_style('section-' . $section, $css, [], null);

@@ -52,6 +52,7 @@ export default defineConfig({
         'content-section': path.resolve(__dirname, 'src/scss/sections/content-section.scss'),
         slider: path.resolve(__dirname, 'src/scss/sections/slider.scss'),
         badges: path.resolve(__dirname, 'src/scss/sections/badges.scss'),
+        'about-us': path.resolve(__dirname, 'src/scss/sections/about-us.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS

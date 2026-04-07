@@ -1,0 +1,117 @@
+// ============================================
+// About Us Section
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.about-us {
+  padding: $space-16 $container-padding;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+}
+
+// ─── Left Column ────────────────────────────────────────────────────
+.about-us__col-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: $space-10;
+
+  @include breakpoint($breakpoint-sm) {
+    margin-bottom: 0;
+    padding-right: $space-8;
+  }
+}
+
+.about-us__headline {
+  color: $color-gray-900;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.about-us__subheadline {
+  color: $color-primary;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+  margin-bottom: $space-6;
+}
+
+.about-us__text {
+  color: $color-gray-600;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  margin-bottom: $space-4;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// ─── Right Column ───────────────────────────────────────────────────
+.about-us__col-right {
+  display: flex;
+  align-items: center;
+}
+
+.about-us__image-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.about-us__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: $radius-lg;
+  object-fit: cover;
+}
+
+// ─── Badge — overlapping at bottom-right ────────────────────────────
+.about-us__badge {
+  position: absolute;
+  bottom: -#{$space-6};
+  right: $space-6;
+  background-color: $color-primary;
+  color: $color-white;
+  padding: $space-6 $space-8;
+  border-radius: $radius-lg;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+  box-shadow: $shadow-lg;
+
+  @include breakpoint($breakpoint-md) {
+    bottom: -#{$space-8};
+    right: $space-8;
+    padding: $space-8 $space-10;
+  }
+}
+
+.about-us__badge-years {
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-5xl;
+  }
+}
+
+.about-us__badge-label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
