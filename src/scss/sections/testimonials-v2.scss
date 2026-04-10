@@ -1,0 +1,88 @@
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.testimonials-v2 {
+  background-color: $color-gray-900;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.testimonials-v2__headline {
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.testimonials-v2__subheadline {
+  color: $color-gray-300;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-10;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    margin-bottom: $space-12;
+  }
+}
+
+.testimonials-v2__grid {
+  gap: $space-6;
+}
+
+.testimonials-v2__card {
+  @include flex-column;
+  align-items: center;
+  text-align: center;
+  padding: $space-8;
+  border-radius: $radius-xl;
+  background: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  box-shadow: $shadow-lg;
+  backdrop-filter: blur(10px);
+  transition: transform $transition-base, background-color $transition-base;
+
+  &:hover {
+    transform: translateY(-5px);
+    background: rgb(255 255 255 / 0.16);
+  }
+}
+
+.testimonials-v2__avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: $radius-full;
+  object-fit: cover;
+  border: 2px solid $color-white;
+  margin-bottom: $space-6;
+}
+
+.testimonials-v2__quote {
+  color: $color-gray-100;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  margin-bottom: $space-6;
+}
+
+.testimonials-v2__author {
+  color: $color-white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  margin: 0 0 $space-3;
+}
+
+.testimonials-v2__stars {
+  margin: 0;
+  color: $color-accent;
+  letter-spacing: 0.14em;
+  font-size: $font-size-sm;
+}

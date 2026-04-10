@@ -1,0 +1,111 @@
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.testimonials-v3 {
+  background-color: $color-white;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.testimonials-v3__headline {
+  color: $color-gray-900;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.testimonials-v3__subheadline {
+  color: $color-gray-500;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-10;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    margin-bottom: $space-12;
+  }
+}
+
+.testimonials-v3__grid {
+  display: grid;
+  gap: $space-6;
+
+  @include breakpoint($breakpoint-md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.testimonials-v3__card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: $space-5;
+  background-color: $color-gray-100;
+  border-radius: $radius-xl;
+  padding: $space-8;
+  overflow: hidden;
+
+  @include breakpoint($breakpoint-lg) {
+    padding: $space-10;
+  }
+
+  &--full {
+    @include breakpoint($breakpoint-md) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.testimonials-v3__quote-mark {
+  position: absolute;
+  top: -10px;
+  left: $space-4;
+  font-size: 8rem;
+  line-height: 1;
+  color: $color-primary;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.testimonials-v3__content {
+  grid-column: 2;
+  position: relative;
+  z-index: 1;
+}
+
+.testimonials-v3__quote {
+  margin: 0 0 $space-6;
+  color: $color-gray-800;
+  font-size: $font-size-lg;
+  font-style: italic;
+  line-height: $line-height-relaxed;
+}
+
+.testimonials-v3__author {
+  margin: 0;
+  color: $color-gray-900;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+}
+
+.testimonials-v3__role {
+  margin: $space-2 0 $space-4;
+  color: $color-gray-500;
+  font-size: $font-size-sm;
+}
+
+.testimonials-v3__stars {
+  margin: 0;
+  color: $color-accent;
+  letter-spacing: 0.12em;
+  font-size: $font-size-sm;
+}

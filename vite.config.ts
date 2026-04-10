@@ -62,6 +62,9 @@ export default defineConfig({
         'portfolio-v1': path.resolve(__dirname, 'src/scss/sections/portfolio-v1.scss'),
         'portfolio-v2': path.resolve(__dirname, 'src/scss/sections/portfolio-v2.scss'),
         'portfolio-v3': path.resolve(__dirname, 'src/scss/sections/portfolio-v3.scss'),
+        'testimonials-v1': path.resolve(__dirname, 'src/scss/sections/testimonials-v1.scss'),
+        'testimonials-v2': path.resolve(__dirname, 'src/scss/sections/testimonials-v2.scss'),
+        'testimonials-v3': path.resolve(__dirname, 'src/scss/sections/testimonials-v3.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS

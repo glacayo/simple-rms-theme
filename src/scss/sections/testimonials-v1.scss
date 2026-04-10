@@ -1,0 +1,89 @@
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.testimonials-v1 {
+  background-color: $color-white;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.testimonials-v1__headline {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $color-gray-900;
+  text-align: center;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.testimonials-v1__subheadline {
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $color-gray-500;
+  text-align: center;
+  margin-bottom: $space-10;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    margin-bottom: $space-12;
+  }
+}
+
+.testimonials-v1__grid {
+  gap: $space-6;
+}
+
+.testimonials-v1__card {
+  background-color: $color-white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
+  padding: $space-8;
+  border: 1px solid $color-gray-200;
+  transition: transform $transition-base, box-shadow $transition-base;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: $shadow-lg;
+  }
+}
+
+.testimonials-v1__quote-mark {
+  display: inline-block;
+  font-size: $font-size-5xl;
+  line-height: 1;
+  color: $color-primary;
+  margin-bottom: $space-4;
+}
+
+.testimonials-v1__quote {
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  color: $color-gray-700;
+  margin-bottom: $space-6;
+}
+
+.testimonials-v1__stars {
+  margin: 0 0 $space-5;
+  color: $color-accent;
+  letter-spacing: 0.14em;
+  font-size: $font-size-sm;
+}
+
+.testimonials-v1__author {
+  margin: 0;
+  color: $color-gray-900;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+}
+
+.testimonials-v1__role {
+  margin: $space-2 0 0;
+  color: $color-gray-500;
+  font-size: $font-size-sm;
+}
