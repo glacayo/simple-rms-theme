@@ -12,42 +12,42 @@
         </div>
 
         <div class="portfolio-v3__grid">
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x300" alt="Residential Roofing project" width="400" height="300" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>
                     <span class="portfolio-v3__label">Residential Roofing</span>
                 </div>
             </div>
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x400" alt="Commercial Painting project" width="400" height="400" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>
                     <span class="portfolio-v3__label">Commercial Painting</span>
                 </div>
             </div>
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x350" alt="Storm Repair project" width="400" height="350" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>
                     <span class="portfolio-v3__label">Storm Repair</span>
                 </div>
             </div>
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x300" alt="New Construction project" width="400" height="300" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>
                     <span class="portfolio-v3__label">New Construction</span>
                 </div>
             </div>
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x400" alt="Emergency Services project" width="400" height="400" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>
                     <span class="portfolio-v3__label">Emergency Services</span>
                 </div>
             </div>
-            <div class="portfolio-v3__item">
+            <div class="portfolio-v3__item" data-lightbox="https://placehold.co/800x600">
                 <img src="https://placehold.co/400x350" alt="Metal Roofing project" width="400" height="350" loading="lazy">
                 <div class="portfolio-v3__overlay">
                     <span class="portfolio-v3__icon">⊕</span>

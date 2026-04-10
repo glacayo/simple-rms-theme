@@ -31,6 +31,13 @@
         if ($slider_js) {
             wp_enqueue_script('slider-js', $slider_js, [], null, true);
         }
+
+        // Lightbox (shared — portfolio zoom modal)
+        $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
+        $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
+        if ($lightbox_js) {
+            wp_enqueue_script('lightbox-js', $lightbox_js, [], null, true);
+        }
     }
 
     // Header — loaded as separate <link> (not inline)

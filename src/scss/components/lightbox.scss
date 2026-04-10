@@ -1,0 +1,95 @@
+// ============================================
+// Lightbox — Shared modal for portfolio images
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Backdrop ───────────────────────────────────────────────────────
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal;
+  background-color: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-base, visibility $transition-base;
+  cursor: zoom-out;
+
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+// ─── Image Container ────────────────────────────────────────────────
+.lightbox__image-wrapper {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  cursor: default;
+}
+
+.lightbox__image {
+  display: block;
+  max-width: 90vw;
+  max-height: 85vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: $radius-md;
+  box-shadow: $shadow-xl;
+  transform: scale(0.9);
+  transition: transform $transition-base;
+
+  .lightbox.is-open & {
+    transform: scale(1);
+  }
+}
+
+// ─── Caption ────────────────────────────────────────────────────────
+.lightbox__caption {
+  text-align: center;
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: $space-4;
+  opacity: 0.8;
+}
+
+// ─── Close Button ───────────────────────────────────────────────────
+.lightbox__close {
+  position: absolute;
+  top: $space-4;
+  right: $space-4;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: $radius-full;
+  color: $color-white;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color $transition-fast, transform $transition-fast;
+  z-index: 1;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+  }
+
+  @include focus-ring;
+}
+
+// ─── Trigger cursor on portfolio items ───────────────────────────────
+[data-lightbox] {
+  cursor: zoom-in;
+}

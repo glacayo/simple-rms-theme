@@ -68,6 +68,9 @@ export default defineConfig({
         'header-one-menu': path.resolve(__dirname, 'src/ts/header-one-menu.ts'),
         // Slider JS
         'slider-js': path.resolve(__dirname, 'src/ts/slider.ts'),
+        // Lightbox (shared component)
+        lightbox: path.resolve(__dirname, 'src/scss/components/lightbox.scss'),
+        'lightbox-js': path.resolve(__dirname, 'src/ts/lightbox.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',
