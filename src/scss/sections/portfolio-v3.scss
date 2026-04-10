@@ -163,3 +163,8 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+// ─── Filter hidden state ────────────────────────────────────────────
+.portfolio-v3__item.is-hidden {
+  display: none;
+}

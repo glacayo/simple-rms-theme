@@ -71,6 +71,8 @@ export default defineConfig({
         // Lightbox (shared component)
         lightbox: path.resolve(__dirname, 'src/scss/components/lightbox.scss'),
         'lightbox-js': path.resolve(__dirname, 'src/ts/lightbox.ts'),
+        // Portfolio filter JS
+        'portfolio-filter-js': path.resolve(__dirname, 'src/ts/portfolio-filter.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',

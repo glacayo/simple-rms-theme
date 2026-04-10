@@ -38,6 +38,12 @@
         if ($lightbox_js) {
             wp_enqueue_script('lightbox-js', $lightbox_js, [], null, true);
         }
+
+        // Portfolio filter JS
+        $filter_js = $vite->get_asset('src/ts/portfolio-filter.ts');
+        if ($filter_js) {
+            wp_enqueue_script('portfolio-filter-js', $filter_js, [], null, true);
+        }
     }
 
     // Header — loaded as separate <link> (not inline)
