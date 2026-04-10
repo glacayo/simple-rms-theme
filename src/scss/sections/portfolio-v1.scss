@@ -1,0 +1,117 @@
+// ============================================
+// Portfolio V1 — Full Width Mosaic, No Gaps
+// ============================================
+// Full-width image grid with zero gaps between items.
+// Each item reveals a dark overlay on hover with
+// a zoom icon and project type label.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.portfolio-v1 {
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+// ─── Header (inside section, not in grid) ───────────────────────────
+.portfolio-v1__header {
+  padding-inline: $container-padding;
+  margin-bottom: $space-10;
+  text-align: center;
+
+  @include breakpoint($breakpoint-md) {
+    margin-bottom: $space-12;
+  }
+}
+
+// ─── Headline & Subheadline ─────────────────────────────────────────
+.portfolio-v1__headline {
+  color: $color-gray-900;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.portfolio-v1__subheadline {
+  color: $color-gray-500;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+// ─── Grid — Full Width, No Gaps ─────────────────────────────────────
+.portfolio-v1__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+
+  @include breakpoint($breakpoint-md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include breakpoint($breakpoint-lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// ─── Item ───────────────────────────────────────────────────────────
+.portfolio-v1__item {
+  position: relative;
+  overflow: hidden;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// ─── Overlay ────────────────────────────────────────────────────────
+.portfolio-v1__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.80);
+  @include flex-center;
+  flex-direction: column;
+  gap: $space-3;
+  opacity: 0;
+  transition: opacity $transition-base;
+
+  .portfolio-v1__item:hover & {
+    opacity: 1;
+  }
+}
+
+// ─── Icon ───────────────────────────────────────────────────────────
+.portfolio-v1__icon {
+  @include flex-center;
+  width: 56px;
+  height: 56px;
+  border: 2px solid $color-white;
+  border-radius: 50%;
+  color: $color-white;
+  font-size: $font-size-2xl;
+  line-height: 1;
+}
+
+// ─── Label ──────────────────────────────────────────────────────────
+.portfolio-v1__label {
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

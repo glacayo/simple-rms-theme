@@ -59,6 +59,9 @@ export default defineConfig({
         'cta-v1': path.resolve(__dirname, 'src/scss/sections/cta-v1.scss'),
         'cta-v2': path.resolve(__dirname, 'src/scss/sections/cta-v2.scss'),
         'cta-v3': path.resolve(__dirname, 'src/scss/sections/cta-v3.scss'),
+        'portfolio-v1': path.resolve(__dirname, 'src/scss/sections/portfolio-v1.scss'),
+        'portfolio-v2': path.resolve(__dirname, 'src/scss/sections/portfolio-v2.scss'),
+        'portfolio-v3': path.resolve(__dirname, 'src/scss/sections/portfolio-v3.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS
