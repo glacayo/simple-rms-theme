@@ -24,7 +24,7 @@
 }
 
 .blog-v1__layout {
-  align-items: start;
+  align-items: stretch;
   gap: $space-6;
 
   @include breakpoint($breakpoint-md) {
@@ -33,6 +33,9 @@
 }
 
 .blog-v1__featured {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background-color: $color-white;
   border-radius: $radius-xl;
   box-shadow: $shadow-lg;
@@ -52,6 +55,9 @@
 }
 
 .blog-v1__featured-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: $space-6;
 
   @include breakpoint($breakpoint-md) {
@@ -90,6 +96,7 @@
 .blog-v1__read-more {
   display: inline-flex;
   align-items: center;
+  margin-top: auto;
   color: $color-primary;
   font-size: $font-size-base;
   font-weight: $font-weight-semibold;
@@ -104,6 +111,8 @@
 }
 
 .blog-v1__grid {
+  grid-auto-rows: 1fr;
+  height: 100%;
   align-items: start;
   gap: $space-5;
 
@@ -113,6 +122,9 @@
 }
 
 .blog-v1__card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background-color: $color-white;
   border-radius: $radius-lg;
   box-shadow: $shadow-md;
@@ -132,6 +144,10 @@
 }
 
 .blog-v1__card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
   padding: $space-4;
 }
 
