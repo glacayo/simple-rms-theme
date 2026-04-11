@@ -71,8 +71,10 @@ export default defineConfig({
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
+        'header-two': path.resolve(__dirname, 'src/scss/layout/header-two.scss'),
         // Layout JS
         'header-one-menu': path.resolve(__dirname, 'src/ts/header-one-menu.ts'),
+        'header-two-menu': path.resolve(__dirname, 'src/ts/header-two-menu.ts'),
         // Slider JS
         'slider-js': path.resolve(__dirname, 'src/ts/slider.ts'),
         // Lightbox (shared component)

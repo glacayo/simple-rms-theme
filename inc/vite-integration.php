@@ -138,10 +138,10 @@ class Vite_Icons_Integration {
 
     // ─── Script Tag Modifier ─────────────────────────────────────────────
 
-    public function set_script_module($tag, $handle, $src) {
-        if (!in_array($handle, ['vite-client', 'raven-main', 'header-one-menu', 'slider-js', 'lightbox-js', 'portfolio-filter-js'])) return $tag;
-        return '<script type="module" src="' . esc_url($src) . '" crossorigin></script>';
-    }
+     public function set_script_module($tag, $handle, $src) {
+         if (!in_array($handle, ['vite-client', 'raven-main', 'header-one-menu', 'header-two-menu', 'slider-js', 'lightbox-js', 'portfolio-filter-js'])) return $tag;
+         return '<script type="module" src="' . esc_url($src) . '" crossorigin></script>';
+     }
 }
 
 Vite_Icons_Integration::get_instance();
