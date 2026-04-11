@@ -66,6 +66,7 @@ export default defineConfig({
         'testimonials-v2': path.resolve(__dirname, 'src/scss/sections/testimonials-v2.scss'),
         'testimonials-v3': path.resolve(__dirname, 'src/scss/sections/testimonials-v3.scss'),
         'blog-v1': path.resolve(__dirname, 'src/scss/sections/blog-v1.scss'),
+        'area-coverage-v1': path.resolve(__dirname, 'src/scss/sections/area-coverage-v1.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),
         // Layout JS
