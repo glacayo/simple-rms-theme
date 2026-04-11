@@ -26,7 +26,7 @@
             <div class="rms-header-v2__main-bar-inner">
                 <div class="rms-header-v2__logo">
                     <a href="/" aria-label="Home">
-                        <span class="rms-header-v2__logo-text">SIMPLE RMS</span>
+                        <img src="https://placehold.co/200x60" alt="Simple RMS" width="200" height="60">
                     </a>
                 </div>
                 <nav class="rms-header-v2__nav" aria-label="Main navigation">
@@ -39,9 +39,6 @@
                         <li class="rms-header-v2__nav-item"><a href="/contact/" class="rms-header-v2__nav-link">Contact</a></li>
                     </ul>
                 </nav>
-                <div class="rms-header-v2__cta">
-                    <a href="tel:4075550199" class="rms-header-v2__cta-button">Call Us Now</a>
-                </div>
                 <button class="rms-header-v2__menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="rms-header-v2-mobile-menu">
                     <span class="rms-header-v2__menu-icon">
                         <span></span>
