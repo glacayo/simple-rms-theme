@@ -1,8 +1,8 @@
 // ============================================
 // Header Two — Entry stylesheet
 // ============================================
-@use 'variables' as *;
-@use 'mixins' as *;
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
 
 // Top Bar
 .rms-header-v2__top-bar {
