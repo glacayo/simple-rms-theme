@@ -1,0 +1,143 @@
+// ============================================
+// Footer V2 — Brand-heavy with CTA strip
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.footer-v2 {
+  background-color: $color-gray-900;
+  color: $color-gray-300;
+}
+
+.footer-v2__cta-strip {
+  border-bottom: 1px solid $color-gray-700;
+  background-color: $color-gray-800;
+}
+
+.footer-v2__cta-inner {
+  @include flex-column;
+  gap: $space-4;
+  padding-top: $space-6;
+  padding-bottom: $space-6;
+
+  @include breakpoint($breakpoint-md) {
+    @include flex-between;
+  }
+}
+
+.footer-v2__cta-text {
+  color: $color-white;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin: 0;
+}
+
+.footer-v2__cta-button {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: $space-3 $space-6;
+  border-radius: $radius-full;
+  background-color: $color-primary;
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+  }
+
+  @include focus-ring;
+}
+
+.footer-v2__main {
+  padding-top: $space-12;
+  padding-bottom: $space-10;
+}
+
+.footer-v2__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-8;
+
+  @include breakpoint($breakpoint-md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.footer-v2__logo-wrap {
+  margin-bottom: $space-4;
+}
+
+.footer-v2__logo-placeholder {
+  color: $color-white;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  @include focus-ring;
+}
+
+.footer-v2__about,
+.footer-v2__meta {
+  color: $color-gray-400;
+  font-size: $font-size-sm;
+  line-height: $line-height-relaxed;
+}
+
+.footer-v2__meta {
+  margin-top: $space-4;
+}
+
+.footer-v2__heading,
+.footer-v2__subheading {
+  color: $color-white;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $space-4;
+}
+
+.footer-v2__heading {
+  font-size: $font-size-lg;
+}
+
+.footer-v2__subheading {
+  font-size: $font-size-base;
+  color: $color-primary-light;
+}
+
+.footer-v2__list-groups {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-6;
+
+  @include breakpoint($breakpoint-sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.footer-v2__list {
+  @include flex-column;
+  gap: $space-2;
+  font-size: $font-size-sm;
+}
+
+.footer-v2__list a {
+  color: $color-gray-300;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-white;
+  }
+
+  @include focus-ring;
+}
+
+.footer-v2__copyright {
+  border-top: 1px solid $color-gray-700;
+  padding: $space-4 0;
+
+  p {
+    margin: 0;
+    color: $color-gray-500;
+    font-size: $font-size-xs;
+  }
+}

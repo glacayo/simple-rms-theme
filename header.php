@@ -57,6 +57,11 @@
     if ($menu_js) {
         wp_enqueue_script('header-one-menu', $menu_js, [], null, true);
     }
+
+    // Footer layouts — deferred (below the fold)
+    foreach (['footer-v1', 'footer-v2', 'footer-v3'] as $footer_layout) {
+        $vite->get_deferred_style('layout-' . $footer_layout, 'src/scss/layout/' . $footer_layout . '.scss');
+    }
     ?>
     <?php wp_head(); ?>
 </head>
