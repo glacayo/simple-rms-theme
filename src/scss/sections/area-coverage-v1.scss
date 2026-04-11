@@ -151,7 +151,7 @@
 
 .area-coverage-v1__map-card {
   position: relative;
-  padding: $space-8;
+  min-height: 420px;
   border: 1px solid $color-gray-700;
   border-radius: $radius-xl;
   background-color: $color-gray-800;
@@ -173,26 +173,27 @@
   }
 }
 
+.area-coverage-v1__map-image {
+  position: absolute;
+  inset: 0;
+  background-image: var(--coverage-image);
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.45);
+}
+
 .area-coverage-v1__map-shape {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   max-width: 420px;
   height: auto;
   margin-inline: auto;
-}
-
-.area-coverage-v1__map-silhouette {
-  fill: $color-gray-700;
-  stroke: $color-gray-300;
-  stroke-width: 2;
+  opacity: 0.95;
 }
 
 .area-coverage-v1__map-dot {
   fill: $color-primary;
-}
-
-.area-coverage-v1__map-ring {
-  fill: none;
-  stroke: $color-primary;
-  stroke-width: 2;
+  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.45));
 }
