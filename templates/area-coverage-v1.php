@@ -30,8 +30,10 @@
             <div class="area-coverage-v1__map" aria-hidden="true">
                 <div class="area-coverage-v1__map-card" style="--coverage-image: url('https://placehold.co/800x600');">
                     <div class="area-coverage-v1__map-image"></div>
-                    <svg class="area-coverage-v1__map-shape" viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
-                        <circle class="area-coverage-v1__map-dot" cx="177" cy="124" r="11" />
+                    <svg class="area-coverage-v1__map-shape" viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" focusable="false" aria-hidden="true">
+                        <circle class="area-coverage-v1__map-ring" cx="180" cy="130" r="26" />
+                        <circle class="area-coverage-v1__map-ring" cx="180" cy="130" r="52" />
+                        <circle class="area-coverage-v1__map-ring" cx="180" cy="130" r="78" />
                     </svg>
                 </div>
             </div>

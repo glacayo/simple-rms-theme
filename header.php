@@ -58,10 +58,8 @@
         wp_enqueue_script('header-one-menu', $menu_js, [], null, true);
     }
 
-    // Footer layouts — deferred (below the fold)
-    foreach (['footer-v1', 'footer-v2', 'footer-v3'] as $footer_layout) {
-        $vite->get_deferred_style('layout-' . $footer_layout, 'src/scss/layout/' . $footer_layout . '.scss');
-    }
+    // Footer — deferred
+    $vite->get_deferred_style('layout-footer-v2', 'src/scss/layout/footer-v2.scss');
     ?>
     <?php wp_head(); ?>
 </head>
