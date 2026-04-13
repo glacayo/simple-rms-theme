@@ -27,14 +27,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                 </span>
                 <h3 class="vision-mission-v1__title">Why Choose Us</h3>
-                <ul class="vision-mission-v1__list" aria-label="Reasons to choose our company">
-                    <li class="vision-mission-v1__list-item">Licensed &amp; Insured Team</li>
-                    <li class="vision-mission-v1__list-item">Premium Materials Only</li>
-                    <li class="vision-mission-v1__list-item">Fast Turnaround Times</li>
-                    <li class="vision-mission-v1__list-item">Transparent Estimates</li>
-                    <li class="vision-mission-v1__list-item">Local Experience You Can Trust</li>
-                    <li class="vision-mission-v1__list-item">Work Backed by Warranty</li>
-                </ul>
+                <p class="vision-mission-v1__text">Homeowners choose us because we deliver transparent estimates, licensed and insured workmanship, premium materials, reliable turnaround times, and long-term warranty-backed results.</p>
             </article>
         </div>
 
