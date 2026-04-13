@@ -33,18 +33,11 @@
         <div class="seo-content__grid grid-2">
             <!-- Text column -->
             <div class="seo-content__text">
-                <p>Our team brings decades of combined experience to every roofing project we take on. From initial inspection to final cleanup, we follow a proven process designed to protect your investment and keep your property secure for years to come.</p>
+                <p>Our company is built around dependable workmanship, clear communication, and long-term protection for every property we serve. We approach each project with a detailed process that starts with understanding the client's goals and ends with a result that adds value, improves durability, and gives homeowners confidence that their investment is protected against changing weather conditions year after year.</p>
 
-                <p>We specialize in residential and commercial roofing systems, including asphalt shingles, metal roofing, flat roof membranes, and tile installations. Every material we use meets or exceeds industry standards for durability, weather resistance, and energy efficiency.</p>
+                <p>We work with residential and commercial clients who need practical solutions, honest recommendations, and materials selected for performance instead of shortcuts. Every system we install is planned with attention to structure, drainage, ventilation, and finish quality so the final result looks professional, performs reliably, and supports the long-term condition of the entire property with fewer avoidable maintenance issues.</p>
 
-                <ul class="seo-content__list">
-                    <li>Licensed, insured, and locally owned</li>
-                    <li>Free inspections and transparent estimates</li>
-                    <li>Premium materials backed by manufacturer warranties</li>
-                    <li>Storm damage repair and insurance claim assistance</li>
-                </ul>
-
-                <p>Whether you need a full roof replacement, emergency leak repair, or routine maintenance, we deliver reliable results with clear communication at every step.</p>
+                <p>Whether the need is a replacement, a repair, ongoing maintenance, or storm recovery, we focus on delivering steady results through organized timelines, transparent estimates, and responsive service. That combination helps clients move forward with clarity, avoid surprises during the process, and feel confident that the work was completed by a team committed to quality, accountability, and lasting performance from day one.</p>
             </div>
 
             <!-- Image column -->
