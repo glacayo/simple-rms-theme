@@ -1,0 +1,231 @@
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ============================================
+// SEO Content — Reusable Two-Column Section
+// ============================================
+// Modifiers:
+//   --reverse       → swap column order (image left / text right)
+//   --bg-light      → light gray background
+//   --bg-dark       → dark background with inverted text
+//   --has-bg-image  → background image via --seo-bg-image custom property
+//   --overlay-dark  → dark overlay on top of background image
+
+// --- Base section ---
+
+.seo-content {
+  position: relative;
+  padding: $space-16 0;
+  background-color: var(--seo-bg-color, $color-white);
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+// --- Background modifiers ---
+
+.seo-content--bg-light {
+  --seo-bg-color: #{$color-gray-50};
+}
+
+.seo-content--bg-dark {
+  --seo-bg-color: #{$color-gray-900};
+
+  .seo-content__headline {
+    color: $color-white;
+  }
+
+  .seo-content__subheadline {
+    color: $color-gray-300;
+  }
+
+  .seo-content__text {
+    color: $color-gray-300;
+
+    p {
+      color: $color-gray-300;
+    }
+  }
+
+  .seo-content__list {
+    color: $color-gray-200;
+  }
+}
+
+// --- Background image modifier ---
+
+.seo-content--has-bg-image {
+  background-image: var(--seo-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+// --- Dark overlay modifier (use with --has-bg-image) ---
+
+.seo-content--overlay-dark {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: rgb(0 0 0 / 0.65);
+  }
+
+  // Ensure content sits above overlay
+  > .container {
+    position: relative;
+    z-index: 2;
+  }
+
+  .seo-content__headline {
+    color: $color-white;
+  }
+
+  .seo-content__subheadline {
+    color: $color-gray-200;
+  }
+
+  .seo-content__text {
+    color: $color-gray-200;
+
+    p {
+      color: $color-gray-200;
+    }
+  }
+
+  .seo-content__list {
+    color: $color-gray-100;
+  }
+}
+
+// --- Header block (optional) ---
+
+.seo-content__header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin-bottom: $space-10;
+  max-width: 720px;
+
+  @include breakpoint($breakpoint-md) {
+    margin-bottom: $space-12;
+  }
+}
+
+.seo-content__headline {
+  margin: 0;
+  color: $color-gray-900;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.seo-content__subheadline {
+  margin: 0;
+  color: $color-gray-500;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-normal;
+  line-height: $line-height-normal;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-xl;
+  }
+}
+
+// --- Two-column grid ---
+
+.seo-content__grid {
+  align-items: center;
+
+  @include breakpoint($breakpoint-sm) {
+    gap: $space-10;
+  }
+
+  @include breakpoint($breakpoint-lg) {
+    gap: $space-16;
+  }
+}
+
+// --- Reverse modifier — swap column visual order ---
+
+.seo-content--reverse {
+  .seo-content__text {
+    @include breakpoint($breakpoint-sm) {
+      order: 2;
+    }
+  }
+
+  .seo-content__media {
+    @include breakpoint($breakpoint-sm) {
+      order: 1;
+    }
+  }
+}
+
+// --- Text column ---
+
+.seo-content__text {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+
+  p {
+    margin: 0;
+    color: $color-gray-700;
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+
+    @include breakpoint($breakpoint-md) {
+      font-size: $font-size-lg;
+    }
+  }
+}
+
+// --- List styles ---
+
+.seo-content__list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  margin: $space-2 0;
+  padding: 0 0 0 $space-6;
+  color: $color-gray-700;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+
+  li {
+    padding-left: $space-2;
+
+    &::marker {
+      color: $color-primary;
+    }
+  }
+}
+
+// --- Image column ---
+
+.seo-content__media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seo-content__image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  object-fit: cover;
+}

@@ -69,6 +69,7 @@ export default defineConfig({
         'area-coverage-v1': path.resolve(__dirname, 'src/scss/sections/area-coverage-v1.scss'),
         'vision-mission-v1': path.resolve(__dirname, 'src/scss/sections/vision-mission-v1.scss'),
         'vision-mission-v2': path.resolve(__dirname, 'src/scss/sections/vision-mission-v2.scss'),
+        'seo-content': path.resolve(__dirname, 'src/scss/sections/seo-content.scss'),
         // Footer
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS

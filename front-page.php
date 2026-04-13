@@ -11,5 +11,6 @@
 <?php get_template_part('templates/area-coverage-v1'); ?>
 <?php get_template_part('templates/vision-mission-v1'); ?>
 <?php get_template_part('templates/vision-mission-v2'); ?>
+<?php get_template_part('templates/seo-content'); ?>
 
 <?php get_footer(); ?>
