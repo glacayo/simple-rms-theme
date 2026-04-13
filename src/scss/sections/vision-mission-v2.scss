@@ -1,0 +1,185 @@
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ============================================
+// Vision Mission V2 — Split Layout with Emphasis Panel
+// ============================================
+
+.vision-mission-v2 {
+  background-color: $color-gray-900;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+// --- Two-column layout ---
+
+.vision-mission-v2__layout {
+  display: grid;
+  gap: $space-10;
+
+  @include breakpoint($breakpoint-lg) {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: start;
+    gap: $space-12;
+  }
+}
+
+// --- Left column: content stack ---
+
+.vision-mission-v2__content {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.vision-mission-v2__eyebrow {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: 0;
+  padding: $space-2 $space-4;
+  border: 1px solid $color-gray-700;
+  border-radius: $radius-full;
+  background-color: $color-gray-800;
+  color: $color-gray-200;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+}
+
+.vision-mission-v2__headline {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-5xl;
+  }
+}
+
+.vision-mission-v2__block {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.vision-mission-v2__label {
+  margin: 0;
+  color: $color-primary-light;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.vision-mission-v2__text {
+  max-width: 58ch;
+  margin: 0;
+  color: $color-gray-300;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+.vision-mission-v2__divider {
+  width: 48px;
+  height: 2px;
+  background-color: $color-gray-700;
+}
+
+// --- Right column: emphasis panel ---
+
+.vision-mission-v2__panel {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+  padding: $space-8;
+  background-color: $color-gray-800;
+  border-radius: $radius-xl;
+  border: 1px solid $color-gray-700;
+  box-shadow: $shadow-xl;
+
+  @include breakpoint($breakpoint-lg) {
+    padding: $space-10;
+  }
+}
+
+.vision-mission-v2__panel-title {
+  margin: 0;
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+}
+
+.vision-mission-v2__list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-mission-v2__list-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  color: $color-gray-100;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  line-height: $line-height-normal;
+  padding-bottom: $space-5;
+  border-bottom: 1px solid $color-gray-700;
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.vision-mission-v2__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-full;
+  background-color: $color-primary;
+  color: $color-white;
+}
+
+// --- CTA ---
+
+.vision-mission-v2__cta {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: $space-2;
+  padding: $space-3 $space-6;
+  border: 2px solid $color-primary;
+  border-radius: $radius-md;
+  background-color: transparent;
+  color: $color-white;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary;
+    border-color: $color-primary;
+  }
+
+  @include focus-ring;
+}

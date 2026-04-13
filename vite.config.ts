@@ -67,6 +67,8 @@ export default defineConfig({
         'testimonials-v3': path.resolve(__dirname, 'src/scss/sections/testimonials-v3.scss'),
         'blog-v1': path.resolve(__dirname, 'src/scss/sections/blog-v1.scss'),
         'area-coverage-v1': path.resolve(__dirname, 'src/scss/sections/area-coverage-v1.scss'),
+        'vision-mission-v1': path.resolve(__dirname, 'src/scss/sections/vision-mission-v1.scss'),
+        'vision-mission-v2': path.resolve(__dirname, 'src/scss/sections/vision-mission-v2.scss'),
         // Footer
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS

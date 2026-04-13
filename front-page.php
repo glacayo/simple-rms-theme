@@ -9,5 +9,7 @@
 <?php get_template_part('templates/testimonials-v3'); ?>
 <?php get_template_part('templates/blog-v1'); ?>
 <?php get_template_part('templates/area-coverage-v1'); ?>
+<?php get_template_part('templates/vision-mission-v1'); ?>
+<?php get_template_part('templates/vision-mission-v2'); ?>
 
 <?php get_footer(); ?>
