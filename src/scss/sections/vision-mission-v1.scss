@@ -118,37 +118,6 @@
   line-height: $line-height-relaxed;
 }
 
-// --- Why Choose Us list ---
-
-.vision-mission-v1__list {
-  display: flex;
-  flex-direction: column;
-  gap: $space-3;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.vision-mission-v1__list-item {
-  position: relative;
-  padding-left: $space-6;
-  color: $color-gray-700;
-  font-size: $font-size-base;
-  font-weight: $font-weight-medium;
-  line-height: $line-height-normal;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.35em;
-    width: 8px;
-    height: 8px;
-    border-radius: $radius-full;
-    background-color: $color-primary;
-  }
-}
-
 // --- CTA ---
 
 .vision-mission-v1__cta-wrap {
