@@ -24,6 +24,12 @@ function simple_rms_theme_register_required_plugins() {
             'source'   => get_template_directory() . '/inc/plugins/advanced-custom-fields-pro.zip',
             'required' => true,
         ),
+        // Classic Editor
+        array(
+            'name'     => 'Classic Editor',
+            'slug'     => 'classic-editor',
+            'required' => true,
+        ),
         // Yoast SEO
         array(
             'name'     => 'Yoast SEO',
