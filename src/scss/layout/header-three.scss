@@ -1,0 +1,456 @@
+// ============================================
+// Header Three — Transparent overlay header
+// Sits on top of hero/background image with
+// dark gradient band for contrast.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Root: positioned absolutely over the page content ──────────
+.rms-header-v3 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: $z-sticky;
+    color: $color-white;
+}
+
+// ─── Dark gradient backdrop ─────────────────────────────────────
+// Sits behind the header content, allows background image to show through
+.rms-header-v3__gradient {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+        180deg,
+        rgba($color-black, 0.85) 0%,
+        rgba($color-black, 0.6) 60%,
+        rgba($color-black, 0.0) 100%
+    );
+    pointer-events: none;
+}
+
+// ─── Inner layout ───────────────────────────────────────────────
+.rms-header-v3__inner {
+    position: relative;
+    z-index: 1;
+    @include container;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    @include breakpoint($breakpoint-lg) {
+        flex-direction: row;
+        align-items: stretch;
+    }
+}
+
+// ─── Logo Area ──────────────────────────────────────────────────
+.rms-header-v3__logo-area {
+    display: flex;
+    align-items: center;
+    padding: $space-4 0;
+    flex-shrink: 0;
+
+    @include breakpoint($breakpoint-lg) {
+        padding: $space-6 $space-8 $space-6 0;
+        border-right: 1px solid rgba($color-white, 0.15);
+        margin-right: $space-8;
+    }
+}
+
+.rms-header-v3__logo-link {
+    display: block;
+    line-height: 0;
+    transition: opacity $transition-base;
+
+    &:hover {
+        opacity: 0.85;
+    }
+
+    img {
+        height: auto;
+        display: block;
+    }
+}
+
+// ─── Menu Area ──────────────────────────────────────────────────
+.rms-header-v3__menu-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+// ─── Meta row: phone + social ───────────────────────────────────
+.rms-header-v3__meta {
+    display: none;
+
+    @include breakpoint($breakpoint-lg) {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: $space-3 0;
+        border-bottom: 1px solid rgba($color-white, 0.12);
+    }
+}
+
+.rms-header-v3__phone {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    margin-right: $space-5;
+    padding-right: $space-5;
+    border-right: 1px solid rgba($color-white, 0.18);
+    color: rgba($color-white, 0.8);
+    text-decoration: none;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    letter-spacing: 0.02em;
+    transition: color $transition-fast;
+
+    @include focus-ring;
+
+    &:hover {
+        color: $color-white;
+    }
+}
+
+.rms-header-v3__icon {
+    flex-shrink: 0;
+}
+
+.rms-header-v3__social {
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+}
+
+.rms-header-v3__social-link {
+    color: rgba($color-white, 0.55);
+    transition: color $transition-fast, transform $transition-fast;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @include focus-ring;
+
+    &:hover {
+        color: $color-accent;
+        transform: translateY(-1px);
+    }
+}
+
+// ─── Nav row: navigation + hamburger ─────────────────────────────
+.rms-header-v3__nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: $space-3 0 $space-4;
+    gap: $space-6;
+
+    @include breakpoint($breakpoint-lg) {
+        padding: $space-4 0;
+    }
+}
+
+// Desktop nav
+.rms-header-v3__nav {
+    display: none;
+
+    @include breakpoint($breakpoint-lg) {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-left: auto;
+    }
+}
+
+.rms-header-v3__nav-list {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rms-header-v3__nav-item {
+    position: relative;
+}
+
+.rms-header-v3__nav-link {
+    position: relative;
+    display: inline-block;
+    color: rgba($color-white, 0.8);
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: $space-2 $space-4;
+    transition: color $transition-fast;
+
+    @include focus-ring;
+
+    // Underline indicator
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: $space-4;
+        right: $space-4;
+        height: 2px;
+        background-color: $color-accent;
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform $transition-base;
+    }
+
+    &:hover,
+    &:focus {
+        color: $color-white;
+
+        &::after {
+            transform: scaleX(1);
+        }
+    }
+
+    &--active {
+        color: $color-white;
+
+        &::after {
+            transform: scaleX(1);
+        }
+    }
+}
+
+// ─── Hamburger toggle ───────────────────────────────────────────
+.rms-header-v3__menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid rgba($color-white, 0.25);
+    border-radius: $radius-sm;
+    padding: $space-2 $space-3;
+    cursor: pointer;
+    margin-left: auto;
+    transition: border-color $transition-fast, background-color $transition-fast;
+
+    @include focus-ring;
+
+    &:hover {
+        border-color: rgba($color-white, 0.5);
+        background-color: rgba($color-white, 0.08);
+    }
+
+    @include breakpoint($breakpoint-lg) {
+        display: none;
+    }
+}
+
+.rms-header-v3__hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 22px;
+
+    span {
+        display: block;
+        width: 100%;
+        height: 2px;
+        background-color: $color-white;
+        border-radius: 1px;
+        transition: transform $transition-base, opacity $transition-fast;
+    }
+}
+
+// Hamburger → X animation when menu is open
+.rms-header-v3__menu-toggle[aria-expanded='true'] {
+    .rms-header-v3__hamburger {
+        span:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        span:nth-child(2) {
+            opacity: 0;
+        }
+
+        span:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+    }
+}
+
+// ─── Mobile overlay ─────────────────────────────────────────────
+.rms-header-v3__overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba($color-black, 0.6);
+    z-index: $z-overlay;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity $transition-base, visibility $transition-base;
+    backdrop-filter: blur(2px);
+
+    &.is-active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+// ─── Mobile menu — full-screen dark panel ───────────────────────
+.rms-header-v3__mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 380px;
+    height: 100%;
+    background: linear-gradient(
+        135deg,
+        rgba($color-gray-900, 0.98) 0%,
+        rgba($color-black, 0.99) 100%
+    );
+    z-index: $z-modal;
+    transform: translateX(100%);
+    transition: transform $transition-slow;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+
+    &.is-open {
+        transform: translateX(0);
+    }
+}
+
+.rms-header-v3__mobile-header {
+    @include flex-between;
+    padding: $space-6;
+    border-bottom: 1px solid rgba($color-white, 0.08);
+    flex-shrink: 0;
+}
+
+.rms-header-v3__mobile-title {
+    color: $color-white;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.rms-header-v3__mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid rgba($color-white, 0.2);
+    border-radius: $radius-full;
+    width: 40px;
+    height: 40px;
+    color: $color-white;
+    cursor: pointer;
+    transition: border-color $transition-fast, background-color $transition-fast;
+
+    @include focus-ring;
+
+    &:hover {
+        border-color: rgba($color-white, 0.5);
+        background-color: rgba($color-white, 0.1);
+    }
+}
+
+.rms-header-v3__mobile-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: $space-6;
+    flex: 1;
+}
+
+.rms-header-v3__mobile-nav-item {
+    border-bottom: 1px solid rgba($color-white, 0.06);
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.rms-header-v3__mobile-nav-link {
+    display: block;
+    color: rgba($color-white, 0.75);
+    text-decoration: none;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-medium;
+    padding: $space-4 $space-2;
+    letter-spacing: 0.02em;
+    transition: color $transition-fast, padding-left $transition-fast;
+
+    @include focus-ring;
+
+    &:hover,
+    &:focus {
+        color: $color-white;
+        padding-left: $space-4;
+    }
+}
+
+// ─── Mobile footer: phone + socials ──────────────────────────────
+.rms-header-v3__mobile-footer {
+    padding: $space-6;
+    border-top: 1px solid rgba($color-white, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+    flex-shrink: 0;
+}
+
+.rms-header-v3__mobile-phone {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    color: rgba($color-white, 0.7);
+    text-decoration: none;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    transition: color $transition-fast;
+
+    &:hover {
+        color: $color-accent;
+    }
+}
+
+.rms-header-v3__mobile-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-6;
+    padding-top: $space-2;
+
+    a {
+        color: rgba($color-white, 0.45);
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        text-decoration: none;
+        letter-spacing: 0.06em;
+        transition: color $transition-fast;
+
+        &:hover {
+            color: $color-white;
+        }
+    }
+}
+
+// ─── Reduced motion ─────────────────────────────────────────────
+@include reduced-motion {
+    .rms-header-v3__mobile-menu,
+    .rms-header-v3__overlay,
+    .rms-header-v3__nav-link::after,
+    .rms-header-v3__social-link,
+    .rms-header-v3__cta,
+    .rms-header-v3__hamburger span {
+        transition: none;
+    }
+}
