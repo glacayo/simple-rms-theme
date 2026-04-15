@@ -1,0 +1,147 @@
+// ============================================
+// Breadcrumb Page — Internal Page Hero Banner
+// ============================================
+// Full-width hero-style breadcrumb with background image,
+// dark overlay, centered H1 + breadcrumb navigation.
+// Neutral premium style — works with all header variants.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.breadcrumb-page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: $space-24 $container-padding $space-16;
+  background-image: var(--breadcrumb-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+
+  @include breakpoint($breakpoint-md) {
+    min-height: 380px;
+    padding: $space-24 $container-padding $space-20;
+  }
+}
+
+// ─── Dark Overlay ───────────────────────────────────────────────────
+.breadcrumb-page__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba($color-black, 0.7);
+  pointer-events: none;
+  z-index: 1;
+}
+
+// ─── Content — above the overlay ────────────────────────────────────
+.breadcrumb-page__content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+// ─── Page Title (H1) ────────────────────────────────────────────────
+.breadcrumb-page__title {
+  color: $color-white;
+  font-family: $font-family-heading;
+  font-size: $font-size-4xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin: 0 0 $space-4;
+  letter-spacing: -0.02em;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-5xl;
+    margin-bottom: $space-5;
+  }
+}
+
+// ─── Breadcrumb Navigation Row ──────────────────────────────────────
+.breadcrumb-page__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: $space-2;
+  font-size: $font-size-sm;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-base;
+    gap: $space-3;
+  }
+}
+
+// ─── Home Link ──────────────────────────────────────────────────────
+.breadcrumb-page__link {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  color: $color-gray-300;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-white;
+  }
+
+  @include focus-ring;
+}
+
+// ─── Home Icon (inline SVG) ─────────────────────────────────────────
+.breadcrumb-page__home-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+// ─── Separator ──────────────────────────────────────────────────────
+.breadcrumb-page__separator {
+  color: $color-gray-500;
+  user-select: none;
+}
+
+// ─── Current Page Label ─────────────────────────────────────────────
+.breadcrumb-page__current {
+  color: $color-white;
+  font-weight: $font-weight-medium;
+}
+
+// ─── Yoast Breadcrumb Output ────────────────────────────────────────
+.breadcrumb-page__yoast {
+  color: $color-gray-300;
+
+  a {
+    color: $color-gray-300;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-white;
+    }
+
+    @include focus-ring;
+  }
+
+  .breadcrumb_last {
+    color: $color-white;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// ─── Fallback Warning ───────────────────────────────────────────────
+.breadcrumb-page__plugin-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-2 $space-4;
+  border: 1px solid rgba($color-white, 0.2);
+  border-radius: $radius-full;
+  background-color: rgba($color-white, 0.08);
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}

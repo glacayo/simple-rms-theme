@@ -46,6 +46,11 @@
         }
     }
 
+    // Internal page: About Us — breadcrumb above the fold
+    if (is_page_template('pages/about-us.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {

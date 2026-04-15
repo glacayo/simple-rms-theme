@@ -70,6 +70,8 @@ export default defineConfig({
         'vision-mission-v1': path.resolve(__dirname, 'src/scss/sections/vision-mission-v1.scss'),
         'vision-mission-v2': path.resolve(__dirname, 'src/scss/sections/vision-mission-v2.scss'),
         'seo-content': path.resolve(__dirname, 'src/scss/sections/seo-content.scss'),
+        // Internal page breadcrumbs
+        'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
         // Footer
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS
