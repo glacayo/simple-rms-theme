@@ -7,7 +7,7 @@
 class Vite_Icons_Integration {
     private static $instance = null;
     private $is_development = false;
-    private $vite_server = 'http://100.95.59.103:3000';
+    private $vite_server = 'http://localhost:3000';
 
     public static function get_instance() {
         if (self::$instance == null) {
