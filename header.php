@@ -51,6 +51,13 @@
         echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
     }
 
+    // Internal page: Services — breadcrumb + services section (below the fold, deferred)
+    if (is_page_template('pages/services.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        $vite->get_deferred_style('section-services-page', 'src/scss/sections/services-page.scss');
+        $vite->get_deferred_style('section-cta-v2', 'src/scss/sections/cta-v2.scss');
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {

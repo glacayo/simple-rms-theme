@@ -70,6 +70,8 @@ export default defineConfig({
         'vision-mission-v1': path.resolve(__dirname, 'src/scss/sections/vision-mission-v1.scss'),
         'vision-mission-v2': path.resolve(__dirname, 'src/scss/sections/vision-mission-v2.scss'),
         'seo-content': path.resolve(__dirname, 'src/scss/sections/seo-content.scss'),
+        // Internal page: Services
+        'services-page': path.resolve(__dirname, 'src/scss/sections/services-page.scss'),
         // Internal page breadcrumbs
         'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
         // Footer
@@ -102,9 +104,6 @@ export default defineConfig({
     cors: true,
     strictPort: true,
     port: 3000,
-    hmr: {
-      host: 'localhost',
-      port: 3000,
-    },
+    host: '0.0.0.0',
   },
 })
