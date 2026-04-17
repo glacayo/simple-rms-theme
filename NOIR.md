@@ -10,6 +10,7 @@
 | Date | Task |
 |------|------|
 | 2026-04-16 | Build the Services internal page |
+| 2026-04-17 | Build the Contact Us internal page |
 
 > Today's task for **2026-04-16** is described below.
 
@@ -241,3 +242,147 @@ The task is complete when:
 - If something is ambiguous, prioritize consistency with the current theme system
 - Prefer reuse over reinvention
 - The final implementation should feel production-oriented, not demo-like
+
+---
+
+> Today's task for **2026-04-17** is described below.
+
+---
+
+## Main Task — 2026-04-17
+Build the **Contact Us internal page**.
+
+### Goal
+The AI must convert `pages/contact-us.php` from a blank stub into a complete internal page composed of:
+1. Breadcrumb
+2. Two-column contact info + form section
+3. Full-width Google Maps embed section
+4. Footer
+
+---
+
+## Detailed Instructions
+
+### 1. Build the page template in `pages/contact-us.php`
+
+It must render in this order:
+
+```php
+<?php
+/*
+ * Template Name: Contact Us
+ */
+
+get_header();
+
+get_template_part('templates/breadcrumb');
+get_template_part('templates/contact-info');
+get_template_part('templates/contact-map');
+
+get_footer();
+```
+
+---
+
+### 2. Create `templates/contact-info.php`
+
+This template renders a **two-column layout** inside a `.container`:
+
+#### Left column — Company Info
+- Phone numbers
+- Email addresses
+- Physical address
+- Free Estimate Available
+- Speak English and Spanish
+- Schedule (business hours)
+- Covered Area
+- Payment Methods accepted
+
+#### Right column — Contact Form
+Fields:
+- Name
+- Email
+- Phone
+- Zip Code
+- Services of Interest (select or text)
+- Brief of Your Project (textarea)
+- Submit button
+
+Use hardcoded content. No ACF, no plugin dependency.
+
+---
+
+### 3. Create `templates/contact-map.php`
+
+This template renders a **full-width Google Maps embed**:
+
+- Width: 100%
+- Height: 550px
+- Use a standard `<iframe>` Google Maps embed
+- The section must be full-width (outside or ignoring `.container` constraints)
+- Use a placeholder embed URL (any real-looking Google Maps embed)
+
+---
+
+### 4. Create SCSS files
+
+#### `src/scss/sections/contact-info.scss`
+- Two-column layout on desktop (info + form)
+- Single column on mobile
+- Clean contractor-style aesthetics
+- Form inputs should be styled consistently with the theme
+- BEM naming
+
+#### `src/scss/sections/contact-map.scss`
+- Full-width section, no horizontal padding
+- Map iframe fills the container: `width: 100%; height: 550px;`
+- BEM naming
+
+---
+
+### 5. Register CSS in Vite
+Update `vite.config.ts` and register:
+
+```ts
+'contact-info': path.resolve(__dirname, 'src/scss/sections/contact-info.scss'),
+'contact-map':  path.resolve(__dirname, 'src/scss/sections/contact-map.scss'),
+```
+
+---
+
+### 6. Ensure CSS loads on the Contact Us page
+Detect `is_page_template('pages/contact-us.php')` in `header.php` and load both CSS files in a **deferred / non-render-blocking way** (below-the-fold content).
+
+Also ensure the breadcrumb CSS is loaded here if not already generalized.
+
+---
+
+## Expected Deliverables
+- `pages/contact-us.php`
+- `templates/contact-info.php`
+- `templates/contact-map.php`
+- `src/scss/sections/contact-info.scss`
+- `src/scss/sections/contact-map.scss`
+- `vite.config.ts` (modified)
+- `header.php` (modified for CSS loading)
+
+---
+
+## Definition of Done
+- Contact Us page renders correctly
+- Breadcrumb appears
+- Two-column layout: info left, form right
+- Form fields are all present and styled
+- Google Maps iframe renders full-width at 550px height
+- CSS is correctly loaded (deferred)
+- Page is visually coherent with the rest of the theme
+
+---
+
+## Constraints
+- No Gutenberg / block theme patterns
+- No ACF
+- Hardcoded content is acceptable
+- Respect BEM
+- Respect deferred CSS approach
+- Keep consistent with current theme architecture
