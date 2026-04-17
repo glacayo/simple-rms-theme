@@ -58,6 +58,17 @@
         $vite->get_deferred_style('section-cta-v2', 'src/scss/sections/cta-v2.scss');
     }
 
+    // Internal page: Projects / Gallery — breadcrumb + gallery grid + lightbox
+    if (is_page_template('pages/projects.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        $vite->get_deferred_style('section-gallery-grid', 'src/scss/sections/gallery-grid.scss');
+        $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
+        $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
+        if ($lightbox_js) {
+            wp_enqueue_script('lightbox-js', $lightbox_js, [], null, true);
+        }
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {

@@ -72,6 +72,8 @@ export default defineConfig({
         'seo-content': path.resolve(__dirname, 'src/scss/sections/seo-content.scss'),
         // Internal page: Services
         'services-page': path.resolve(__dirname, 'src/scss/sections/services-page.scss'),
+        // Internal page: Gallery / Projects
+        'gallery-grid': path.resolve(__dirname, 'src/scss/sections/gallery-grid.scss'),
         // Internal page breadcrumbs
         'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
         // Footer
