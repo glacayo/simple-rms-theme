@@ -10,7 +10,7 @@
 | Date | Task |
 |------|------|
 | 2026-04-16 | Build the Services internal page |
-| 2026-04-17 | Build the Contact Us internal page |
+| 2026-04-18 | Build the Contact Us internal page |
 
 > Today's task for **2026-04-16** is described below.
 
@@ -245,7 +245,7 @@ The task is complete when:
 
 ---
 
-> Today's task for **2026-04-17** is described below.
+> Today's task for **2026-04-18** is described below.
 
 ---
 
