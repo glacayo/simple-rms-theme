@@ -1,0 +1,159 @@
+<!-- Contact Info + Form — Two Column Layout -->
+<section class="contact-info" id="contact">
+    <div class="container">
+        <div class="contact-info__grid">
+
+            <!-- Left Column: Company Info -->
+            <div class="contact-info__info">
+                <h2 class="contact-info__headline">Get in Touch</h2>
+                <p class="contact-info__intro">We're here to help with any roofing project. Reach out for a free estimate or to schedule a consultation.</p>
+
+                <div class="contact-info__list">
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--phone">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.82 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.73 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.78 5.78l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Phone</strong>
+                            <a href="tel:+14142468257" class="contact-info__item-value">+1 (414) 246-8257</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--email">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Email</strong>
+                            <a href="mailto:info@ravenmarketing.services" class="contact-info__item-value">info@ravenmarketing.services</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--location">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Address</strong>
+                            <span class="contact-info__item-value">Milwaukee, Wisconsin, USA</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item contact-info__item--highlight">
+                        <span class="contact-info__icon contact-info__icon--badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Free Estimate Available</strong>
+                            <span class="contact-info__item-value">No obligation quote within 24 hours</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--lang">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Languages</strong>
+                            <span class="contact-info__item-value">English &amp; Spanish</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--clock">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Business Hours</strong>
+                            <span class="contact-info__item-value">Mon - Fri: 8:00 AM - 6:00 PM<br>Sat: 9:00 AM - 2:00 PM</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--map">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Service Area</strong>
+                            <span class="contact-info__item-value">Greater Milwaukee &amp; surrounding counties</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__item">
+                        <span class="contact-info__icon contact-info__icon--payment">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        </span>
+                        <div>
+                            <strong class="contact-info__item-label">Payment Methods</strong>
+                            <span class="contact-info__item-value">Cash, Check, Credit Card, Financing Available</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Column: Contact Form -->
+            <div class="contact-info__form-wrapper">
+                <h3 class="contact-info__form-headline">Request a Free Estimate</h3>
+                <form class="contact-info__form" action="#" method="POST" novalidate>
+
+                    <div class="contact-info__form-row contact-info__form-row--2col">
+                        <div class="contact-info__field">
+                            <label for="contact-name" class="contact-info__label">Full Name <span class="contact-info__required">*</span></label>
+                            <input type="text" id="contact-name" name="contact_name" class="contact-info__input" placeholder="John Doe" required>
+                        </div>
+                        <div class="contact-info__field">
+                            <label for="contact-email" class="contact-info__label">Email Address <span class="contact-info__required">*</span></label>
+                            <input type="email" id="contact-email" name="contact_email" class="contact-info__input" placeholder="john@example.com" required>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__form-row contact-info__form-row--2col">
+                        <div class="contact-info__field">
+                            <label for="contact-phone" class="contact-info__label">Phone Number <span class="contact-info__required">*</span></label>
+                            <input type="tel" id="contact-phone" name="contact_phone" class="contact-info__input" placeholder="(414) 000-0000" required>
+                        </div>
+                        <div class="contact-info__field">
+                            <label for="contact-zip" class="contact-info__label">Zip Code <span class="contact-info__required">*</span></label>
+                            <input type="text" id="contact-zip" name="contact_zip" class="contact-info__input" placeholder="53201" required>
+                        </div>
+                    </div>
+
+                    <div class="contact-info__field">
+                        <label for="contact-service" class="contact-info__label">Service of Interest</label>
+                        <select id="contact-service" name="contact_service" class="contact-info__select">
+                            <option value="">Select a service...</option>
+                            <option value="roof-installation">Roof Installation</option>
+                            <option value="roof-repair">Roof Repair</option>
+                            <option value="roof-replacement">Roof Replacement</option>
+                            <option value="roof-inspection">Roof Inspection</option>
+                            <option value="gutter-installation">Gutter Installation</option>
+                            <option value="emergency-services">Emergency Services</option>
+                            <option value="storm-damage">Storm Damage Repair</option>
+                            <option value="leak-detection">Leak Detection</option>
+                            <option value="skylight">Skylight Installation</option>
+                            <option value="maintenance">Preventive Maintenance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="contact-info__field">
+                        <label for="contact-message" class="contact-info__label">Brief Description of Your Project <span class="contact-info__required">*</span></label>
+                        <textarea id="contact-message" name="contact_message" class="contact-info__textarea" rows="5" placeholder="Tell us about your project, the type of property, and any specific needs or concerns..." required></textarea>
+                    </div>
+
+                    <div class="contact-info__form-actions">
+                        <button type="submit" class="contact-info__submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Send Message
+                        </button>
+                        <p class="contact-info__form-note">We typically respond within 24 hours.</p>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</section>

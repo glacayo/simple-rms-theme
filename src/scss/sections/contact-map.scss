@@ -1,0 +1,28 @@
+// ============================================
+// Contact Map — Full-Width Google Maps Embed
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.contact-map {
+  width: 100%;
+  line-height: 0; // removes bottom gap on iframe container
+}
+
+// ─── Embed Container ────────────────────────────────────────────────
+.contact-map__embed {
+  width: 100%;
+  height: 400px;
+
+  @include breakpoint($breakpoint-md) {
+    height: 550px;
+  }
+}
+
+// ─── Iframe ─────────────────────────────────────────────────────────
+.contact-map__iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

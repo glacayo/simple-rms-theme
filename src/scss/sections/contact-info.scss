@@ -1,0 +1,293 @@
+// ============================================
+// Contact Info — Two-Column Layout (Info + Form)
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.contact-info {
+  padding: $space-16 $container-padding;
+  background-color: $color-white;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 $container-padding;
+  }
+}
+
+// ─── Grid ───────────────────────────────────────────────────────────
+.contact-info__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-12;
+
+  @include breakpoint($breakpoint-lg) {
+    grid-template-columns: 1fr 1fr;
+    gap: $space-16;
+  }
+}
+
+// ─── Left Column: Info ──────────────────────────────────────────────
+.contact-info__info {}
+
+.contact-info__headline {
+  color: $color-black;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.contact-info__intro {
+  color: $color-gray-600;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  margin-bottom: $space-10;
+  max-width: 480px;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+// ─── Info List ──────────────────────────────────────────────────────
+.contact-info__list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.contact-info__item {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-4;
+
+  &--highlight {
+    background-color: $color-gray-50;
+    border: 1px solid $color-gray-200;
+    border-radius: $radius-md;
+    padding: $space-4;
+  }
+}
+
+.contact-info__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+  color: $color-white;
+
+  &--phone {
+    background-color: $color-primary;
+  }
+
+  &--email {
+    background-color: $color-secondary;
+  }
+
+  &--location {
+    background-color: $color-accent;
+  }
+
+  &--badge {
+    background-color: $color-success;
+  }
+
+  &--lang {
+    background-color: $color-gray-700;
+  }
+
+  &--clock {
+    background-color: $color-gray-600;
+  }
+
+  &--map {
+    background-color: $color-primary;
+  }
+
+  &--payment {
+    background-color: $color-secondary;
+  }
+}
+
+.contact-info__item-label {
+  display: block;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: $space-1;
+}
+
+.contact-info__item-value {
+  display: block;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $color-gray-800;
+  line-height: $line-height-normal;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-primary;
+  }
+}
+
+a.contact-info__item-value {
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-primary-hover;
+  }
+}
+
+// ─── Right Column: Form ─────────────────────────────────────────────
+.contact-info__form-wrapper {
+  background-color: $color-gray-50;
+  border: 1px solid $color-gray-200;
+  border-radius: $radius-xl;
+  padding: $space-8;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-10;
+  }
+}
+
+.contact-info__form-headline {
+  color: $color-black;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-8;
+}
+
+// ─── Form Rows ──────────────────────────────────────────────────────
+.contact-info__form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  &--2col {
+    @include breakpoint($breakpoint-sm) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}
+
+// ─── Field ──────────────────────────────────────────────────────────
+.contact-info__field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.contact-info__label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-gray-700;
+}
+
+.contact-info__required {
+  color: $color-error;
+}
+
+.contact-info__input,
+.contact-info__select,
+.contact-info__textarea {
+  width: 100%;
+  padding: $space-3 $space-4;
+  font-size: $font-size-base;
+  font-family: $font-family-base;
+  color: $color-gray-900;
+  background-color: $color-white;
+  border: 1px solid $color-gray-300;
+  border-radius: $radius-md;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  appearance: none;
+
+  &::placeholder {
+    color: $color-gray-400;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+  }
+
+  &:hover:not(:focus) {
+    border-color: $color-gray-400;
+  }
+}
+
+.contact-info__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right $space-4 center;
+  padding-right: $space-10;
+  cursor: pointer;
+}
+
+.contact-info__textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: $line-height-normal;
+}
+
+// ─── Form Actions ───────────────────────────────────────────────────
+.contact-info__form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $space-3;
+  margin-top: $space-6;
+
+  @include breakpoint($breakpoint-sm) {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.contact-info__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-4 $space-8;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  font-family: $font-family-base;
+  color: $color-white;
+  background-color: $color-primary;
+  border: 2px solid $color-primary;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background-color $transition-fast,
+              border-color $transition-fast,
+              box-shadow $transition-fast,
+              transform $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    border-color: $color-primary-hover;
+    box-shadow: 0 4px 16px rgba($color-primary, 0.35);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @include focus-ring;
+}
+
+.contact-info__form-note {
+  font-size: $font-size-sm;
+  color: $color-gray-500;
+  line-height: $line-height-normal;
+}
