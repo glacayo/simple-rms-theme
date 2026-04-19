@@ -69,6 +69,13 @@
         }
     }
 
+    // Internal page: Contact Us — breadcrumb + contact info + contact map
+    if (is_page_template('pages/contact-us.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        $vite->get_deferred_style('section-contact-info', 'src/scss/sections/contact-info.scss');
+        $vite->get_deferred_style('section-contact-map', 'src/scss/sections/contact-map.scss');
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {

@@ -74,6 +74,9 @@ export default defineConfig({
         'services-page': path.resolve(__dirname, 'src/scss/sections/services-page.scss'),
         // Internal page: Gallery / Projects
         'gallery-grid': path.resolve(__dirname, 'src/scss/sections/gallery-grid.scss'),
+        // Internal page: Contact Us
+        'contact-info': path.resolve(__dirname, 'src/scss/sections/contact-info.scss'),
+        'contact-map':  path.resolve(__dirname, 'src/scss/sections/contact-map.scss'),
         // Internal page breadcrumbs
         'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
         // Footer
