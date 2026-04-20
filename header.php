@@ -76,6 +76,12 @@
         $vite->get_deferred_style('section-contact-map', 'src/scss/sections/contact-map.scss');
     }
 
+    // Internal page: Blog — breadcrumb + blog listing
+    if (is_page_template('pages/blog.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        $vite->get_deferred_style('section-blog-listing', 'src/scss/sections/blog-listing.scss');
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {
