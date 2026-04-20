@@ -398,7 +398,9 @@ Also ensure the breadcrumb CSS is loaded here if not already generalized.
 Build the **Blog page template**.
 
 ### Goal
-The AI must create a fully functional WordPress blog listing page using a custom page template. Single-column layout, no sidebar. Displays up to 10 posts per page with pagination.
+The AI must create a fully functional WordPress blog listing page using a custom page template. Single-column layout, no sidebar. Displays up to 10 hardcoded post cards with hardcoded pagination UI.
+
+> **IMPORTANT: ALL content must be hardcoded HTML. Do NOT use WP_Query, get_the_excerpt(), get_the_date(), get_the_author(), get_the_tags(), paginate_links(), or any other WordPress function inside the templates. Pure static HTML only.**
 
 ---
 
@@ -425,29 +427,21 @@ get_footer();
 ### 2. Create `templates/blog-listing.php`
 
 This template must:
-- Query posts using `WP_Query` with `posts_per_page: 10` and support for pagination via `paged`
-- Render each post as a **card** in a single-column layout
+- Render **10 hardcoded post cards** in a single-column layout
+- Render a **hardcoded pagination UI** at the bottom (e.g. pages 1 2 3 … Next)
+- **NO WordPress loop, NO WP_Query, NO template tags** — pure static HTML
 
 #### Each post card must display (in this order):
-1. **Featured image** — 900×500, use `get_the_post_thumbnail()` with a registered size or `wp_get_attachment_image_src`. If no image, show a placeholder (`https://placehold.co/900x500`)
-2. **Title** — `<h2>` linking to the single post
-3. **Meta row** — date, author, and tags (all on the same line, separated visually)
-4. **Excerpt** — `get_the_excerpt()`, trimmed and readable
-5. **Read More button** — links to `get_permalink()`
+1. **Featured image** — 900×500, hardcoded `<img>` using `https://placehold.co/900x500`
+2. **Title** — `<h2>` with a hardcoded `<a href="#">` link
+3. **Meta row** — hardcoded date, author, and tags (all on the same line, separated visually)
+4. **Excerpt** — hardcoded short paragraph (~25–35 words)
+5. **Read More button** — hardcoded `<a href="#">` styled as a button
 
-#### After the loop:
-- Render **pagination** using `paginate_links()` or the theme's existing pagination helper if one exists
+#### After the 10 cards:
+- Render a **hardcoded pagination UI** — e.g. `« 1 2 3 … Next »`
 - Pagination must be responsive and styled
-
-#### WP_Query example structure:
-```php
-$paged = get_query_var('paged') ? get_query_var('paged') : 1;
-$query = new WP_Query([
-    'post_type'      => 'post',
-    'posts_per_page' => 10,
-    'paged'          => $paged,
-]);
-```
+- It does NOT need to be functional — just the visual design
 
 ---
 
@@ -503,9 +497,9 @@ Also ensure breadcrumb CSS is loaded here if not already generalized.
 ---
 
 ## Definition of Done
-- Blog page renders with up to 10 posts per page
-- Each card shows: featured image (900×500), h2 title, meta (date · author · tags), excerpt, Read More button
-- Pagination renders and works correctly
+- Blog page renders with 10 hardcoded post cards
+- Each card shows: featured image (900×500 placeholder), h2 title, meta (date · author · tags), excerpt, Read More button
+- Hardcoded pagination UI renders at the bottom
 - Layout is single column, no sidebar
 - CSS is correctly loaded (deferred)
 - Page is visually coherent with the rest of the theme
@@ -515,7 +509,8 @@ Also ensure breadcrumb CSS is loaded here if not already generalized.
 ## Constraints
 - No Gutenberg / block theme patterns
 - No ACF
-- Use real WordPress functions (`WP_Query`, `get_the_excerpt()`, `get_the_date()`, `get_the_author()`, `get_the_tags()`, `paginate_links()`)
+- **ALL content is hardcoded HTML — no WordPress template tags or functions inside templates**
+- **No WP_Query, no get_the_excerpt(), no get_the_date(), no get_the_author(), no get_the_tags(), no paginate_links()**
 - Respect BEM
 - Respect deferred CSS approach
 - Keep consistent with current theme architecture
