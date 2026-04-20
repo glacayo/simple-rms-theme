@@ -82,6 +82,18 @@
   line-height: $line-height-normal;
 }
 
+.blog-listing__card-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  color: $color-gray-500;
+
+  svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+}
+
 .blog-listing__card-date,
 .blog-listing__card-author {
   color: $color-gray-500;
@@ -99,7 +111,9 @@
 }
 
 .blog-listing__card-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px $space-2;
   background-color: $color-gray-100;
   color: $color-gray-600;
@@ -109,9 +123,18 @@
   text-decoration: none;
   transition: background-color $transition-fast, color $transition-fast;
 
+  svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
   &:hover {
     background-color: $color-primary;
     color: $color-white;
+
+    svg {
+      opacity: 0.9;
+    }
   }
 }
 
