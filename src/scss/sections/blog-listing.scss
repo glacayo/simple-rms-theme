@@ -1,0 +1,257 @@
+// ============================================
+// Blog Listing — Single-Column Post Cards + Pagination
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Section ────────────────────────────────────────────────────────
+.blog-listing {
+  padding: $space-12 $container-padding;
+  background-color: $color-white;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-16 $container-padding;
+  }
+}
+
+// ─── Card ───────────────────────────────────────────────────────────
+.blog-listing__card {
+  padding-bottom: $space-10;
+  margin-bottom: $space-10;
+  border-bottom: 1px solid $color-gray-200;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover {
+    .blog-listing__card-title a {
+      color: $color-primary;
+    }
+  }
+}
+
+// ─── Card Image ─────────────────────────────────────────────────────
+.blog-listing__card-image {
+  width: 100%;
+  aspect-ratio: 9 / 5;
+  object-fit: cover;
+  display: block;
+  border-radius: $radius-lg;
+  margin-bottom: $space-6;
+  background-color: $color-gray-100;
+}
+
+// ─── Card Content ───────────────────────────────────────────────────
+.blog-listing__card-content {}
+
+// ─── Card Title ─────────────────────────────────────────────────────
+.blog-listing__card-title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-3xl;
+  }
+
+  a {
+    color: $color-black;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-primary;
+      text-decoration: underline;
+    }
+
+    @include focus-ring;
+  }
+}
+
+// ─── Card Meta ──────────────────────────────────────────────────────
+.blog-listing__card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  color: $color-gray-500;
+  margin-bottom: $space-4;
+  line-height: $line-height-normal;
+}
+
+.blog-listing__card-date,
+.blog-listing__card-author {
+  color: $color-gray-500;
+}
+
+.blog-listing__card-sep {
+  color: $color-gray-400;
+  font-size: $font-size-xs;
+}
+
+.blog-listing__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.blog-listing__card-tag {
+  display: inline-block;
+  padding: 2px $space-2;
+  background-color: $color-gray-100;
+  color: $color-gray-600;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: background-color $transition-fast, color $transition-fast;
+
+  &:hover {
+    background-color: $color-primary;
+    color: $color-white;
+  }
+}
+
+// ─── Card Excerpt ───────────────────────────────────────────────────
+.blog-listing__card-excerpt {
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  color: $color-gray-600;
+  margin-bottom: $space-6;
+  max-width: 720px;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+// ─── Read More Button ───────────────────────────────────────────────
+.blog-listing__card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 $space-6;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  background-color: transparent;
+  border: 2px solid $color-primary;
+  border-radius: $radius-md;
+  text-decoration: none;
+  transition: background-color $transition-fast,
+              color $transition-fast,
+              box-shadow $transition-fast,
+              transform $transition-fast;
+
+  &:hover {
+    background-color: $color-primary;
+    color: $color-white;
+    box-shadow: 0 4px 12px rgba($color-primary, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @include focus-ring;
+}
+
+// ─── Pagination ─────────────────────────────────────────────────────
+.blog-listing__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  margin-top: $space-12;
+  padding-top: $space-8;
+  border-top: 1px solid $color-gray-200;
+}
+
+.blog-listing__pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.blog-listing__pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  padding: $space-2 $space-4;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-gray-600;
+  background-color: transparent;
+  border: 1px solid $color-gray-300;
+  border-radius: $radius-md;
+  text-decoration: none;
+  transition: background-color $transition-fast,
+              color $transition-fast,
+              border-color $transition-fast;
+
+  &:hover {
+    background-color: $color-gray-50;
+    color: $color-gray-900;
+    border-color: $color-gray-400;
+  }
+
+  @include focus-ring;
+
+  &--disabled,
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+.blog-listing__pagination-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-gray-600;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  text-decoration: none;
+  transition: background-color $transition-fast,
+              color $transition-fast,
+              border-color $transition-fast;
+
+  &:hover {
+    background-color: $color-gray-100;
+    color: $color-gray-900;
+  }
+
+  &--active {
+    background-color: $color-primary;
+    color: $color-white;
+    border-color: $color-primary;
+    cursor: default;
+
+    &:hover {
+      background-color: $color-primary-hover;
+      border-color: $color-primary-hover;
+      color: $color-white;
+    }
+  }
+
+  @include focus-ring;
+}
+
+.blog-listing__pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: $font-size-sm;
+  color: $color-gray-400;
+}

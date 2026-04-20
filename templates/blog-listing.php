@@ -1,0 +1,224 @@
+<!-- Blog Listing — 10 Hardcoded Post Cards + Pagination -->
+<section class="blog-listing">
+    <div class="container">
+
+        <!-- Post Card 1 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Storm Damage Roof Inspection" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">5 Warning Signs Your Roof Needs Immediate Attention</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">April 14, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Mike Johnson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Roof Inspection</a>
+                        <a href="#" class="blog-listing__card-tag">Maintenance</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Missing shingles, water stains on ceilings, and sagging areas are clear red flags that your roof is failing. Catching these early can save you thousands in repairs and prevent structural damage to your home.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 2 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Asphalt Shingle Types" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Asphalt vs. Metal Roofing: Which Is Right for You?</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">April 10, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Sarah Thompson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Roofing Materials</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Both asphalt and metal roofs offer distinct advantages depending on your budget, climate, and aesthetic goals. We break down longevity, cost, energy efficiency, and maintenance so you can decide with confidence.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 3 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Storm Damage Repair" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">How to Handle Storm Damage: A Homeowner's Step-by-Step Guide</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">April 7, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Mike Johnson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Storm Damage</a>
+                        <a href="#" class="blog-listing__card-tag">Insurance</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">After a severe storm, the hours and days following are critical. Document everything, contact your insurance company, and schedule a professional inspection. Delays can worsen damage and complicate your claim.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 4 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Gutter Maintenance" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Why Cleaning Your Gutters Twice a Year Saves Big on Repairs</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">April 3, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Carlos Rivera</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Gutters</a>
+                        <a href="#" class="blog-listing__card-tag">Maintenance</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Clogged gutters lead to water overflow, foundation issues, and roof rot. Regular cleaning in spring and fall is one of the cheapest ways to protect your entire home's structural integrity.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 5 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Skylight Installation" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Skylight Installation: Brighten Your Home Without Overheating It</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">March 28, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Sarah Thompson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Skylights</a>
+                        <a href="#" class="blog-listing__card-tag">Energy Efficiency</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Natural light improves mood and reduces energy bills, but a poorly installed skylight can become a leak magnet. Learn about venting vs. fixed skylights and proper flashing techniques.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 6 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Roof Replacement Timeline" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">What to Expect During a Full Roof Replacement</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">March 24, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Mike Johnson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Roof Replacement</a>
+                        <a href="#" class="blog-listing__card-tag">Home Improvement</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Most homeowners don't know what the roof replacement process actually involves. From permits to debris removal, understanding each step reduces anxiety and helps you prepare your home properly.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 7 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Ice Dam Prevention" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Preventing Ice Dams This Winter: Tips from the Pros</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">March 18, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Carlos Rivera</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Winter Prep</a>
+                        <a href="#" class="blog-listing__card-tag">Ice Dams</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Ice dams cause thousands in water damage every winter. Proper attic insulation, ventilation, and sealing air leaks are the most effective long-term solutions to keep your roof ice-free.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 8 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Commercial Roofing" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Commercial vs. Residential Roofing: Key Differences Every Property Owner Should Know</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">March 12, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Sarah Thompson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Commercial</a>
+                        <a href="#" class="blog-listing__card-tag">Education</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Commercial roofs use entirely different materials, slopes, and installation methods than residential ones. Whether you own a warehouse or a retail plaza, knowing these differences helps you make smarter maintenance decisions.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 9 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Emergency Roof Repair" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Emergency Roof Repairs: What to Do When a Storm Hits at Night</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">March 6, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Mike Johnson</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Emergency</a>
+                        <a href="#" class="blog-listing__card-tag">Storm Damage</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">A roof leak at midnight requires immediate action to minimize interior damage. Tarping, interior water diversions, and documentation are your first lines of defense before professionals arrive.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Post Card 10 -->
+        <article class="blog-listing__card">
+            <img src="https://placehold.co/900x500" alt="Roofing Warranties Explained" class="blog-listing__card-image" loading="lazy">
+            <div class="blog-listing__card-content">
+                <h2 class="blog-listing__card-title"><a href="#">Understanding Roofing Warranties: What's Actually Covered</a></h2>
+                <div class="blog-listing__card-meta">
+                    <time class="blog-listing__card-date">February 28, 2026</time>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-author">By Carlos Rivera</span>
+                    <span class="blog-listing__card-sep">&middot;</span>
+                    <span class="blog-listing__card-tags">
+                        <a href="#" class="blog-listing__card-tag">Education</a>
+                        <a href="#" class="blog-listing__card-tag">Warranty</a>
+                    </span>
+                </div>
+                <p class="blog-listing__card-excerpt">Manufacturer warranties, contractor warranties, and workmanship guarantees overlap and exclude different things. Knowing the fine print can be the difference between a covered repair and an expensive surprise.</p>
+                <a href="#" class="blog-listing__card-btn">Read More</a>
+            </div>
+        </article>
+
+        <!-- Pagination -->
+        <nav class="blog-listing__pagination" aria-label="Blog pagination">
+            <a href="#" class="blog-listing__pagination-btn blog-listing__pagination-btn--prev" aria-label="Previous page">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Prev
+            </a>
+            <div class="blog-listing__pagination-pages">
+                <a href="#" class="blog-listing__pagination-page blog-listing__pagination-page--active">1</a>
+                <a href="#" class="blog-listing__pagination-page">2</a>
+                <a href="#" class="blog-listing__pagination-page">3</a>
+                <span class="blog-listing__pagination-ellipsis">&hellip;</span>
+                <a href="#" class="blog-listing__pagination-page">8</a>
+            </div>
+            <a href="#" class="blog-listing__pagination-btn blog-listing__pagination-btn--next" aria-label="Next page">
+                Next
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+        </nav>
+
+    </div>
+</section>
