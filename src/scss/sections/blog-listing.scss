@@ -14,6 +14,17 @@
   }
 }
 
+// ─── Content Column ─────────────────────────────────────────────────
+.blog-listing__content {
+  width: 100%;
+  max-width: 800px;
+  margin-inline: auto;
+
+  @include breakpoint($breakpoint-lg) {
+    max-width: 860px; // ~col-8 of 1280px container
+  }
+}
+
 // ─── Card ───────────────────────────────────────────────────────────
 .blog-listing__card {
   padding-bottom: $space-10;

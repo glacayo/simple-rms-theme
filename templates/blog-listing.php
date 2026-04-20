@@ -1,7 +1,7 @@
 <!-- Blog Listing — 10 Hardcoded Post Cards + Pagination -->
 <section class="blog-listing">
     <div class="container">
-        <div class="col-12 col-lg-8 col-centered">
+        <div class="blog-listing__content">
 
         <!-- Post Card 1 -->
         <article class="blog-listing__card">
