@@ -79,6 +79,8 @@ export default defineConfig({
         'contact-map':  path.resolve(__dirname, 'src/scss/sections/contact-map.scss'),
         // Internal page: Blog
         'blog-listing': path.resolve(__dirname, 'src/scss/sections/blog-listing.scss'),
+        // Single post
+        'single-post': path.resolve(__dirname, 'src/scss/sections/single-post.scss'),
         // Internal page breadcrumbs
         'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
         // Footer
