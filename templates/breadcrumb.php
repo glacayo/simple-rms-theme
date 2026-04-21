@@ -14,7 +14,9 @@
     <div class="breadcrumb-page__overlay"></div>
 
     <div class="container breadcrumb-page__content">
-        <h1 class="breadcrumb-page__title"><?php echo esc_html( get_the_title() ); ?></h1>
+        <?php if ( ! is_single() ) : ?>
+            <h1 class="breadcrumb-page__title"><?php echo esc_html( get_the_title() ); ?></h1>
+        <?php endif; ?>
 
         <nav class="breadcrumb-page__nav" aria-label="Breadcrumb">
             <?php if ( function_exists( 'yoast_breadcrumb' ) ) : ?>

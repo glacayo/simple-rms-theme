@@ -82,6 +82,12 @@
         $vite->get_deferred_style('section-blog-listing', 'src/scss/sections/blog-listing.scss');
     }
 
+    // Single post — breadcrumb + single-post
+    if (is_single()) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-single');
+        $vite->get_deferred_style('section-single-post', 'src/scss/sections/single-post.scss');
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {
