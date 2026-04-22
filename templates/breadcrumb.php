@@ -14,7 +14,7 @@
     <div class="breadcrumb-page__overlay"></div>
 
     <div class="container breadcrumb-page__content">
-        <?php if ( ! is_single() ) : ?>
+        <?php if ( ! is_single() && ! is_page_template( 'pages/landing-page.php' ) ) : ?>
             <h1 class="breadcrumb-page__title"><?php echo esc_html( get_the_title() ); ?></h1>
         <?php endif; ?>
 

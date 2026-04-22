@@ -145,3 +145,20 @@
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
 }
+
+// ─── Slim Modifier — Solid dark bar, no image ───────────────────────
+.breadcrumb-page--slim {
+  min-height: auto;
+  padding: $space-6 $container-padding;
+  background-color: $color-gray-900;
+  background-image: none;
+
+  .breadcrumb-page__overlay {
+    display: none;
+  }
+
+  .breadcrumb-page__content {
+    padding: 0;
+  }
+}
+

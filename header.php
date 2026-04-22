@@ -88,6 +88,15 @@
         $vite->get_deferred_style('section-single-post', 'src/scss/sections/single-post.scss');
     }
 
+    // SEO Landing Page template
+    if (is_page_template('pages/landing-page.php')) {
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-slim');
+        // All sections used by landing page — deferred
+        foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/sections/' . $section . '.scss');
+        }
+    }
+
      // Header — loaded as separate <link> (not inline)
      $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
      if ($header_css) {
