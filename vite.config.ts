@@ -113,6 +113,6 @@ export default defineConfig({
     cors: true,
     strictPort: true,
     port: 3000,
-    host: '100.95.59.103',
+    host: 'localhost',
   },
 })
