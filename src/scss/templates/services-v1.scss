@@ -106,19 +106,4 @@
   margin-top: $space-12;
 }
 
-.services-v1__cta-btn {
-  display: inline-flex;
-  padding: $space-4 $space-10;
-  background-color: $color-primary;
-  color: $color-white;
-  font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast;
-
-  &:hover {
-    background-color: $color-primary-hover;
-  }
-
-  @include focus-ring;
-}
+// Button uses global .btn — no section-specific override needed

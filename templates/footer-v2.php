@@ -3,7 +3,7 @@
     <div class="footer-v2__cta-strip">
         <div class="container footer-v2__cta-inner">
             <p class="footer-v2__cta-text">Need a Free Estimate?</p>
-            <a href="#contact" class="footer-v2__cta-button">Get a Free Estimate</a>
+            <a href="#contact" class="btn footer-v2__cta-button">Get a Free Estimate</a>
         </div>
     </div>
 

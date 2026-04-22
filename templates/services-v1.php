@@ -39,7 +39,7 @@
         </div>
 
         <div class="services-v1__cta">
-            <a href="#" class="services-v1__cta-btn">View All Services</a>
+            <a href="#" class="btn btn--outline-white services-v1__cta-btn">View All Services</a>
         </div>
     </div>
 </section>

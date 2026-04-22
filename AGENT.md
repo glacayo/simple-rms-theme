@@ -23,7 +23,7 @@ Este es un tema de WordPress construido desde cero con un enfoque obsesivo en la
 ### `/src` (Source Code)
 - `ts/main.ts`: Punto de entrada global de JS. Solo lógica crítica.
 - `scss/base/`: Resets, variables de color, tipografía y mixins.
-- `scss/sections/`: **Crucial.** Cada sección del diseño (hero, services, etc.) tiene su propio archivo `.scss`. Estos se registran como inputs individuales en `vite.config.ts`.
+- `scss/templates/`: **Crucial.** Cada sección del diseño (hero, services, etc.) tiene su propio archivo `.scss`. Estos se registran como inputs individuales en `vite.config.ts`.
 - `images/`: Assets estáticos del tema (iconos, decoraciones).
 
 ### `/inc` (Lógica de Negocio PHP)
@@ -32,7 +32,7 @@ Este es un tema de WordPress construido desde cero con un enfoque obsesivo en la
 - `setup.php`: Configuración del tema (image sizes, menus, theme supports).
 
 ### `/templates` (Fragmentos HTML)
-- Contiene los partials de las secciones. Cada `.php` aquí debe tener un hermano `.scss` en `src/scss/sections/`.
+- Contiene los partials de las secciones. Cada `.php` aquí debe tener un hermano `.scss` en `src/scss/templates/`.
 
 ### `/acf-json`
 - Sincronización automática de campos de ACF Pro. **No editar manualmente.**
@@ -61,12 +61,12 @@ Este es un tema de WordPress construido desde cero con un enfoque obsesivo en la
 ## 🔄 Workflow de Desarrollo para el Agente
 
 Cuando se solicite crear una nueva sección (ej: "Testimonios"):
-1. **Crear Estilos:** Generar `src/scss/sections/testimonials.scss`.
+1. **Crear Estilos:** Generar `src/scss/templates/testimonials.scss`.
 2. **Registrar en Vite:** Añadir el nuevo archivo al objeto `input` en `vite.config.ts`.
 3. **Crear Template:** Generar `templates/testimonials.php` con el marcado HTML semántico.
 4. **Vite Bridge:** En el archivo de la página (ej: `front-page.php`), llamar al CSS usando:
-   - Si es Above the fold: `Vite_Icons_Integration::get_instance()->get_critical_css('src/scss/sections/testimonials.scss')`.
-   - Si es Below the fold: `Vite_Icons_Integration::get_instance()->get_asset('src/scss/sections/testimonials.scss')` vía `wp_enqueue_style`.
+   - Si es Above the fold: `Vite_Icons_Integration::get_instance()->get_critical_css('src/scss/templates/testimonials.scss')`.
+   - Si es Below the fold: `Vite_Icons_Integration::get_instance()->get_asset('src/scss/templates/testimonials.scss')` vía `wp_enqueue_style`.
 
 ---
 

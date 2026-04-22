@@ -24,7 +24,7 @@
                     <li class="area-coverage-v1__city">Clermont</li>
                 </ul>
 
-                <a class="area-coverage-v1__cta" href="#" aria-label="Check if your location is within our service area">Check Your Location</a>
+                <a class="btn area-coverage-v1__cta" href="#" aria-label="Check if your location is within our service area">Check Your Location</a>
             </div>
 
             <div class="area-coverage-v1__map" aria-hidden="true">

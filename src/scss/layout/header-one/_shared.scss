@@ -14,7 +14,7 @@
   @include focus-ring;
 }
 
-@mixin dropdown-surface($radius: $radius-md) {
+@mixin dropdown-surface($radius: 0) {
   background-color: $color-white;
   box-shadow: $shadow-lg;
   border-radius: $radius;

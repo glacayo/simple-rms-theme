@@ -102,55 +102,9 @@
   }
 }
 
-// ─── Shared Button Base ─────────────────────────────────────────────
-.cta-v2__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: $space-4 $space-8;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast,
-              color $transition-fast,
-              border-color $transition-fast,
-              box-shadow $transition-base;
-  white-space: nowrap;
-
-  // ─── Primary filled variant ───────────────────────────────────
-  &--primary {
-    color: $color-white;
-    background-color: $color-primary;
-    border: 2px solid $color-primary;
-
-    &:hover {
-      background-color: $color-primary-hover;
-      border-color: $color-primary-hover;
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-    }
-
-    &:active {
-      transform: scale(0.98);
-    }
-
-    @include focus-ring;
-  }
-
-  // ─── Outline variant ──────────────────────────────────────────
-  &--outline {
-    color: $color-white;
-    background-color: transparent;
-    border: 2px solid $color-gray-600;
-
-    &:hover {
-      border-color: $color-white;
-      background-color: rgba(255, 255, 255, 0.06);
-    }
-
-    &:active {
-      transform: scale(0.98);
-    }
-
-    @include focus-ring;
+// Buttons use .btn and .btn--outline — only box-shadow is per-section
+.cta-v2__button--primary {
+  &:hover {
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
   }
 }

@@ -59,7 +59,7 @@
                         Work Backed by Warranty
                     </li>
                 </ul>
-                <a class="vision-mission-v2__cta" href="#contact" aria-label="Request a free consultation">Request a Consultation</a>
+                <a class="btn vision-mission-v2__cta" href="#contact" aria-label="Request a free consultation">Request a Consultation</a>
             </aside>
         </div>
     </div>

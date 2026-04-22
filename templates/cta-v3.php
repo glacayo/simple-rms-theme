@@ -21,7 +21,7 @@
         </div>
         <div class="cta-v3__action">
             <h2 class="cta-v3__headline">Join Our Growing List of Happy Homeowners</h2>
-            <a href="#contact" class="cta-v3__button">Start Your Project Today</a>
+            <a href="#contact" class="btn cta-v3__button">Start Your Project Today</a>
         </div>
     </div>
 </section>

@@ -14,7 +14,7 @@
                         <a href="#" aria-label="Instagram">IG</a>
                         <a href="#" aria-label="LinkedIn">LK</a>
                     </div>
-                    <a href="#" class="rms-header-v2__cta-btn">Get a Free Estimate</a>
+                    <a href="#" class="btn rms-header-v2__cta-btn">Get a Free Estimate</a>
                 </div>
             </div>
         </div>

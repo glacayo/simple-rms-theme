@@ -9,7 +9,7 @@
                 <p class="slider__subheadline">Trusted Roofing Experts</p>
                 <h1 class="slider__headline">Protecting What Matters Most to Your Family</h1>
                 <p class="slider__text">We deliver premium roofing solutions with unmatched craftsmanship and industry-leading warranties. Our certified team handles everything from minor repairs to complete roof replacements with precision and care every time.</p>
-                <a href="#estimate" class="slider__cta">Get Free Estimate</a>
+                <a href="#estimate" class="btn btn--outline-white slider__cta">Get Free Estimate</a>
             </div>
         </div>
 
@@ -20,7 +20,7 @@
                 <p class="slider__subheadline">Quality You Can Count On</p>
                 <h2 class="slider__headline">Residential Roofing Built to Last a Lifetime</h2>
                 <p class="slider__text">From asphalt shingles to metal roofing, we use only the highest quality materials installed by experienced professionals. Every project comes with comprehensive warranties and a commitment to your complete satisfaction.</p>
-                <a href="#services" class="slider__cta">Explore Services</a>
+                <a href="#services" class="btn btn--outline-white slider__cta">Explore Services</a>
             </div>
         </div>
 
@@ -31,7 +31,7 @@
                 <p class="slider__subheadline">Emergency Response</p>
                 <h2 class="slider__headline">Storm Damage Repair Available 24/7</h2>
                 <p class="slider__text">When disaster strikes, our emergency team responds fast to protect your property from further damage. We work directly with insurance companies to streamline your claim and get your roof restored quickly.</p>
-                <a href="#contact" class="slider__cta">Call Now</a>
+                <a href="#contact" class="btn btn--outline-white slider__cta">Call Now</a>
             </div>
         </div>
 

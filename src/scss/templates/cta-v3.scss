@@ -145,31 +145,12 @@
 
 // ─── Button ─────────────────────────────────────────────────────────
 .cta-v3__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: $space-4 $space-10;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $color-white;
-  background-color: $color-primary;
-  border: 2px solid $color-primary;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast,
-              border-color $transition-fast,
-              box-shadow $transition-base,
-              transform $transition-fast;
-
+  // Uses .btn with transform on hover — unique per-section behavior
   &:hover {
-    background-color: $color-primary-hover;
-    border-color: $color-primary-hover;
-    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
     transform: translateY(-2px);
   }
 
   &:active {
     transform: translateY(0) scale(0.98);
   }
-
-  @include focus-ring;
 }

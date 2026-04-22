@@ -126,7 +126,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  border-radius: 0 0 $radius-md $radius-md;
+  border-radius: 0;
 
   @include hidden-panel(translateY(-8px));
 

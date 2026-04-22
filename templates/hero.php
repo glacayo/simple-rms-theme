@@ -53,7 +53,7 @@
                             <label for="hero-summary">Project Summary</label>
                             <textarea id="hero-summary" name="summary" rows="4" placeholder="Briefly describe your project..."></textarea>
                         </div>
-                        <button type="submit" class="hero__form-submit">Get My Free Estimate</button>
+                        <button type="submit" class="btn hero__form-submit">Get My Free Estimate</button>
                     </form>
                 </div>
             </div>

@@ -124,7 +124,7 @@ Handled in `header.php` + `inc/vite-integration.php`:
 
 - **Critical CSS inline**
   - `src/scss/main.scss`
-  - `src/scss/sections/hero.scss`
+  - `src/scss/templates/hero.scss`
 
 - **Eager loaded above the fold**
   - slider

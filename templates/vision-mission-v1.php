@@ -32,7 +32,7 @@
         </div>
 
         <div class="vision-mission-v1__cta-wrap">
-            <a class="vision-mission-v1__cta" href="#contact" aria-label="Get a free estimate from our team">Get Your Free Estimate</a>
+            <a class="btn vision-mission-v1__cta" href="#contact" aria-label="Get a free estimate from our team">Get Your Free Estimate</a>
         </div>
     </div>
 </section>

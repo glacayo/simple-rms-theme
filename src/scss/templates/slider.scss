@@ -95,20 +95,8 @@
 }
 
 .slider__cta {
-  display: inline-flex;
-  padding: $space-4 $space-10;
-  background-color: $color-primary;
-  color: $color-white;
-  font-size: $font-size-lg;
+  // Uses .btn base — override font-weight only
   font-weight: $font-weight-bold;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast;
-
-  &:hover {
-    background-color: $color-primary-hover;
-  }
-
-  @include focus-ring;
 }
 
 // ─── Dots — scroll indicators ───────────────────────────────────────

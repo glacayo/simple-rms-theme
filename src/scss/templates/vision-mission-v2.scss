@@ -160,26 +160,5 @@
 // --- CTA ---
 
 .vision-mission-v2__cta {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  margin-top: $space-2;
-  padding: $space-3 $space-6;
-  border: 2px solid $color-primary;
-  border-radius: $radius-md;
-  background-color: transparent;
-  color: $color-white;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  text-decoration: none;
-  transition: background-color $transition-fast, border-color $transition-fast;
-
-  &:hover {
-    background-color: $color-primary;
-    border-color: $color-primary;
-  }
-
-  @include focus-ring;
+  // Uses .btn--outline — hover fills solid blue (standard behavior)
 }

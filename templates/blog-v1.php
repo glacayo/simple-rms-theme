@@ -99,7 +99,7 @@
         </div>
 
         <div class="blog-v1__cta-wrap">
-            <a href="#" class="blog-v1__cta">Read More Blog Posts</a>
+            <a href="#" class="btn blog-v1__cta">Read More Blog Posts</a>
         </div>
     </div>
 </section>

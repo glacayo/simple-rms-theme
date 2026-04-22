@@ -96,30 +96,4 @@
 }
 
 // ─── Button ─────────────────────────────────────────────────────────
-.cta-v1__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: $space-4 $space-10;
-  font-size: $font-size-base;
-  font-weight: $font-weight-semibold;
-  color: $color-white;
-  background-color: transparent;
-  border: 2px solid $color-white;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast,
-              color $transition-fast,
-              box-shadow $transition-base;
-
-  &:hover {
-    background-color: $color-white;
-    color: $color-primary;
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  @include focus-ring;
-}
+// Button uses .btn--outline-white — no section-specific override needed

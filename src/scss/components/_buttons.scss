@@ -1,0 +1,97 @@
+// ============================================
+// Buttons — Global reusable button component
+// ============================================
+// Uses BEM naming. Apply .btn to any button element.
+// Variants: .btn (primary solid), .btn--outline, .btn--outline-white
+// Sizes: .btn--sm, .btn--lg
+// Full-width: .btn--full
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+// ─── Base Button ─────────────────────────────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4 $space-10;
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-normal;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: $radius-md;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color $transition-fast,
+              color $transition-fast,
+              border-color $transition-fast,
+              box-shadow $transition-fast,
+              transform $transition-fast;
+
+  &:hover {
+    // Subclasses override these
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @include focus-ring;
+
+  // ─── Size modifiers ───────────────────────────────────────────────────────
+
+  &--sm {
+    padding: $space-3 $space-6;
+    font-size: $font-size-sm;
+  }
+
+  &--lg {
+    padding: $space-5 $space-12;
+    font-size: $font-size-lg;
+  }
+
+  // ─── Full-width modifier ─────────────────────────────────────────────────
+
+  &--full {
+    width: 100%;
+  }
+}
+
+// ─── Primary solid — brand blue background, white text ─────────────────────
+.btn {
+  background-color: $color-primary;
+  color: $color-white;
+  border-color: $color-primary;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    border-color: $color-primary-hover;
+  }
+}
+
+// ─── Outline — blue border, blue text, fills on hover ───────────────────────
+.btn--outline {
+  background-color: transparent;
+  color: $color-primary;
+  border-color: $color-primary;
+
+  &:hover {
+    background-color: $color-primary;
+    color: $color-white;
+  }
+}
+
+// ─── Outline white — white border on dark backgrounds ───────────────────────
+.btn--outline-white {
+  background-color: transparent;
+  color: $color-white;
+  border-color: $color-white;
+
+  &:hover {
+    background-color: $color-white;
+    color: $color-primary;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
+  }
+}

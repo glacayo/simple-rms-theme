@@ -28,20 +28,5 @@
     margin-inline: auto;
   }
 
-  &__button {
-    display: inline-flex;
-    padding: $space-4 $space-10;
-    background-color: $color-white;
-    color: $color-primary;
-    font-weight: $font-weight-semibold;
-    font-size: $font-size-lg;
-    border-radius: $radius-md;
-    transition: background-color $transition-fast;
-
-    &:hover {
-      background-color: $color-gray-100;
-    }
-
-    @include focus-ring;
-  }
+  // Button uses global .btn — no section-specific override needed
 }
