@@ -9,154 +9,223 @@
 ## Task Schedule
 | Date | Task |
 |------|------|
-| 2026-04-22 | Build the SEO Landing Page template |
+| 2026-04-23 | Replace all icon placeholders with inline SVGs + build Thank You page |
 
-> Today's task for **2026-04-22** is described below.
+> Today's task for **2026-04-23** is described below.
 
 ---
 
 ## Project Context
 - Project: `simple-rms-theme`
 - Stack: WordPress classic theme + Vite + SCSS + TypeScript
-- Architecture: reusable templates, modular SCSS by section/layout, deferred CSS for below-the-fold content, critical CSS only where needed
-- Current active header: `header-one`
-- Current active footer: `footer-v2`
-- Breadcrumb template already exists as: `templates/breadcrumb.php`
+- Templates live in: `templates/`
+- Page templates live in: `pages/`
+- **Reference implementation for SVG icons:** `templates/contact-info.php` and `templates/header-three.php` — these files already use correct inline SVGs. Use them as the style and size reference for all other icons.
 
 ---
 
-## Main Task — 2026-04-22
-Build the **SEO Landing Page** page template.
+## Main Task — 2026-04-23
+Two tasks for today:
+1. **Replace all icon placeholders with real inline SVGs** across all templates
+2. **Build the Thank You page** (`pages/thank-you.php`)
+
+---
+
+## TASK 1 — SVG Icons
+
+### Rules
+- Use **inline SVG only** — no icon fonts, no FontAwesome, no img tags
+- All icons must use `width="20" height="20"` (or match the size already used in `contact-info.php` and `header-three.php`)
+- Use `aria-hidden="true"` on decorative icons
+- Use `fill="currentColor"` so icons inherit text color
+- Source icons from the **Heroicons** set (https://heroicons.com) or any clean open-source SVG set — solid/filled style preferred
+- Do NOT add new SCSS for icons unless absolutely needed — inline SVG with `fill="currentColor"` inherits color from the parent
+
+---
+
+### Icon Fixes by File
+
+#### `templates/services-v1.php`
+- **Problem:** 6 service feature items contain the literal text `ICON` instead of an SVG
+- **Fix:** Replace each `ICON` text with an appropriate inline SVG
+- **Suggested icons per item:**
+  - Roof Installation → `home` or `building`
+  - Roof Repair → `wrench`
+  - Emergency Services → `bolt` or `exclamation-triangle`
+  - Gutter Installation → `adjustments`
+  - Storm Damage → `cloud` or `lightning-bolt`
+  - Inspection → `magnifying-glass` or `eye`
+
+#### `templates/header-one.php`
+- **Problem:** Social media links use text labels `FB`, `TW`, `IG`, `LK` instead of SVG icons
+- **Fix:** Replace each text label with the correct inline SVG
+  - `FB` → Facebook SVG icon
+  - `TW` → X (Twitter) SVG icon
+  - `IG` → Instagram SVG icon
+  - `LK` → LinkedIn SVG icon
+
+#### `templates/header-two.php`
+- **Problem:** Social media links use text labels `FB`, `TW`, `IG`, `LK`
+- **Fix:** Same as header-one — replace with inline SVGs for Facebook, X, Instagram, LinkedIn
+
+#### `templates/header-three.php`
+- **Problem:** Mobile menu social links use text labels `FB`, `TW`, `IG`, `LK` (desktop already has SVGs)
+- **Fix:** Replace mobile social text labels with inline SVGs — match the desktop SVGs already in the same file
+
+#### `templates/footer-v2.php`
+- **Problem:** Social media links use text labels `FB`, `TW`, `IG`, `LK`
+- **Fix:** Replace with inline SVGs for Facebook, X, Instagram, LinkedIn
+
+#### `templates/portfolio-v1.php`
+- **Problem:** Overlay hover uses `⊕` Unicode character as the view/zoom icon
+- **Fix:** Replace `⊕` with an inline SVG — suggested: `plus-circle` or `magnifying-glass-plus`
+
+#### `templates/portfolio-v2.php`
+- **Problem:** Overlay hover uses `⊕` Unicode character
+- **Fix:** Same as portfolio-v1 — replace with inline SVG
+
+#### `templates/portfolio-v3.php`
+- **Problem:** Overlay hover uses `🔍` emoji as the zoom icon
+- **Fix:** Replace emoji with inline SVG — suggested: `magnifying-glass`
+
+#### `templates/testimonials-v1.php`
+- **Problem:** Star ratings use `★★★★★` Unicode characters
+- **Fix:** Replace with 5 inline SVG star icons (`star` solid/filled)
+
+#### `templates/testimonials-v2.php`
+- **Problem:** Star ratings use `★★★★★` Unicode characters
+- **Fix:** Same — replace with 5 inline SVG star icons
+
+#### `templates/testimonials-v3.php`
+- **Problem:** Star ratings use `★★★★★` Unicode characters
+- **Fix:** Same — replace with 5 inline SVG star icons
+
+#### `templates/testimonials.php`
+- **Problem:** Star ratings use `★★★★★` Unicode characters
+- **Fix:** Same — replace with 5 inline SVG star icons
+
+#### `templates/hero.php`
+- **Problem:** Prev/next slider arrows use `«` and `»` Unicode characters
+- **Fix:** Replace with inline SVG chevron-left and chevron-right icons
+
+#### `templates/blog-listing.php`
+- **Problem:** Read More buttons have an eye/view icon — this is incorrect for a "Read More" CTA
+- **Fix:** Replace the eye icon with an `arrow-right` inline SVG, or simply remove the icon entirely if no icon was intended
+
+---
+
+## TASK 2 — Thank You Page
 
 ### Goal
-Create a WordPress page template for SEO-targeted landing pages. This is NOT an orphan landing page — it uses the standard site header and footer and is fully indexable. All sections must be assembled from **existing reusable templates already present in the project**. No new section templates need to be created.
+Build the Thank You page that is shown after a form submission. It uses the standard site header and footer and is a fully normal WordPress page (not an orphan landing page).
 
----
-
-## Page Structure
-
-The page must render sections in this exact order:
-
-1. `get_header()` — standard site header
-2. **Hero section** — reuse `templates/hero.php`
-3. **Slim breadcrumb** — reuse `templates/breadcrumb.php` but wrapped in a dedicated slim style (solid background, breadcrumb centered, no H1)
-4. **Content section — text right, image left** — reuse `templates/seo-content.php` with `.seo-content--reverse` modifier
-5. **Mission / Vision / Why Choose Us** — reuse `templates/vision-mission-v1.php`
-6. **Badges** — reuse `templates/badges.php`
-7. **Latest Projects** — reuse `templates/portfolio-v1.php`
-8. **Content section — text left, image right** — reuse `templates/seo-content.php` (default, no reverse modifier)
-9. **Testimonials** — reuse `templates/testimonials-v1.php`
-10. **Content section — text right, image left** — reuse `templates/seo-content.php` with `.seo-content--reverse` modifier
-11. `get_footer()` — standard site footer
-
----
-
-## Detailed Instructions
-
-### 1. Create `pages/landing-page.php`
+### 1. Build `pages/thank-you.php`
 
 ```php
 <?php
 /*
- * Template Name: SEO Landing Page
+ * Template Name: Thank You Page
  */
 
 get_header();
 
-get_template_part('templates/hero');
 get_template_part('templates/breadcrumb');
-get_template_part('templates/seo-content');        // text left, image right — default
-get_template_part('templates/vision-mission-v1');
-get_template_part('templates/badges');
-get_template_part('templates/portfolio-v1');
-get_template_part('templates/seo-content');        // text left, image right — default (second instance)
-get_template_part('templates/testimonials-v1');
-get_template_part('templates/seo-content');        // text right, image left — use reverse modifier
+get_template_part('templates/thank-you');
+get_template_part('templates/blog-v1');
 
 get_footer();
 ```
 
-> **Important:** `get_template_part()` does not support passing modifier classes directly. The AI must handle the three `seo-content` variations by one of these approaches:
-> - Create three thin wrapper template files (e.g. `templates/seo-content-reverse.php`) that include the section with the correct modifier class applied
-> - Or duplicate the section HTML inline inside the page template with the correct modifier
-> 
-> Choose whichever approach is cleaner and more consistent with the existing project architecture.
+### 2. Create `templates/thank-you.php`
 
----
+A simple, centered confirmation section. Hardcoded HTML. No WordPress functions needed.
 
-### 2. Breadcrumb slim style
+#### Content:
+- A large checkmark SVG icon (success green color)
+- `<h1>` — "Thank You!"
+- `<p>` — "Your message has been received. We will get back to you within 24 hours."
+- A button linking back to the homepage: "Back to Home" — use `.btn` class
 
-The breadcrumb on this landing page must appear as a **slim bar**:
-- Solid background color (use an existing theme color token — dark or brand color)
-- Breadcrumb trail centered horizontally
-- Reduced vertical padding (slim, not full-height)
-- No H1 rendered (add `is_page_template('pages/landing-page.php')` condition to the existing `is_single()` check in `templates/breadcrumb.php`)
+#### Design:
+- Centered layout (text-align: center)
+- Generous vertical padding
+- Icon should be large (~80px) and green (`$color-success` or a hardcoded green if the variable doesn't exist)
+- Clean, minimal — no card, no background, just centered content
 
-If a dedicated `.breadcrumb--slim` modifier class does not exist yet, add it to the breadcrumb SCSS.
+### 3. Create `src/scss/templates/thank-you.scss`
 
----
+```scss
+.thank-you {
+  // centered section, padding, icon size, heading, paragraph, button spacing
+}
+```
 
-### 3. Ensure CSS loads on the Landing Page
-In `header.php`, detect `is_page_template('pages/landing-page.php')` and load any CSS specific to this template in a **deferred / non-render-blocking way**.
+Use existing variables only. BEM naming.
 
-All section CSS (hero, seo-content, vision-mission, badges, portfolio, testimonials) should already be loading globally or via their own conditionals. The AI must verify this and add any missing entries.
+### 4. Register CSS in Vite
+Update `vite.config.ts`:
 
----
+```ts
+'thank-you': path.resolve(__dirname, 'src/scss/templates/thank-you.scss'),
+```
 
-### 4. Create a WordPress page via WP-CLI and assign the template
+### 5. Ensure CSS loads on the Thank You page
+In `header.php`, detect `is_page_template('pages/thank-you.php')` and load `thank-you.css` deferred.
 
-#### Step 1 — Create the page:
+### 6. Create the WordPress page via WP-CLI and assign the template
+
 ```bash
 wp post create \
   --post_type=page \
-  --post_title="Roofing Services in Miami, FL" \
+  --post_title="Thank You" \
   --post_status=publish \
   --post_author=1
-```
 
-#### Step 2 — Assign the template to the page:
-```bash
-wp post meta update <ID> _wp_page_template "pages/landing-page.php"
-```
-
-Replace `<ID>` with the ID returned in Step 1.
-
-#### Step 3 — Verify:
-```bash
-wp post list --post_type=page --fields=ID,post_title,post_status
+wp post meta update <ID> _wp_page_template "pages/thank-you.php"
 ```
 
 ---
 
 ## Expected Deliverables
-- `pages/landing-page.php`
-- `templates/breadcrumb.php` (modified — hide H1 on landing page template too)
-- Any thin wrapper templates needed for `seo-content` variations (if that approach is chosen)
-- `header.php` (modified for CSS loading if needed)
-- WordPress page created and template assigned via WP-CLI
+- `templates/services-v1.php` — ICON text replaced with SVGs
+- `templates/header-one.php` — social SVGs
+- `templates/header-two.php` — social SVGs
+- `templates/header-three.php` — mobile social SVGs
+- `templates/footer-v2.php` — social SVGs
+- `templates/portfolio-v1.php` — overlay SVG
+- `templates/portfolio-v2.php` — overlay SVG
+- `templates/portfolio-v3.php` — overlay SVG
+- `templates/testimonials.php` — star SVGs
+- `templates/testimonials-v1.php` — star SVGs
+- `templates/testimonials-v2.php` — star SVGs
+- `templates/testimonials-v3.php` — star SVGs
+- `templates/hero.php` — arrow SVGs
+- `templates/blog-listing.php` — arrow-right or no icon on Read More
+- `pages/thank-you.php`
+- `templates/thank-you.php`
+- `src/scss/templates/thank-you.scss`
+- `vite.config.ts` (modified)
+- `header.php` (modified)
 
 ---
 
 ## Definition of Done
-- Landing page renders all sections in the correct order
-- Hero renders at the top
-- Slim breadcrumb bar renders below the hero, centered, no H1
-- Three `seo-content` sections render: reverse → default → reverse
-- Vision/Mission/Why Choose Us section renders
-- Badges section renders
-- Latest Projects section renders
-- Testimonials section renders
-- Footer renders at the bottom
-- A published WordPress page exists with this template assigned and is viewable in the browser
-- CSS is correctly loaded
+- Zero text labels, Unicode characters, or emoji used as icons anywhere in the templates
+- All icons are inline SVG with `fill="currentColor"` and `aria-hidden="true"`
+- Social icons render correctly in all headers and footer
+- Star ratings render as SVG stars in all testimonial variants
+- Portfolio overlays use SVG icons
+- Thank You page renders with header, breadcrumb, confirmation section, blog section, and footer
+- Thank You WordPress page exists and has the template assigned
+- CSS loads correctly (deferred)
 
 ---
 
 ## Constraints
-- Do NOT create new section designs — reuse ONLY existing templates
-- No Gutenberg / block theme patterns
-- No ACF
-- Hardcoded content in sections is acceptable (already exists in reusable templates)
+- Inline SVG only — no icon fonts, no FontAwesome, no external img
+- Use `fill="currentColor"` on all SVG paths
+- Use `aria-hidden="true"` on decorative icons
+- Hardcoded content is acceptable
 - Respect BEM
 - Respect deferred CSS approach
 - Keep consistent with current theme architecture
