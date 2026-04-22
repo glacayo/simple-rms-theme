@@ -48,19 +48,19 @@
 
     // Internal page: About Us — breadcrumb above the fold
     if (is_page_template('pages/about-us.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-about-us');
     }
 
     // Internal page: Services — breadcrumb + services section (below the fold, deferred)
     if (is_page_template('pages/services.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-about-us');
         $vite->get_deferred_style('section-services-page', 'src/scss/sections/services-page.scss');
         $vite->get_deferred_style('section-cta-v2', 'src/scss/sections/cta-v2.scss');
     }
 
     // Internal page: Projects / Gallery — breadcrumb + gallery grid + lightbox
     if (is_page_template('pages/projects.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-about-us');
         $vite->get_deferred_style('section-gallery-grid', 'src/scss/sections/gallery-grid.scss');
         $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
         $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
@@ -71,26 +71,26 @@
 
     // Internal page: Contact Us — breadcrumb + contact info + contact map
     if (is_page_template('pages/contact-us.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-about-us');
         $vite->get_deferred_style('section-contact-info', 'src/scss/sections/contact-info.scss');
         $vite->get_deferred_style('section-contact-map', 'src/scss/sections/contact-map.scss');
     }
 
     // Internal page: Blog — breadcrumb + blog listing
     if (is_page_template('pages/blog.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-about-us');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-about-us');
         $vite->get_deferred_style('section-blog-listing', 'src/scss/sections/blog-listing.scss');
     }
 
     // Single post — breadcrumb + single-post
     if (is_single()) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-single');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-single');
         $vite->get_deferred_style('section-single-post', 'src/scss/sections/single-post.scss');
     }
 
     // SEO Landing Page template
     if (is_page_template('pages/landing-page.php')) {
-        echo $vite->get_critical_css('src/scss/sections/breadcrumb-about-us.scss', 'critical-breadcrumb-slim');
+        echo $vite->get_critical_css('src/scss/sections/breadcrumb.scss', 'critical-breadcrumb-slim');
         // All sections used by landing page — deferred
         foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1'] as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/sections/' . $section . '.scss');
