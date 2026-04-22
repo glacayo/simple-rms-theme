@@ -82,7 +82,7 @@ export default defineConfig({
         // Single post
         'single-post': path.resolve(__dirname, 'src/scss/sections/single-post.scss'),
         // Internal page breadcrumbs
-        'breadcrumb-about-us': path.resolve(__dirname, 'src/scss/sections/breadcrumb-about-us.scss'),
+        'breadcrumb': path.resolve(__dirname, 'src/scss/sections/breadcrumb.scss'),
         // Footer
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS
@@ -113,6 +113,6 @@ export default defineConfig({
     cors: true,
     strictPort: true,
     port: 3000,
-    host: '0.0.0.0',
+    host: '100.95.59.103',
   },
 })
