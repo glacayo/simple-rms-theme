@@ -1,0 +1,38 @@
+.thank-you {
+  padding: 4rem 0;
+  text-align: center;
+  background-color: var(--color-white, #fff);
+
+  &__inner {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  &__icon {
+    color: var(--color-success, #16a34a);
+    margin-bottom: 1.5rem;
+
+    svg {
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+  &__title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--color-heading, #1a1a2e);
+  }
+
+  &__text {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--color-body, #555);
+    margin-bottom: 2rem;
+  }
+
+  &__btn {
+    display: inline-block;
+  }
+}

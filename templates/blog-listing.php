@@ -31,7 +31,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Missing shingles, water stains on ceilings, and sagging areas are clear red flags that your roof is failing. Catching these early can save you thousands in repairs and prevent structural damage to your home.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -59,7 +59,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Both asphalt and metal roofs offer distinct advantages depending on your budget, climate, and aesthetic goals. We break down longevity, cost, energy efficiency, and maintenance so you can decide with confidence.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -91,7 +91,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">After a severe storm, the hours and days following are critical. Document everything, contact your insurance company, and schedule a professional inspection. Delays can worsen damage and complicate your claim.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -123,7 +123,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Clogged gutters lead to water overflow, foundation issues, and roof rot. Regular cleaning in spring and fall is one of the cheapest ways to protect your entire home's structural integrity.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -155,7 +155,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Natural light improves mood and reduces energy bills, but a poorly installed skylight can become a leak magnet. Learn about venting vs. fixed skylights and proper flashing techniques.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -187,7 +187,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Most homeowners don't know what the roof replacement process actually involves. From permits to debris removal, understanding each step reduces anxiety and helps you prepare your home properly.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -219,7 +219,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Ice dams cause thousands in water damage every winter. Proper attic insulation, ventilation, and sealing air leaks are the most effective long-term solutions to keep your roof ice-free.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -251,7 +251,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Commercial roofs use entirely different materials, slopes, and installation methods than residential ones. Whether you own a warehouse or a retail plaza, knowing these differences helps you make smarter maintenance decisions.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -283,7 +283,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">A roof leak at midnight requires immediate action to minimize interior damage. Tarping, interior water diversions, and documentation are your first lines of defense before professionals arrive.</p>
-                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="btn blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 
@@ -315,7 +315,7 @@
                     </span>
                 </div>
                 <p class="blog-listing__card-excerpt">Manufacturer warranties, contractor warranties, and workmanship guarantees overlap and exclude different things. Knowing the fine print can be the difference between a covered repair and an expensive surprise.</p>
-                <a href="#" class="blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                <a href="#" class="blog-listing__card-btn">Read More <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
             </div>
         </article>
 

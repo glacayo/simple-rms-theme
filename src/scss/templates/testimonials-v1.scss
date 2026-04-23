@@ -73,6 +73,14 @@
   color: $color-accent;
   letter-spacing: 0.14em;
   font-size: $font-size-sm;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  svg {
+    width: 1em;
+    height: 1em;
+  }
 }
 
 .testimonials-v1__author {

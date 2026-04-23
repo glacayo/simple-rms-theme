@@ -134,11 +134,30 @@
 }
 
 // ─── Links & Info ───────────────────────────────────────────────────
+.footer-v2__list--info {
+  li {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
 .footer-v2__meta {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
   color: $color-gray-400;
   font-size: $font-size-sm;
   line-height: $line-height-relaxed;
   margin-top: $space-4;
+
+  svg {
+    flex-shrink: 0;
+  }
 }
 
 .footer-v2__list {
