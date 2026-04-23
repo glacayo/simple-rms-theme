@@ -76,6 +76,14 @@
         $vite->get_deferred_style('section-contact-map', 'src/scss/templates/contact-map.scss');
     }
 
+    
+    // Thank You page — breadcrumb + thank-you + blog-v1
+    if (is_page_template('pages/thank-you.php')) {
+        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
+        $vite->get_deferred_style('section-thank-you', 'src/scss/templates/thank-you.scss');
+        $vite->get_deferred_style('section-blog-v1', 'src/scss/templates/blog-v1.scss');
+    }
+
     // Internal page: Blog — breadcrumb + blog listing
     if (is_page_template('pages/blog.php')) {
         echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');

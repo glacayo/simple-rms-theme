@@ -81,6 +81,8 @@ export default defineConfig({
         'blog-listing': path.resolve(__dirname, 'src/scss/templates/blog-listing.scss'),
         // Single post
         'single-post': path.resolve(__dirname, 'src/scss/templates/single-post.scss'),
+        // Thank You page
+        'thank-you': path.resolve(__dirname, 'src/scss/templates/thank-you.scss'),
         // Internal page breadcrumbs
         'breadcrumb': path.resolve(__dirname, 'src/scss/templates/breadcrumb.scss'),
         // Footer
