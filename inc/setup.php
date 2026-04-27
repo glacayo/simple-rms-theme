@@ -172,3 +172,195 @@ class RMS_Walker_Nav_Mobile extends Walker_Nav_Menu {
         // Don't close <li> here — end_lvl closes it after children
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Custom Walker — Header V2 Desktop Nav
+// ══════════════════════════════════════════════════════════════════════════
+
+class RMS_Walker_Nav_V2_Desktop extends Walker_Nav_Menu {
+    private bool $first_item = true;
+
+    public function start_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '<ul class="rms-header-v2__dropdown">';
+    }
+
+    public function end_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '</li></ul>';
+    }
+
+    public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
+        if ($this->first_item) {
+            $this->first_item = false;
+        } else {
+            $output .= '</li>';
+        }
+
+        $classes = empty($item->classes) ? [] : (array) $item->classes;
+        $has_children = in_array('menu-item-has-children', $classes);
+
+        $li_class = 'rms-header-v2__nav-item';
+        if ($has_children) {
+            $li_class .= ' rms-header-v2__nav-item--has-dropdown';
+        }
+
+        $link_class = 'rms-header-v2__nav-link';
+
+        $aria = '';
+        if ($has_children) {
+            $aria = ' aria-haspopup="true" aria-expanded="false"';
+        }
+
+        $url = esc_url($item->url);
+        $title = esc_html($item->title);
+
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+        $output .= '<a href="' . $url . '" class="' . esc_attr($link_class) . '"' . $aria . '>' . $title . '</a>';
+    }
+
+    public function end_el(&$output, $item, $depth = 0, $args = null): void {
+        // Don't close <li> here — end_lvl closes it after children
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Custom Walker — Header V2 Mobile Nav
+// ══════════════════════════════════════════════════════════════════════════
+
+class RMS_Walker_Nav_V2_Mobile extends Walker_Nav_Menu {
+    private bool $first_item = true;
+
+    public function start_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '<ul class="rms-header-v2__mobile-submenu">';
+    }
+
+    public function end_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '</li></ul>';
+    }
+
+    public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
+        if ($this->first_item) {
+            $this->first_item = false;
+        } else {
+            $output .= '</li>';
+        }
+
+        $classes = empty($item->classes) ? [] : (array) $item->classes;
+        $has_children = in_array('menu-item-has-children', $classes);
+
+        $li_class = 'rms-header-v2__mobile-nav-item';
+        if ($has_children) {
+            $li_class .= ' rms-header-v2__mobile-nav-item--has-submenu';
+        }
+
+        $aria = '';
+        if ($has_children) {
+            $aria = ' aria-haspopup="true" aria-expanded="false"';
+        }
+
+        $url = esc_url($item->url);
+        $title = esc_html($item->title);
+
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+        $output .= '<a href="' . $url . '" class="rms-header-v2__mobile-nav-link"' . $aria . '>' . $title . '</a>';
+    }
+
+    public function end_el(&$output, $item, $depth = 0, $args = null): void {
+        // Don't close <li> here — end_lvl closes it after children
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Custom Walker — Header V3 Desktop Nav
+// ══════════════════════════════════════════════════════════════════════════
+
+class RMS_Walker_Nav_V3_Desktop extends Walker_Nav_Menu {
+    private bool $first_item = true;
+
+    public function start_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '<ul class="rms-header-v3__dropdown">';
+    }
+
+    public function end_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '</li></ul>';
+    }
+
+    public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
+        if ($this->first_item) {
+            $this->first_item = false;
+        } else {
+            $output .= '</li>';
+        }
+
+        $classes = empty($item->classes) ? [] : (array) $item->classes;
+        $has_children = in_array('menu-item-has-children', $classes);
+
+        $li_class = 'rms-header-v3__nav-item';
+        if ($has_children) {
+            $li_class .= ' rms-header-v3__nav-item--has-dropdown';
+        }
+
+        $link_class = 'rms-header-v3__nav-link';
+
+        $aria = '';
+        if ($has_children) {
+            $aria = ' aria-haspopup="true" aria-expanded="false"';
+        }
+
+        $url = esc_url($item->url);
+        $title = esc_html($item->title);
+
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+        $output .= '<a href="' . $url . '" class="' . esc_attr($link_class) . '"' . $aria . '>' . $title . '</a>';
+    }
+
+    public function end_el(&$output, $item, $depth = 0, $args = null): void {
+        // Don't close <li> here — end_lvl closes it after children
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Custom Walker — Header V3 Mobile Nav
+// ══════════════════════════════════════════════════════════════════════════
+
+class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
+    private bool $first_item = true;
+
+    public function start_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '<ul class="rms-header-v3__mobile-submenu">';
+    }
+
+    public function end_lvl(&$output, $depth = 0, $args = null): void {
+        $output .= '</li></ul>';
+    }
+
+    public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
+        if ($this->first_item) {
+            $this->first_item = false;
+        } else {
+            $output .= '</li>';
+        }
+
+        $classes = empty($item->classes) ? [] : (array) $item->classes;
+        $has_children = in_array('menu-item-has-children', $classes);
+
+        $li_class = 'rms-header-v3__mobile-nav-item';
+        if ($has_children) {
+            $li_class .= ' rms-header-v3__mobile-nav-item--has-submenu';
+        }
+
+        $aria = '';
+        if ($has_children) {
+            $aria = ' aria-haspopup="true" aria-expanded="false"';
+        }
+
+        $url = esc_url($item->url);
+        $title = esc_html($item->title);
+
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+        $output .= '<a href="' . $url . '" class="rms-header-v3__mobile-nav-link"' . $aria . '>' . $title . '</a>';
+    }
+
+    public function end_el(&$output, $item, $depth = 0, $args = null): void {
+        // Don't close <li> here — end_lvl closes it after children
+    }
+}
