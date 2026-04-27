@@ -48,14 +48,16 @@
             <!-- Nav row: links + mobile toggle -->
             <div class="rms-header-v3__nav-row">
                 <nav class="rms-header-v3__nav" aria-label="Main navigation">
-                    <ul class="rms-header-v3__nav-list">
-                        <li class="rms-header-v3__nav-item"><a href="/" class="rms-header-v3__nav-link rms-header-v3__nav-link--active">Home</a></li>
-                        <li class="rms-header-v3__nav-item"><a href="/about-us/" class="rms-header-v3__nav-link">About Us</a></li>
-                        <li class="rms-header-v3__nav-item"><a href="/services/" class="rms-header-v3__nav-link">Services</a></li>
-                        <li class="rms-header-v3__nav-item"><a href="/projects/" class="rms-header-v3__nav-link">Projects</a></li>
-                        <li class="rms-header-v3__nav-item"><a href="/blog/" class="rms-header-v3__nav-link">Blog</a></li>
-                        <li class="rms-header-v3__nav-item"><a href="/contact/" class="rms-header-v3__nav-link">Contact</a></li>
-                    </ul>
+                    <?php
+                    wp_nav_menu([
+                        'theme_location' => 'primary',
+                        'menu_class'     => 'rms-header-v3__nav-list',
+                        'container'      => false,
+                        'walker'         => new RMS_Walker_Nav_V3_Primary(),
+                        'depth'          => 3,
+                        'fallback_cb'    => false,
+                    ]);
+                    ?>
                 </nav>
                 <button
                     class="rms-header-v3__menu-toggle"
@@ -91,14 +93,16 @@
                 </svg>
             </button>
         </div>
-        <ul class="rms-header-v3__mobile-nav-list">
-            <li class="rms-header-v3__mobile-nav-item"><a href="/" class="rms-header-v3__mobile-nav-link">Home</a></li>
-            <li class="rms-header-v3__mobile-nav-item"><a href="/about-us/" class="rms-header-v3__mobile-nav-link">About Us</a></li>
-            <li class="rms-header-v3__mobile-nav-item"><a href="/services/" class="rms-header-v3__mobile-nav-link">Services</a></li>
-            <li class="rms-header-v3__mobile-nav-item"><a href="/projects/" class="rms-header-v3__mobile-nav-link">Projects</a></li>
-            <li class="rms-header-v3__mobile-nav-item"><a href="/blog/" class="rms-header-v3__mobile-nav-link">Blog</a></li>
-            <li class="rms-header-v3__mobile-nav-item"><a href="/contact/" class="rms-header-v3__mobile-nav-link">Contact</a></li>
-        </ul>
+        <?php
+        wp_nav_menu([
+            'theme_location' => 'primary',
+            'menu_class'     => 'rms-header-v3__mobile-nav-list',
+            'container'      => false,
+            'walker'         => new RMS_Walker_Nav_V3_Mobile(),
+            'depth'          => 3,
+            'fallback_cb'    => false,
+        ]);
+        ?>
         <div class="rms-header-v3__mobile-footer">
             <a href="tel:+14075550199" class="rms-header-v3__mobile-phone">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

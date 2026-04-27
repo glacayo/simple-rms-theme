@@ -290,6 +290,99 @@
     }
 }
 
+// ─── Desktop Dropdown — Level 1 ─────────────────────────────────
+.rms-header-v3__nav-item--has-dropdown {
+    position: relative;
+}
+
+.rms-header-v3__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: rgba($color-gray-900, 0.95);
+    min-width: 200px;
+    box-shadow: $shadow-lg;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity $transition-fast, visibility $transition-fast;
+    z-index: $z-dropdown;
+
+    > li {
+        position: relative;
+    }
+
+    > li > a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: $space-3 $space-5;
+        white-space: nowrap;
+        color: rgba($color-white, 0.8);
+        text-decoration: none;
+        transition: color $transition-fast, background-color $transition-fast;
+
+        &:hover {
+            color: $color-white;
+            background: rgba($color-white, 0.08);
+        }
+    }
+
+    // Level 2 opens only on hover of its direct li parent inside the dropdown
+    > li:hover > .rms-header-v3__dropdown--submenu {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    // Arrow indicator for items that have a submenu
+    > li:has(.rms-header-v3__dropdown--submenu) > a::after {
+        content: '';
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: $space-3;
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        border-left: 4px solid currentColor;
+    }
+}
+
+.rms-header-v3__nav-item--has-dropdown:hover > .rms-header-v3__dropdown {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+// ─── Desktop Dropdown — Level 2 (submenu) ───────────────────────
+.rms-header-v3__dropdown--submenu {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background: rgba($color-gray-900, 0.95);
+    min-width: 200px;
+    box-shadow: $shadow-lg;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity $transition-fast, visibility $transition-fast;
+    z-index: $z-dropdown;
+
+    > li > a {
+        display: block;
+        padding: $space-3 $space-5;
+        white-space: nowrap;
+        color: rgba($color-white, 0.8);
+        text-decoration: none;
+        transition: color $transition-fast, background-color $transition-fast;
+
+        &:hover {
+            color: $color-white;
+            background: rgba($color-white, 0.08);
+        }
+    }
+}
+
 // ─── Mobile overlay ─────────────────────────────────────────────
 .rms-header-v3__overlay {
     position: fixed;
@@ -447,6 +540,58 @@
         &:hover {
             color: $color-white;
         }
+    }
+}
+
+// ─── Mobile submenu — hidden by default, shown when parent li has .is-open ─
+.rms-header-v3__mobile-submenu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 $space-2 $space-4;
+
+    .rms-header-v3__mobile-nav-item--has-submenu.is-open > & {
+        display: block;
+    }
+
+    .rms-header-v3__mobile-nav-link {
+        font-size: $font-size-sm;
+        color: rgba($color-white, 0.6);
+        padding: $space-2 $space-4;
+
+        &:hover {
+            color: $color-white;
+        }
+    }
+}
+
+// Toggle button wrapping items that have children
+.rms-header-v3__mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+// Chevron arrow — rotates only on the direct parent li.is-open
+.rms-header-v3__mobile-nav-chevron {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: $space-4;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid rgba($color-white, 0.5);
+    transition: transform $transition-fast;
+    flex-shrink: 0;
+
+    .rms-header-v3__mobile-nav-item--has-submenu.is-open > .rms-header-v3__mobile-nav-toggle > & {
+        transform: rotate(180deg);
     }
 }
 

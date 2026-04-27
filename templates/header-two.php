@@ -30,14 +30,16 @@
                     </a>
                 </div>
                 <nav class="rms-header-v2__nav" aria-label="Main navigation">
-                    <ul class="rms-header-v2__nav-list">
-                        <li class="rms-header-v2__nav-item"><a href="/" class="rms-header-v2__nav-link">Home</a></li>
-                        <li class="rms-header-v2__nav-item"><a href="/about-us/" class="rms-header-v2__nav-link">About Us</a></li>
-                        <li class="rms-header-v2__nav-item"><a href="/services/" class="rms-header-v2__nav-link">Services</a></li>
-                        <li class="rms-header-v2__nav-item"><a href="/projects/" class="rms-header-v2__nav-link">Projects</a></li>
-                        <li class="rms-header-v2__nav-item"><a href="/blog/" class="rms-header-v2__nav-link">Blog</a></li>
-                        <li class="rms-header-v2__nav-item"><a href="/contact/" class="rms-header-v2__nav-link">Contact</a></li>
-                    </ul>
+                    <?php
+                    wp_nav_menu([
+                        'theme_location' => 'primary',
+                        'menu_class'     => 'rms-header-v2__nav-list',
+                        'container'      => false,
+                        'walker'         => new RMS_Walker_Nav_V2_Primary(),
+                        'depth'          => 3,
+                        'fallback_cb'    => false,
+                    ]);
+                    ?>
                 </nav>
                 <button class="rms-header-v2__menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="rms-header-v2-mobile-menu">
                     <span class="rms-header-v2__menu-icon">
@@ -61,13 +63,15 @@
                 &times;
             </button>
         </div>
-        <ul class="rms-header-v2__mobile-nav-list">
-            <li class="rms-header-v2__mobile-nav-item"><a href="/" class="rms-header-v2__mobile-nav-link">Home</a></li>
-            <li class="rms-header-v2__mobile-nav-item"><a href="/about-us/" class="rms-header-v2__mobile-nav-link">About Us</a></li>
-            <li class="rms-header-v2__mobile-nav-item"><a href="/services/" class="rms-header-v2__mobile-nav-link">Services</a></li>
-            <li class="rms-header-v2__mobile-nav-item"><a href="/projects/" class="rms-header-v2__mobile-nav-link">Projects</a></li>
-            <li class="rms-header-v2__mobile-nav-item"><a href="/blog/" class="rms-header-v2__mobile-nav-link">Blog</a></li>
-            <li class="rms-header-v2__mobile-nav-item"><a href="/contact/" class="rms-header-v2__mobile-nav-link">Contact</a></li>
-        </ul>
+        <?php
+        wp_nav_menu([
+            'theme_location' => 'primary',
+            'menu_class'     => 'rms-header-v2__mobile-nav-list',
+            'container'      => false,
+            'walker'         => new RMS_Walker_Nav_V2_Mobile(),
+            'depth'          => 3,
+            'fallback_cb'    => false,
+        ]);
+        ?>
     </nav>
 </header>

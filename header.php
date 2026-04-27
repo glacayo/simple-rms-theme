@@ -106,15 +106,15 @@
     }
 
      // Header — loaded as separate <link> (not inline)
-     $header_css = $vite->get_asset('src/scss/layout/header-one.scss');
+     $header_css = $vite->get_asset('src/scss/layout/header-three.scss');
      if ($header_css) {
-         wp_enqueue_style('header-one', $header_css, [], null);
+         wp_enqueue_style('header-three', $header_css, [], null);
      }
-     
+
      // Header menu JS
-     $menu_js = $vite->get_asset('src/ts/header-one-menu.ts');
+     $menu_js = $vite->get_asset('src/ts/header-three-menu.ts');
      if ($menu_js) {
-         wp_enqueue_script('header-one-menu', $menu_js, [], null, true);
+         wp_enqueue_script('header-three-menu', $menu_js, [], null, true);
      }
 
     // Footer — deferred
@@ -124,4 +124,4 @@
 </head>
 <body <?php body_class(); ?>>
 
-<?php get_template_part('templates/header-one'); ?>
+<?php get_template_part('templates/header-three'); ?>
