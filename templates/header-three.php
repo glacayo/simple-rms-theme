@@ -51,11 +51,11 @@
                     <?php
                     wp_nav_menu([
                         'theme_location' => 'primary',
-                        'menu_class'     => 'rms-header-v3__nav-list',
                         'container'      => false,
-                        'walker'         => new RMS_Walker_Nav_V3_Primary(),
-                        'depth'          => 3,
+                        'menu_class'     => 'rms-header-v3__nav-list',
+                        'walker'         => new RMS_Walker_Nav_V3_Desktop(),
                         'fallback_cb'    => false,
+                        'depth'          => 3,
                     ]);
                     ?>
                 </nav>
@@ -95,12 +95,12 @@
         </div>
         <?php
         wp_nav_menu([
-            'theme_location' => 'primary',
-            'menu_class'     => 'rms-header-v3__mobile-nav-list',
+            'theme_location' => 'mobile',
             'container'      => false,
+            'menu_class'     => 'rms-header-v3__mobile-nav-list',
             'walker'         => new RMS_Walker_Nav_V3_Mobile(),
-            'depth'          => 3,
             'fallback_cb'    => false,
+            'depth'          => 3,
         ]);
         ?>
         <div class="rms-header-v3__mobile-footer">
