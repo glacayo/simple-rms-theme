@@ -343,3 +343,4 @@ Three independent audit passes across the entire theme, followed by a performanc
 - Do NOT add new features or templates during this task
 - Respect BEM naming throughout
 - Hardcoded content in templates is acceptable — do not convert to dynamic PHP during this task
+- **Unlighthouse is completely separate from this repo.** Do NOT install it inside `simple-rms-theme`, do NOT add config files, npm scripts, or report outputs to this repo. All Unlighthouse work (install, config, reports) must live in its own dedicated folder/project outside of `simple-rms-theme`. Keep the theme repo clean.
