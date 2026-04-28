@@ -129,4 +129,78 @@ El proyecto tiene 16 skills instaladas en `.agents/skills/`. **NO todas son rele
 
 ---
 
+## 🌿 Git Workflow — Hermes Agent + Geovanny
+
+### Estructura de ramas
+```
+main           ← producción (solo merges aprobados)
+  ├── develop  ← rama de Geovanny (merge directo a main)
+  └── noir-dev ← rama de Hermes Agent (solo PRs, nunca merge directo)
+```
+
+---
+
+### ✅ Antes de empezar a trabajar — OBLIGATORIO
+
+**Hermes Agent (noir-dev):**
+```bash
+git checkout noir-dev
+git fetch origin
+git rebase origin/main
+```
+
+**Geovanny (develop):**
+```bash
+git checkout develop
+git fetch origin
+git rebase origin/main
+```
+
+> ⚠️ Nunca empezar a trabajar sin sincronizar primero con `main`. Esto previene conflictos de merge.
+
+---
+
+### 📤 Al terminar el trabajo
+
+**Hermes Agent — abrir PR:**
+1. Hacer `git rebase origin/main` antes de hacer push
+2. Verificar que el PR no tenga `mergeable_state: dirty` antes de solicitar review
+3. Si hay conflictos, resolverlos en la rama antes de abrir el PR
+4. La descripción del PR debe incluir: qué cambió, archivos afectados y motivo
+
+**Geovanny — merge directo a main:**
+```bash
+git checkout main
+git merge develop --no-ff
+git push origin main
+git checkout develop
+git rebase origin/main   # mantener develop actualizado post-merge
+```
+
+---
+
+### 🔀 Geovanny al revisar y mergear un PR de Hermes Agent
+
+1. Verificar que el PR no tenga conflictos (`mergeable_state` limpio)
+2. Revisar los archivos cambiados — si coinciden con cambios recientes en `develop`, revisar manualmente
+3. Después del merge, actualizar `develop`:
+```bash
+git checkout develop
+git rebase origin/main
+```
+
+---
+
+### 🚨 Reglas críticas
+
+| # | Regla |
+|---|---|
+| 1 | Siempre `rebase origin/main` antes de empezar a trabajar |
+| 2 | Hermes Agent **nunca** hace merge directo a `main` — solo PRs |
+| 3 | Geovanny **siempre** actualiza `develop` después de mergear un PR |
+| 4 | Si un PR tiene conflictos, Hermes Agent los resuelve antes de pedir review |
+| 5 | No trabajar en los mismos archivos el mismo día sin coordinación previa |
+
+---
+
 **Firmado:** Geovanny - Senior Web Dev & SEO Specialist.
