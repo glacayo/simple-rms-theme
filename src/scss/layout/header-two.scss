@@ -18,6 +18,11 @@
     &-left {
         @include flex-center;
         gap: $space-6;
+        display: none;
+
+        @include breakpoint($breakpoint-md) {
+            display: flex;
+        }
 
         .rms-header-v2__phone,
         .rms-header-v2__email {
@@ -32,6 +37,7 @@
 
     &-right {
         @include flex-center;
+        margin-left: auto;
         gap: $space-6;
 
         .rms-header-v2__social-links {
@@ -128,16 +134,22 @@
     }
 
     .rms-header-v2__menu-toggle {
-        display: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: none;
         border: none;
         padding: $space-3;
         cursor: pointer;
 
-        &-icon {
+        @include breakpoint($breakpoint-md) {
+            display: none;
+        }
+
+        .rms-header-v2__menu-icon {
             display: flex;
             flex-direction: column;
-            gap: $space-2;
+            gap: $space-1;
 
             span {
                 display: block;
@@ -205,43 +217,184 @@
         }
     }
 
-    &-list {
-        list-style: none;
-        margin: 0;
-        padding: $space-4;
+}
+
+// Mobile nav list (wp_nav_menu output)
+.rms-header-v2__mobile-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: $space-4;
+}
+
+// Each nav item
+.rms-header-v2__mobile-nav-item {
+    border-bottom: 1px solid $color-gray-100;
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+// Toggle button wrapping items that have children
+.rms-header-v2__mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+// Shared link style (used for all items)
+.rms-header-v2__mobile-nav-link {
+    display: block;
+    flex: 1;
+    color: $color-gray-800;
+    text-decoration: none;
+    padding: $space-3 $space-4;
+    font-weight: $font-weight-medium;
+    transition: color $transition-fast;
+
+    &:hover,
+    &:focus {
+        color: $color-primary;
+    }
+}
+
+// Chevron arrow
+.rms-header-v2__mobile-nav-chevron {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: $space-4;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid $color-gray-500;
+    transition: transform $transition-fast;
+    flex-shrink: 0;
+
+    .rms-header-v2__mobile-nav-item--has-submenu.is-open > .rms-header-v2__mobile-nav-toggle > & {
+        transform: rotate(180deg);
+    }
+}
+
+// Desktop Dropdown — Level 1
+.rms-header-v2__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: $color-white;
+    min-width: 200px;
+    box-shadow: $shadow-lg;
+    border-radius: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity $transition-fast, visibility $transition-fast;
+    z-index: $z-dropdown;
+
+    > li {
+        position: relative;
     }
 
-    &-item {
-        margin-bottom: $space-3;
-    }
-
-    &-link {
-        display: block;
-        color: $color-gray-800;
+    > li > a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: $space-3 $space-5;
+        white-space: nowrap;
+        color: $color-gray-700;
         text-decoration: none;
-        padding: $space-3 $space-4;
-        border-radius: $radius-sm;
-        transition: all $transition-base;
+        transition: color $transition-fast, background-color $transition-fast;
 
-        &:hover,
-        &:focus {
+        &:hover {
+            color: $color-primary;
+            background-color: $color-gray-50;
+        }
+    }
+
+    // Level 2 opens only on hover of its direct li parent inside the dropdown
+    > li:hover > .rms-header-v2__dropdown--submenu {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    // Arrow indicator for items that have a submenu
+    > li:has(.rms-header-v2__dropdown--submenu) > a::after {
+        content: '';
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: $space-3;
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        border-left: 4px solid currentColor;
+    }
+}
+
+.rms-header-v2__nav-item--has-dropdown:hover > .rms-header-v2__dropdown {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+// Desktop Dropdown — Level 2 (submenu)
+.rms-header-v2__dropdown--submenu {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    background-color: $color-white;
+    min-width: 200px;
+    box-shadow: $shadow-lg;
+    border-radius: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity $transition-fast, visibility $transition-fast;
+    z-index: $z-dropdown;
+
+    > li > a {
+        display: block;
+        padding: $space-3 $space-5;
+        white-space: nowrap;
+        color: $color-gray-700;
+        text-decoration: none;
+        transition: color $transition-fast, background-color $transition-fast;
+
+        &:hover {
             color: $color-primary;
             background-color: $color-gray-50;
         }
     }
 }
 
-// Responsive styles
-@include breakpoint-down($breakpoint-lg) {
-    .rms-header-v2__main-bar {
-        &-inner {
-            .rms-header-v2__nav {
-                display: none;
-            }
+// Mobile submenu — hidden by default, shown when parent li has .is-open
+.rms-header-v2__mobile-submenu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 $space-2 $space-4;
 
-            .rms-header-v2__menu-toggle {
-                display: block;
-            }
+    .rms-header-v2__mobile-nav-item--has-submenu.is-open > & {
+        display: block;
+    }
+
+    .rms-header-v2__mobile-nav-link {
+        font-size: $font-size-sm;
+        color: $color-gray-600;
+        padding: $space-2 $space-4;
+
+        &:hover {
+            color: $color-primary;
         }
     }
+}
+
+// Mobile nav item with submenu — chevron via dedicated element (see walker)
+.rms-header-v2__mobile-nav-item--has-submenu {
+    // chevron handled by .rms-header-v2__mobile-nav-chevron inside the button
 }

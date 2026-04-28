@@ -1,6 +1,6 @@
 /**
  * Header Two — Mobile Menu Controller
- * Handles: toggle, overlay, focus trap, escape close, aria states.
+ * Handles: toggle, overlay, focus trap, escape close, submenu accordion, aria states.
  */
 
 const CLASS_ACTIVE = 'is-active'
@@ -48,6 +48,14 @@ export function initHeaderTwoMenu(): void {
     menu.classList.remove(CLASS_OPEN)
     document.body.classList.remove(CLASS_BODY_LOCK)
 
+    // Reset all open submenus and aria-expanded
+    menu.querySelectorAll<HTMLUListElement>('.rms-header-v2__mobile-submenu').forEach((sub) => {
+      sub.classList.remove(CLASS_OPEN)
+    })
+    menu.querySelectorAll<HTMLButtonElement>('[aria-expanded="true"]').forEach((btn) => {
+      btn.setAttribute('aria-expanded', 'false')
+    })
+
     if (previouslyFocused) {
       previouslyFocused.focus()
     }
@@ -94,6 +102,27 @@ export function initHeaderTwoMenu(): void {
         first.focus()
       }
     }
+  })
+
+  // ─── Mobile submenu accordion ───────────────────────────────────
+  menu.querySelectorAll<HTMLButtonElement>('.rms-header-v2__mobile-nav-toggle').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      // Let inner <a> clicks navigate normally
+      if ((e.target as HTMLElement).closest('a')) return
+
+      const li = btn.closest<HTMLLIElement>('.rms-header-v2__mobile-nav-item--has-submenu')
+      if (!li) return
+
+      const isExpanded = btn.getAttribute('aria-expanded') === 'true'
+
+      if (isExpanded) {
+        btn.setAttribute('aria-expanded', 'false')
+        li.classList.remove(CLASS_OPEN)
+      } else {
+        btn.setAttribute('aria-expanded', 'true')
+        li.classList.add(CLASS_OPEN)
+      }
+    })
   })
 }
 
