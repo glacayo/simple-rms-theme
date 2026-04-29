@@ -12,5 +12,7 @@
 <?php get_template_part('templates/vision-mission-v1'); ?>
 <?php get_template_part('templates/vision-mission-v2'); ?>
 <?php get_template_part('templates/seo-content'); ?>
+<?php get_template_part('templates/faq-v1'); ?>
+<?php get_template_part('templates/video-v1'); ?>
 
 <?php get_footer(); ?>

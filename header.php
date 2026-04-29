@@ -44,6 +44,32 @@
         if ($filter_js) {
             wp_enqueue_script('portfolio-filter-js', $filter_js, [], null, true);
         }
+
+        // FAQ sections (below the fold — deferred)
+        foreach (['faq-v1', 'faq-v2'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+
+        // FAQ JS (accordion)
+        $faq_js = $vite->get_asset('src/ts/faq.ts');
+        if ($faq_js) {
+            wp_enqueue_script('faq-js', $faq_js, [], null, true);
+        }
+
+        // Video sections (below the fold — deferred)
+        foreach (['video-v1', 'video-v2'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+
+        // Video JS (poster-to-iframe + lightbox)
+        $video1_js = $vite->get_asset('src/ts/video-v1.ts');
+        if ($video1_js) {
+            wp_enqueue_script('video-v1-js', $video1_js, [], null, true);
+        }
+        $video2_js = $vite->get_asset('src/ts/video-v2.ts');
+        if ($video2_js) {
+            wp_enqueue_script('video-v2-js', $video2_js, [], null, true);
+        }
     }
 
     // Internal page: About Us — breadcrumb above the fold

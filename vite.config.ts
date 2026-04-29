@@ -102,6 +102,15 @@ export default defineConfig({
         'lightbox-js': path.resolve(__dirname, 'src/ts/lightbox.ts'),
         // Portfolio filter JS
         'portfolio-filter-js': path.resolve(__dirname, 'src/ts/portfolio-filter.ts'),
+        // FAQ CSS + JS
+        'faq-v1': path.resolve(__dirname, 'src/scss/templates/faq-v1.scss'),
+        'faq-v2': path.resolve(__dirname, 'src/scss/templates/faq-v2.scss'),
+        'faq-js': path.resolve(__dirname, 'src/ts/faq.ts'),
+        // Video CSS + JS
+        'video-v1': path.resolve(__dirname, 'src/scss/templates/video-v1.scss'),
+        'video-v2': path.resolve(__dirname, 'src/scss/templates/video-v2.scss'),
+        'video-v1-js': path.resolve(__dirname, 'src/ts/video-v1.ts'),
+        'video-v2-js': path.resolve(__dirname, 'src/ts/video-v2.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',

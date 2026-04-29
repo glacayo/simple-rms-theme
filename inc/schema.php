@@ -565,3 +565,174 @@ function rms_schema_contact_page_hook(): void {
     rms_schema_output(rms_schema_contact_page());
 }
 add_action('wp_head', 'rms_schema_contact_page_hook', 1);
+
+// ─── FAQPage Schema ───────────────────────────────────────────────────────────
+
+/**
+ * FAQPage schema for the FAQ section on front page.
+ *
+ * @see https://schema.org/FAQPage
+ */
+function rms_schema_faq_page(): array {
+    $url = rms_get_site_url();
+
+    $faqs = [
+        [
+            'question' => 'How much does a new roof cost?',
+            'answer' => 'The cost of a new roof varies based on several factors including the size of your roof, the materials chosen, and the complexity of the installation. We offer free estimates and provide detailed quotes with no obligation. Most residential roof replacements in the Milwaukee area range from $8,000 to $25,000 depending on these factors.',
+        ],
+        [
+            'question' => 'How long does a roof installation take?',
+            'answer' => 'Most residential roof installations are completed in 1 to 3 days, depending on the size and complexity of your roof. Weather conditions and material availability can affect the timeline. We work efficiently while maintaining our high quality standards.',
+        ],
+        [
+            'question' => 'Do you work with insurance companies?',
+            'answer' => 'Yes, we have extensive experience working with insurance claims. Storm damage is often covered by your homeowner\'s insurance policy. We can help guide you through the claims process, provide detailed documentation, and work directly with your insurance company.',
+        ],
+        [
+            'question' => 'What warranty do you offer?',
+            'answer' => 'We stand behind our work with a comprehensive craftsmanship warranty. Manufacturer warranties on materials vary by product, typically ranging from 25 to 50 years. We also provide a 5-year labor warranty on all installations.',
+        ],
+        [
+            'question' => 'Do you offer free inspections?',
+            'answer' => 'Absolutely. We offer free, no-obligation roof inspections. Our thorough assessments check for visible damage, wear patterns, potential leak sources, and overall condition. You\'ll receive a detailed written report.',
+        ],
+        [
+            'question' => 'What areas do you serve in Milwaukee?',
+            'answer' => 'We serve the greater Milwaukee metropolitan area and surrounding counties including Waukesha, Ozaukee, Washington, and Racine counties.',
+        ],
+    ];
+
+    $mainEntity = [];
+    foreach ($faqs as $faq) {
+        $mainEntity[] = [
+            '@type' => 'Question',
+            'name' => $faq['question'],
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => $faq['answer'],
+            ],
+        ];
+    }
+
+    return [
+        '@context' => 'https://schema.org',
+        '@type' => 'FAQPage',
+        'mainEntity' => $mainEntity,
+    ];
+}
+
+/**
+ * Output FAQPage schema on front page.
+ */
+function rms_schema_faq_page_hook(): void {
+    if (!is_front_page()) {
+        return;
+    }
+
+    rms_schema_output(rms_schema_faq_page());
+}
+add_action('wp_head', 'rms_schema_faq_page_hook', 1);
+
+// ─── VideoObject Schema ─────────────────────────────────────────────────────
+
+/**
+ * VideoObject schema for the video section on front page.
+ *
+ * TODO: Replace VIDEO_ID placeholders with real video IDs.
+ * Each video should have: real YouTube/Vimeo ID, actual upload date, real duration.
+ *
+ * @see https://schema.org/VideoObject
+ */
+function rms_schema_video_object_template(): array {
+    $url = rms_get_site_url();
+
+    /**
+     * TODO: Replace with real video data.
+     *
+     * Example:
+     *   'video_1' => [
+     *       'id' => 'dQw4w9WgXcQ',           // Actual YouTube video ID
+     *       'title' => 'Complete Roof Replacement',
+     *       'description' => 'Watch how our team...',
+     *       'upload_date' => '2024-03-15',
+     *       'duration' => 'PT1M30S',          // ISO 8601 duration
+     *       'thumbnail' => 'https://example.com/thumb1.jpg',
+     *   ],
+     */
+    $videos = [
+        'video_1' => [
+            'id' => 'VIDEO_ID',              // TODO: Replace
+            'title' => 'Complete Roof Replacement — Milwaukee Home',
+            'description' => 'Watch how our team transformed this Milwaukee home with a complete roof replacement.',
+            'upload_date' => '2024-01-01', // TODO: Replace
+            'duration' => 'PT1M30S',         // TODO: Replace (e.g., PT2M15S)
+            'thumbnail' => $url . '/images/video-thumbnail-1.jpg', // TODO: Replace
+        ],
+        'video_2' => [
+            'id' => 'VIDEO_ID',              // TODO: Replace
+            'title' => 'Storm Damage Repair — Before & After',
+            'description' => 'Emergency response and complete restoration after severe storm damage.',
+            'upload_date' => '2024-01-01', // TODO: Replace
+            'duration' => 'PT2M15S',         // TODO: Replace
+            'thumbnail' => $url . '/images/video-thumbnail-2.jpg', // TODO: Replace
+        ],
+        'video_3' => [
+            'id' => 'VIDEO_ID',              // TODO: Replace
+            'title' => 'Professional Gutter Installation',
+            'description' => 'Seamless gutter system installation protecting homes year-round.',
+            'upload_date' => '2024-01-01', // TODO: Replace
+            'duration' => 'PT1M45S',         // TODO: Replace
+            'thumbnail' => $url . '/images/video-thumbnail-3.jpg', // TODO: Replace
+        ],
+    ];
+
+    /**
+     * ACTIVATE: Uncomment return statement and add_action below ONLY after
+     * replacing all VIDEO_ID placeholders and real video data.
+     *
+     * Currently returns empty because video IDs are placeholders.
+     */
+    return []; // TEMPLATE — not active
+
+    $schemas = [];
+    foreach ($videos as $video) {
+        $schemas[] = [
+            '@context' => 'https://schema.org',
+            '@type' => 'VideoObject',
+            'name' => $video['title'],
+            'description' => $video['description'],
+            'thumbnailUrl' => [$video['thumbnail']],
+            'uploadDate' => $video['upload_date'],
+            'duration' => $video['duration'],
+            'embedUrl' => 'https://www.youtube.com/embed/' . $video['id'],
+            'publisher' => [
+                '@id' => $url . '/#organization',
+            ],
+        ];
+    }
+
+    return $schemas;
+}
+
+/**
+ * Output VideoObject schemas on front page.
+ */
+function rms_schema_video_page_hook(): void {
+    if (!is_front_page()) {
+        return;
+    }
+
+    /**
+     * TEMPLATE: Currently outputs nothing because video IDs are placeholders.
+     * TO ACTIVATE: Replace VIDEO_ID in rms_schema_video_object_template()
+     * and uncomment the block below.
+     */
+    return;
+
+    $schemas = rms_schema_video_object_template();
+    foreach ($schemas as $schema) {
+        rms_schema_output($schema);
+    }
+}
+// add_action('wp_head', 'rms_schema_video_page_hook', 1);
