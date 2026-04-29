@@ -102,9 +102,9 @@ After the research, implement ALL structured data that is justified and valid fo
 | `WebPage` | MEDIUM | ✅ Implemented | Per-page; clarifies page purpose and publisher relationship |
 | `ContactPage` | MEDIUM | ✅ Implemented | Dedicated type for the contact page |
 | `BreadcrumbList` | MEDIUM | Available | Helper function created; Yoast SEO already provides breadcrumbs UI |
-| `FAQPage` | LOW | ❌ Not implemented | No FAQ content exists on the site |
+| `FAQPage` | **HIGH** | ✅ Implemented | FAQ section added to front-page; schema active with 6 Q&A pairs |
 | `Review` / `AggregateRating` | LOW | ⚠️ **TEMPLATE** (code ready, NOT active) | Testimonials are placeholder examples; function is scaffolded for real data — see `rms_schema_review_template()` and `rms_schema_aggregate_rating_template()` in `inc/schema.php` |
-| `VideoObject` | LOW | ❌ Not implemented | No real videos exist on the site |
+| `VideoObject` | LOW | ⚠️ **TEMPLATE** (code ready, NOT active) | Video section added to front-page; schema is scaffolded with placeholder IDs — see `rms_schema_video_object_template()` in `inc/schema.php` |
 | `BlogPosting` / `Article` | MEDIUM | Available | Can be added when actual blog content with author/publisher exists |
 
 ### 2. HTML Microdata vs JSON-LD — Decision: JSON-LD
@@ -166,10 +166,10 @@ Test all structured data at:
 - [x] `Service` (6 services on services page)
 - [x] `ContactPage`
 - [x] `BreadcrumbList` (helper function available; Yoast handles UI)
+- [x] FAQ section (faq-v1.php) + FAQPage schema (6 Q&A pairs, active)
+- [x] Video section (video-v1.php) + VideoObject schema (scaffolded, placeholder IDs)
 - [x] Review + AggregateRating — **TEMPLATE ONLY** (placeholder in code; NOT active until real customer data is provided)
 - [x] NO fake reviews/ratings (testimonials are placeholder examples)
-- [x] NO fake FAQs
-- [x] NO fake videos
 
 ---
 

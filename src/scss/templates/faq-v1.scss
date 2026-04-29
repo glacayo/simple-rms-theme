@@ -1,0 +1,149 @@
+// ============================================
+// FAQ V1 — Accordion Clásico
+// ============================================
+// Lista expandible con icono chevron que rota.
+// Simple, familiar, alta usabilidad.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.faq-v1 {
+  background-color: $color-gray-50;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.faq-v1__headline {
+  color: $color-gray-900;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.faq-v1__subheadline {
+  color: $color-gray-500;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-12;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    margin-bottom: $space-16;
+  }
+}
+
+.faq-v1__list {
+  max-width: 800px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.faq-v1__item {
+  background-color: $color-white;
+  border-radius: $radius-lg;
+  border: 1px solid $color-gray-200;
+  overflow: hidden;
+  transition: border-color $transition-base, box-shadow $transition-base;
+
+  &:hover {
+    border-color: $color-gray-300;
+  }
+
+  &:focus-within {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+  }
+}
+
+.faq-v1__question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-4;
+  padding: $space-5 $space-6;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-900;
+  transition: color $transition-fast;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    padding: $space-6 $space-8;
+  }
+
+  &:hover {
+    color: $color-primary;
+  }
+
+  @include focus-ring;
+}
+
+.faq-v1__question-text {
+  flex: 1;
+}
+
+.faq-v1__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: $color-gray-400;
+  transition: transform $transition-base, color $transition-fast;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  [aria-expanded="true"] & {
+    transform: rotate(180deg);
+    color: $color-primary;
+  }
+}
+
+.faq-v1__answer {
+  overflow: hidden;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.faq-v1__answer-content {
+  padding: 0 $space-6 $space-6;
+  color: $color-gray-600;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+
+  @include breakpoint($breakpoint-md) {
+    padding: 0 $space-8 $space-8;
+    font-size: $font-size-lg;
+  }
+
+  p {
+    margin: 0;
+
+    + p {
+      margin-top: $space-4;
+    }
+  }
+}

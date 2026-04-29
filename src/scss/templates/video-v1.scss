@@ -1,0 +1,189 @@
+// ============================================
+// Video V1 — Video Hero con Poster y Play
+// ============================================
+// Video embed prominente con poster image.
+// Play button custom. Iframe solo carga al hacer click.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.video-v1 {
+  background-color: $color-gray-900;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.video-v1__header {
+  text-align: center;
+  margin-bottom: $space-10;
+
+  @include breakpoint($breakpoint-md) {
+    margin-bottom: $space-12;
+  }
+}
+
+.video-v1__headline {
+  color: $color-white;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.video-v1__subheadline {
+  color: $color-gray-400;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+.video-v1__wrapper {
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+.video-v1__player {
+  position: relative;
+  background-color: $color-black;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  // Reserve aspect ratio space to prevent CLS
+  aspect-ratio: 16 / 9;
+}
+
+.video-v1__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-v1__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba($color-black, 0.3) 60%,
+    rgba($color-black, 0.7) 100%
+  );
+  z-index: 1;
+}
+
+.video-v1__play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background-color: rgba($color-white, 0.95);
+  border: none;
+  border-radius: $radius-full;
+  cursor: pointer;
+  color: $color-primary;
+  transition: background-color $transition-fast, transform $transition-fast, box-shadow $transition-fast;
+
+  svg {
+    margin-left: 4px; // Visual centering for play icon
+  }
+
+  &:hover {
+    background-color: $color-white;
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow: 0 8px 32px rgba($color-black, 0.4);
+  }
+
+  &:active {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+
+  @include focus-ring;
+}
+
+.video-v1__meta {
+  position: absolute;
+  bottom: $space-4;
+  left: $space-4;
+  right: $space-4;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.video-v1__duration {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-1 $space-2;
+  background-color: rgba($color-black, 0.75);
+  border-radius: $radius-sm;
+  color: $color-white;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.video-v1__title {
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  opacity: 0.9;
+  flex: 1;
+  @include truncate(1);
+}
+
+.video-v1__iframe-wrapper {
+  position: absolute;
+  inset: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.video-v1__iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.video-v1__description {
+  text-align: center;
+  margin-top: $space-8;
+
+  @include breakpoint($breakpoint-md) {
+    margin-top: $space-10;
+  }
+}
+
+.video-v1__description p {
+  color: $color-gray-400;
+  font-size: $font-size-base;
+  line-height: $line-height-relaxed;
+  max-width: 600px;
+  margin-inline: auto;
+  margin-bottom: $space-6;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+.video-v1__cta {
+  display: inline-flex;
+}
