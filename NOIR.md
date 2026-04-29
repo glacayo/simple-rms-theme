@@ -103,7 +103,7 @@ After the research, implement ALL structured data that is justified and valid fo
 | `ContactPage` | MEDIUM | ✅ Implemented | Dedicated type for the contact page |
 | `BreadcrumbList` | MEDIUM | Available | Helper function created; Yoast SEO already provides breadcrumbs UI |
 | `FAQPage` | LOW | ❌ Not implemented | No FAQ content exists on the site |
-| `Review` / `AggregateRating` | LOW | ❌ Not implemented | Testimonials are placeholder examples (Maria Johnson, Robert Smith, Sarah Williams); NOT real verified reviews. Adding fake reviews violates Google's policies. |
+| `Review` / `AggregateRating` | LOW | ⚠️ **TEMPLATE** (code ready, NOT active) | Testimonials are placeholder examples; function is scaffolded for real data — see `rms_schema_review_template()` and `rms_schema_aggregate_rating_template()` in `inc/schema.php` |
 | `VideoObject` | LOW | ❌ Not implemented | No real videos exist on the site |
 | `BlogPosting` / `Article` | MEDIUM | Available | Can be added when actual blog content with author/publisher exists |
 
@@ -166,6 +166,7 @@ Test all structured data at:
 - [x] `Service` (6 services on services page)
 - [x] `ContactPage`
 - [x] `BreadcrumbList` (helper function available; Yoast handles UI)
+- [x] Review + AggregateRating — **TEMPLATE ONLY** (placeholder in code; NOT active until real customer data is provided)
 - [x] NO fake reviews/ratings (testimonials are placeholder examples)
 - [x] NO fake FAQs
 - [x] NO fake videos

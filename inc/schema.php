@@ -289,6 +289,208 @@ function rms_schema_service(string $name, string $description): array {
     ];
 }
 
+// ─── Reviews / AggregateRating ───────────────────────────────────────────────
+
+/**
+ * REVIEW SCHEMA — TEMPLATE (NOT ACTIVE)
+ *
+ * These functions generate Review and AggregateRating schemas.
+ * They are NOT currently output because the testimonials on the site are
+ * placeholder examples (Maria Johnson, Robert Smith, Sarah Williams) and NOT
+ * real verified customer reviews.
+ *
+ * TO ACTIVATE: Replace the placeholder data below with REAL reviews from
+ * actual customers. Google strictly policies prohibit fake reviews and
+ * may penalize your site if implemented without genuine data.
+ *
+ * Required for activation:
+ * - Real customer name (first and last, or full name)
+ * - Real review text (specific to the service provided)
+ * - Real rating value (1-5)
+ * - Date of the review (ISO 8601 format)
+ * - Optionally: review source URL, reviewer profile image
+ *
+ * @see https://schema.org/Review
+ * @see https://schema.org/AggregateRating
+ */
+
+/**
+ * Individual Review schema — TEMPLATE.
+ *
+ * Replace each placeholder array with real customer review data.
+ * Each review MUST be from a verified customer.
+ *
+ * @see https://schema.org/Review
+ */
+function rms_schema_review_template(): array {
+    $url = rms_get_site_url();
+
+    /**
+     * TODO: Replace with real reviews from verified customers.
+     *
+     * Example format:
+     * [
+     *     'author' => 'Jane Doe',           // Real customer name
+     *     'review_body' => 'Text of review', // Real review text
+     *     'rating_value' => 5,               // 1-5 stars
+     *     'date_published' => '2024-06-15', // ISO 8601 date
+     *     'review_url' => '',                // Optional: link to review source
+     * ]
+     */
+    $reviews = [
+        // ─── REAL CUSTOMER REVIEW 1 ───────────────────────────────────────────
+        [
+            'author' => 'REAL_CUSTOMER_NAME_HERE', // e.g., 'Jane Doe'
+            'review_body' => 'REAL_REVIEW_TEXT_HERE', // e.g., 'They replaced our entire roof in three days...'
+            'rating_value' => 5, // 1-5 stars
+            'date_published' => 'YYYY-MM-DD', // e.g., '2024-06-15'
+            'review_url' => '', // Optional: Google, Yelp, BBB link
+        ],
+        // ─── REAL CUSTOMER REVIEW 2 ───────────────────────────────────────────
+        [
+            'author' => 'REAL_CUSTOMER_NAME_HERE',
+            'review_body' => 'REAL_REVIEW_TEXT_HERE',
+            'rating_value' => 5,
+            'date_published' => 'YYYY-MM-DD',
+            'review_url' => '',
+        ],
+        // ─── REAL CUSTOMER REVIEW 3 ───────────────────────────────────────────
+        [
+            'author' => 'REAL_CUSTOMER_NAME_HERE',
+            'review_body' => 'REAL_REVIEW_TEXT_HERE',
+            'rating_value' => 5,
+            'date_published' => 'YYYY-MM-DD',
+            'review_url' => '',
+        ],
+    ];
+
+    /**
+     * ACTIVATE: Uncomment this function and the corresponding add_action()
+     * at the bottom of this file ONLY after filling in real customer data.
+     *
+     * DO NOT activate with placeholder data — Google will detect fake reviews.
+     */
+    return []; // Return empty until real data is provided
+
+    $schema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Review',
+        'reviewRating' => [
+            '@type' => 'Rating',
+            'ratingValue' => $reviews[0]['rating_value'],
+            'bestRating' => 5,
+            'worstRating' => 1,
+        ],
+        'author' => [
+            '@type' => 'Person',
+            'name' => $reviews[0]['author'],
+        ],
+        'reviewBody' => $reviews[0]['review_body'],
+        'datePublished' => $reviews[0]['date_published'],
+        'publisher' => [
+            '@id' => $url . '/#organization',
+        ],
+    ];
+
+    if (!empty($reviews[0]['review_url'])) {
+        $schema['url'] = $reviews[0]['review_url'];
+    }
+
+    return $schema;
+}
+
+/**
+ * AggregateRating schema — TEMPLATE.
+ *
+ * Calculate these values from REAL reviews only.
+ *
+ * @see https://schema.org/AggregateRating
+ */
+function rms_schema_aggregate_rating_template(): array {
+    $url = rms_get_site_url();
+
+    /**
+     * TODO: Replace with calculated values from real customer reviews.
+     *
+     * - rating_count: Total number of real reviews (not just the 3 shown on site)
+     * - rating_value: Average of all real review ratings (e.g., 4.8)
+     *
+     * Example:
+     *   'ratingCount' => 127,   // Based on 127 real Google/BBB reviews
+     *   'ratingValue' => 4.9,   // Average rating across all reviews
+     */
+    $rating_count = 0;  // TODO: Set to actual count of verified reviews
+    $rating_value = 0;  // TODO: Set to actual average rating (1-5)
+
+    /**
+     * ACTIVATE: Uncomment this function and the corresponding add_action()
+     * at the bottom of this file ONLY after filling in real data.
+     *
+     * DO NOT activate with fake numbers — this must reflect genuine reviews.
+     */
+    return []; // Return empty until real data is provided
+
+    return [
+        '@context' => 'https://schema.org',
+        '@type' => 'AggregateRating',
+        'ratingValue' => (string) $rating_value,
+        'reviewCount' => (string) $rating_count,
+        'bestRating' => 5,
+        'worstRating' => 1,
+        'itemReviewed' => [
+            '@id' => $url . '/#roofingcontractor',
+        ],
+    ];
+}
+
+/**
+ * Full Review + AggregateRating setup — TEMPLATE.
+ *
+ * Outputs individual reviews and aggregate rating for the testimonials page.
+ * Currently returns early because review data is placeholder.
+ *
+ * TO ACTIVATE:
+ * 1. Fill in real customer data in rms_schema_review_template()
+ * 2. Fill in real aggregate values in rms_schema_aggregate_rating_template()
+ * 3. Uncomment the return statements in both functions above
+ * 4. Uncomment the add_action() at the bottom of this file
+ *
+ * @see https://schema.org/Review
+ * @see https://schema.org/AggregateRating
+ */
+function rms_schema_testimonials_page(): void {
+    if (!is_page_template('pages/testimonials.php')) {
+        return;
+    }
+
+    /**
+     * TEMPORARY: Exit early until real customer reviews are provided.
+     * The testimonials on this site are placeholder examples:
+     * - Maria Johnson
+     * - Robert Smith
+     * - Sarah Williams
+     *
+     * These are NOT real verified reviews and cannot be used in schema.
+     */
+    return;
+
+    // ─── ACTIVATE BELOW WHEN REAL DATA IS AVAILABLE ─────────────────────────
+
+    // Individual reviews
+    $review_schema = rms_schema_review_template();
+    if (!empty($review_schema)) {
+        rms_schema_output($review_schema);
+    }
+
+    // Aggregate rating (site-wide)
+    $aggregate_schema = rms_schema_aggregate_rating_template();
+    if (!empty($aggregate_schema)) {
+        rms_schema_output($aggregate_schema);
+    }
+}
+// add_action('wp_head', 'rms_schema_testimonials_page', 1);
+// ─── TEMPLATE END ──────────────────────────────────────────────────────────────
+
 // ─── Header Hook ──────────────────────────────────────────────────────────────
 
 /**
