@@ -4,6 +4,7 @@
  *
  * Implements JSON-LD structured data for a local roofing contractor business.
  * Uses centralized generators for maintainability and consistency.
+ * All values pulled from ACF Theme Options with WordPress fallbacks.
  *
  * @see https://developers.google.com/search/docs/appearance/structured-data/overview
  * @see https://schema.org/docs/schemas.html
@@ -24,6 +25,117 @@ function rms_get_site_name(): string {
 }
 
 /**
+ * Get the company name from ACF options, fallback to WordPress bloginfo.
+ */
+function rms_get_schema_name(): string {
+    return rms_get_option('company_name') ?: rms_get_site_name();
+}
+
+/**
+ * Get the schema business type from ACF, fallback to 'RoofingContractor'.
+ */
+function rms_get_schema_business_type(): string {
+    $type = rms_get_option('schema_business_type');
+    if ($type && in_array($type, ['Organization', 'LocalBusiness', 'HomeAndConstructionBusiness', 'RoofingContractor', 'Contractor'], true)) {
+        return $type;
+    }
+    return 'RoofingContractor';
+}
+
+/**
+ * Get the default schema image URL.
+ * Prefers explicit schema_default_image, falls back to company_logo_header.
+ */
+function rms_get_schema_image(): string {
+    $url = rms_get_option('schema_default_image');
+    if (!empty($url)) {
+        return $url;
+    }
+    return rms_get_option('company_logo_header') ?: rms_get_site_url() . '/logo.png';
+}
+
+/**
+ * Get the default schema logo URL.
+ * Prefers explicit schema_default_logo, falls back to schema_default_image,
+ * then company_logo_header.
+ */
+function rms_get_schema_logo(): string {
+    $url = rms_get_option('schema_default_logo');
+    if (!empty($url)) {
+        return $url;
+    }
+    $url = rms_get_option('schema_default_image');
+    if (!empty($url)) {
+        return $url;
+    }
+    return rms_get_option('company_logo_header') ?: rms_get_site_url() . '/logo.png';
+}
+
+/**
+ * Build the areaServed array from ACF repeater.
+ * Each row has service_area_name and service_area_type.
+ */
+function rms_get_schema_area_served(): array {
+    $areas = rms_get_option('schema_service_areas');
+    if (!is_array($areas) || empty($areas)) {
+        return [
+            [
+                '@type' => 'Place',
+                'name' => 'Greater Milwaukee & surrounding counties',
+            ],
+        ];
+    }
+
+    $served = [];
+    foreach ($areas as $area) {
+        if (!empty($area['service_area_name'])) {
+            $served[] = [
+                '@type' => 'Place',
+                'name' => $area['service_area_name'],
+            ];
+        }
+    }
+
+    if (empty($served)) {
+        return [
+            [
+                '@type' => 'Place',
+                'name' => 'Greater Milwaukee & surrounding counties',
+            ],
+        ];
+    }
+
+    return $served;
+}
+
+/**
+ * Build the sameAs array from rms_get_social_links() + schema_same_as_links.
+ */
+function rms_get_schema_same_as(): array {
+    $same_as = [];
+
+    // Pull from company_social_media via rms_get_social_links()
+    $socials = rms_get_social_links();
+    foreach ($socials as $social) {
+        if (!empty($social['url'])) {
+            $same_as[] = $social['url'];
+        }
+    }
+
+    // Append any explicit schema_same_as_links
+    $extra = rms_get_option('schema_same_as_links');
+    if (is_array($extra)) {
+        foreach ($extra as $link) {
+            if (!empty($link['same_as_url'])) {
+                $same_as[] = $link['same_as_url'];
+            }
+        }
+    }
+
+    return $same_as;
+}
+
+/**
  * Output a JSON-LD script tag with escaped and formatted JSON.
  */
 function rms_schema_output(array $schema): void {
@@ -38,73 +150,114 @@ function rms_schema_output(array $schema): void {
 
 /**
  * Generate the LocalBusiness schema for the roofing contractor.
+ * Values sourced from ACF Theme Options with sensible fallbacks.
  *
  * @see https://schema.org/RoofingContractor
  */
 function rms_schema_local_business(): array {
-    $url = rms_get_site_url();
+    $url          = rms_get_site_url();
+    $name         = rms_get_schema_name();
+    $business_type = rms_get_schema_business_type();
+    $image        = rms_get_schema_image();
+    $area_served  = rms_get_schema_area_served();
+
+    // priceRange — require "$$" format from ACF
+    $price_range = rms_get_option('schema_price_range') ?: '$$';
+
+    // Short description — ACF textarea
+    $description = rms_get_option('schema_short_description');
+    if (empty($description)) {
+        $description = 'Professional roofing services in Milwaukee, Wisconsin. Installation, repair, replacement, and emergency services for residential and commercial properties.';
+    }
+
+    // founder + foundingDate — ACF fields
+    $founder      = rms_get_option('schema_founder_name');
+    $founding_date = rms_get_option('schema_founding_date');
+
+    // Build founder sub-array only when data exists
+    $founder_data = null;
+    if (!empty($founder)) {
+        $founder_data = [
+            '@type' => 'Person',
+            'name' => $founder,
+        ];
+    }
+
+    // Payment methods — pull from ACF
+    $payment_methods = get_field('company_payment_methods', 'option');
+    $payment_labels = [];
+    if (!empty($payment_methods) && is_array($payment_methods)) {
+        foreach ($payment_methods as $pm) {
+            if (!empty($pm['payment_method_name'])) {
+                $payment_labels[] = $pm['payment_method_name'];
+            }
+        }
+    }
+
+    $primary = [
+        '@type' => $business_type,
+        '@id' => $url . '/#' . strtolower($business_type),
+        'name' => $name,
+        'description' => $description,
+        'url' => $url,
+        'telephone' => rms_get_primary_phone() ?: '+1-414-246-8257',
+        'email' => rms_get_primary_email() ?: 'info@ravenmarketing.services',
+        'image' => $image,
+        'priceRange' => $price_range,
+        'areaServed' => $area_served,
+        'openingHoursSpecification' => [
+            [
+                '@type' => 'OpeningHoursSpecification',
+                'dayOfWeek' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                'opens' => '08:00',
+                'closes' => '18:00',
+            ],
+            [
+                '@type' => 'OpeningHoursSpecification',
+                'dayOfWeek' => 'Saturday',
+                'opens' => '09:00',
+                'closes' => '14:00',
+            ],
+        ],
+        'hasOfferCatalog' => [
+            '@type' => 'OfferCatalog',
+            'name' => 'Roofing Services',
+            'itemListElement' => [
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Installation']],
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Repair']],
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Replacement']],
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Inspection']],
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Gutter Installation']],
+                ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Emergency Services']],
+            ],
+        ],
+        'paymentAccepted' => !empty($payment_labels) ? implode(', ', $payment_labels) : 'Cash, Check, Credit Card, Financing Available',
+        'currenciesAccepted' => 'USD',
+    ];
+
+    // Conditionally add founder + foundingDate to avoid null keys
+    if ($founder_data !== null) {
+        $primary['founder'] = $founder_data;
+    }
+    if (!empty($founding_date)) {
+        $primary['foundingDate'] = $founding_date;
+    }
+
+    // Remove null keys (array_filter preserves order)
+    $primary = array_filter($primary, fn($v) => $v !== null);
 
     return [
         '@context' => 'https://schema.org',
         '@graph' => [
-            // Primary: RoofingContractor (most specific type)
-            [
-                '@type' => 'RoofingContractor',
-                '@id' => $url . '/#roofingcontractor',
-                'name' => 'Raven Roofing & Construction',
-                'description' => 'Professional roofing services in Milwaukee, Wisconsin. Installation, repair, replacement, and emergency services for residential and commercial properties.',
-                'url' => $url,
-                'telephone' => '+1-414-246-8257',
-                'email' => 'info@ravenmarketing.services',
-                'image' => $url . '/logo.png',
-                'priceRange' => '$$',
-                'address' => [
-                    '@type' => 'PostalAddress',
-                    'addressLocality' => 'Milwaukee',
-                    'addressRegion' => 'WI',
-                    'addressCountry' => 'US',
-                ],
-                'areaServed' => [
-                    '@type' => 'Place',
-                    'name' => 'Greater Milwaukee & surrounding counties',
-                ],
-                'openingHoursSpecification' => [
-                    [
-                        '@type' => 'OpeningHoursSpecification',
-                        'dayOfWeek' => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                        'opens' => '08:00',
-                        'closes' => '18:00',
-                    ],
-                    [
-                        '@type' => 'OpeningHoursSpecification',
-                        'dayOfWeek' => 'Saturday',
-                        'opens' => '09:00',
-                        'closes' => '14:00',
-                    ],
-                ],
-                'hasOfferCatalog' => [
-                    '@type' => 'OfferCatalog',
-                    'name' => 'Roofing Services',
-                    'itemListElement' => [
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Installation']],
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Repair']],
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Replacement']],
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Roof Inspection']],
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Gutter Installation']],
-                        ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => 'Emergency Services']],
-                    ],
-                ],
-                'paymentAccepted' => 'Cash, Check, Credit Card, Financing Available',
-                'currenciesAccepted' => 'USD',
-            ],
+            $primary,
             // Secondary: HomeAndConstructionBusiness (broader parent type for compatibility)
             [
                 '@type' => 'HomeAndConstructionBusiness',
                 '@id' => $url . '/#homeconstruction',
-                'name' => 'Raven Roofing & Construction',
+                'name' => $name,
                 'url' => $url,
-                'telephone' => '+1-414-246-8257',
-                'email' => 'info@ravenmarketing.services',
+                'telephone' => rms_get_primary_phone() ?: '+1-414-246-8257',
+                'email' => rms_get_primary_email() ?: 'info@ravenmarketing.services',
                 'address' => [
                     '@type' => 'PostalAddress',
                     'addressLocality' => 'Milwaukee',
@@ -124,24 +277,28 @@ function rms_schema_local_business(): array {
  * @see https://schema.org/Organization
  */
 function rms_schema_organization(): array {
-    $url = rms_get_site_url();
+    $url     = rms_get_site_url();
+    $name    = rms_get_schema_name();
+    $logo    = rms_get_schema_logo();
+    $same_as = rms_get_schema_same_as();
 
     return [
         '@context' => 'https://schema.org',
         '@type' => 'Organization',
         '@id' => $url . '/#organization',
-        'name' => 'Raven Roofing & Construction',
+        'name' => $name,
         'url' => $url,
-        'logo' => $url . '/logo.png',
+        'logo' => $logo,
+        'image' => rms_get_schema_image(),
         'contactPoint' => [
             '@type' => 'ContactPoint',
-            'telephone' => '+1-414-246-8257',
-            'email' => 'info@ravenmarketing.services',
+            'telephone' => rms_get_primary_phone() ?: '+1-414-246-8257',
+            'email' => rms_get_primary_email() ?: 'info@ravenmarketing.services',
             'contactType' => 'customer service',
             'areaServed' => 'US',
             'availableLanguage' => ['English', 'Spanish'],
         ],
-        'sameAs' => [],
+        'sameAs' => $same_as,
     ];
 }
 

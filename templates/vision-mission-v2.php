@@ -22,12 +22,16 @@
             <aside class="vision-mission-v2__panel" aria-label="Reasons to choose our company">
                 <h3 class="vision-mission-v2__panel-title">Why Choose Us</h3>
                 <ul class="vision-mission-v2__list">
+                    <?php
+                    $license = rms_get_option('company_license');
+                    if ($license) : ?>
                     <li class="vision-mission-v2__list-item">
                         <span class="vision-mission-v2__check" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m9 11 3 3L22 4"/></svg>
                         </span>
-                        Licensed &amp; Insured Team
+                        <?php echo esc_html($license); ?>
                     </li>
+                    <?php endif; ?>
                     <li class="vision-mission-v2__list-item">
                         <span class="vision-mission-v2__check" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m9 11 3 3L22 4"/></svg>

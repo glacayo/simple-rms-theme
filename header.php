@@ -132,22 +132,24 @@
     }
 
      // Header — loaded as separate <link> (not inline)
-     $header_css = $vite->get_asset('src/scss/layout/header-two.scss');
+     $header_version = sanitize_key(rms_get_option('company_header_version') ?: 'header-one');
+     $header_css = $vite->get_asset("src/scss/layout/{$header_version}.scss");
      if ($header_css) {
-         wp_enqueue_style('header-two', $header_css, [], null);
+         wp_enqueue_style($header_version, $header_css, [], null);
      }
 
      // Header menu JS
-     $menu_js = $vite->get_asset('src/ts/header-two-menu.ts');
+     $menu_js = $vite->get_asset("src/ts/{$header_version}-menu.ts");
      if ($menu_js) {
-         wp_enqueue_script('header-two-menu', $menu_js, [], null, true);
+         wp_enqueue_script("{$header_version}-menu", $menu_js, [], null, true);
      }
 
     // Footer — deferred
-    $vite->get_deferred_style('layout-footer-v2', 'src/scss/layout/footer-v2.scss');
+    $footer_version = sanitize_key(rms_get_option('company_footer_version') ?: 'footer-v2');
+    $vite->get_deferred_style("layout-{$footer_version}", "src/scss/layout/{$footer_version}.scss");
     ?>
     <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
 
-<?php get_template_part('templates/header-two'); ?>
+<?php get_template_part("templates/{$header_version}"); ?>

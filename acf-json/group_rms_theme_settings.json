@@ -1,0 +1,1431 @@
+{
+    "key": "group_rms_theme_settings",
+    "title": "Theme Settings",
+    "fields": [
+        {
+            "key": "field_rms_tab_general",
+            "label": "General",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_name",
+            "label": "Company Name",
+            "name": "company_name",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. Manuel Roofing Services",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_language",
+            "label": "Company Language",
+            "name": "company_language",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. We speak English & Spanish",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_estimate_available",
+            "label": "Estimates Available",
+            "name": "company_estimate_available",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. Yes, Free Estimates Available",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_license",
+            "label": "Company License",
+            "name": "company_license",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. Licensed & Fully Insured",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_covered_areas",
+            "label": "Covered Areas",
+            "name": "company_covered_areas",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. We Cover All of Hudson Valley",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_tab_contact",
+            "label": "Contact",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_phones",
+            "label": "Phone Numbers",
+            "name": "company_phones",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_phone_label",
+                    "label": "Label",
+                    "name": "phone_label",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Main, Office, Emergency",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_phones"
+                },
+                {
+                    "key": "field_rms_phone_number",
+                    "label": "Phone Number",
+                    "name": "phone_number",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. (302) 600-1818",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_phones"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_company_emails",
+            "label": "Email Addresses",
+            "name": "company_emails",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_email_label",
+                    "label": "Label",
+                    "name": "email_label",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Info, Support",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_emails"
+                },
+                {
+                    "key": "field_rms_email_address",
+                    "label": "Email Address",
+                    "name": "email_address",
+                    "aria-label": "",
+                    "type": "email",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. hello@manuelroofing.com",
+                    "default_value": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_emails"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_company_address_line_1",
+            "label": "Address Line 1",
+            "name": "company_address_line_1",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. 123 Main Street",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_address_line_2",
+            "label": "Address Line 2",
+            "name": "company_address_line_2",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. Suite 4",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_city",
+            "label": "City",
+            "name": "company_city",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. White Plains",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_state",
+            "label": "State",
+            "name": "company_state",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. NY",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_postal_code",
+            "label": "Postal Code",
+            "name": "company_postal_code",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. 10601",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_country",
+            "label": "Country",
+            "name": "company_country",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. United States",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_company_schedule",
+            "label": "Business Hours",
+            "name": "company_schedule",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_schedule_day",
+                    "label": "Day",
+                    "name": "schedule_day",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "monday": "Monday",
+                        "tuesday": "Tuesday",
+                        "wednesday": "Wednesday",
+                        "thursday": "Thursday",
+                        "friday": "Friday",
+                        "saturday": "Saturday",
+                        "sunday": "Sunday"
+                    },
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "default_value": false,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "return_format": "value",
+                    "create_options": 0,
+                    "save_options": 0,
+                    "parent_repeater": "field_rms_company_schedule"
+                },
+                {
+                    "key": "field_rms_schedule_open_time",
+                    "label": "Open Time",
+                    "name": "schedule_open_time",
+                    "aria-label": "",
+                    "type": "time_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "return_format": "H:i",
+                    "display_format": "g:i a",
+                    "parent_repeater": "field_rms_company_schedule"
+                },
+                {
+                    "key": "field_rms_schedule_close_time",
+                    "label": "Close Time",
+                    "name": "schedule_close_time",
+                    "aria-label": "",
+                    "type": "time_picker",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "return_format": "H:i",
+                    "display_format": "g:i a",
+                    "parent_repeater": "field_rms_company_schedule"
+                },
+                {
+                    "key": "field_rms_schedule_is_closed",
+                    "label": "Closed \/ 24Hrs",
+                    "name": "schedule_is_closed",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "ui": 1,
+                    "ui_on_text": "Closed",
+                    "ui_off_text": "Open",
+                    "default_value": 0,
+                    "message": "",
+                    "parent_repeater": "field_rms_company_schedule"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_company_google_maps_url",
+            "label": "Google Maps URL",
+            "name": "company_google_maps_url",
+            "aria-label": "",
+            "type": "url",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. https:\/\/maps.google.com\/?q=...",
+            "default_value": ""
+        },
+        {
+            "key": "field_rms_tab_social_media",
+            "label": "Social Media",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_social_media",
+            "label": "Social Media Links",
+            "name": "company_social_media",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_social_platform",
+                    "label": "Platform",
+                    "name": "social_platform",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "facebook": "Facebook",
+                        "instagram": "Instagram",
+                        "linkedin": "LinkedIn",
+                        "x": "X (Twitter)",
+                        "youtube": "YouTube",
+                        "tiktok": "TikTok",
+                        "pinterest": "Pinterest",
+                        "other": "Other"
+                    },
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "default_value": false,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "return_format": "value",
+                    "create_options": 0,
+                    "save_options": 0,
+                    "parent_repeater": "field_rms_company_social_media"
+                },
+                {
+                    "key": "field_rms_social_label",
+                    "label": "Label",
+                    "name": "social_label",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Follow us",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_social_media"
+                },
+                {
+                    "key": "field_rms_social_url",
+                    "label": "URL",
+                    "name": "social_url",
+                    "aria-label": "",
+                    "type": "url",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "https:\/\/facebook.com\/yourpage",
+                    "default_value": "",
+                    "parent_repeater": "field_rms_company_social_media"
+                },
+                {
+                    "key": "field_rms_social_is_active",
+                    "label": "Active",
+                    "name": "social_is_active",
+                    "aria-label": "",
+                    "type": "true_false",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "25",
+                        "class": "",
+                        "id": ""
+                    },
+                    "ui": 1,
+                    "ui_on_text": "On",
+                    "ui_off_text": "Off",
+                    "default_value": 0,
+                    "message": "",
+                    "parent_repeater": "field_rms_company_social_media"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_tab_branding",
+            "label": "Branding",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_favicon",
+            "label": "Favicon",
+            "name": "company_favicon",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "url",
+            "preview_size": "medium",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": ""
+        },
+        {
+            "key": "field_rms_company_logo_header",
+            "label": "Header Logo",
+            "name": "company_logo_header",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "url",
+            "preview_size": "medium",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": ""
+        },
+        {
+            "key": "field_rms_company_logo_footer",
+            "label": "Footer Logo",
+            "name": "company_logo_footer",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "url",
+            "preview_size": "medium",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": ""
+        },
+        {
+            "key": "field_rms_company_palette_color_1",
+            "label": "Primary Color",
+            "name": "company_palette_color_1",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "enable_opacity": false,
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "return_format": "string"
+        },
+        {
+            "key": "field_rms_company_palette_color_2",
+            "label": "Secondary Color",
+            "name": "company_palette_color_2",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "enable_opacity": false,
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "return_format": "string"
+        },
+        {
+            "key": "field_rms_company_palette_color_3",
+            "label": "Accent Color 1",
+            "name": "company_palette_color_3",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "enable_opacity": false,
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "return_format": "string"
+        },
+        {
+            "key": "field_rms_company_palette_color_4",
+            "label": "Accent Color 2",
+            "name": "company_palette_color_4",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "enable_opacity": false,
+            "custom_palette_source": "",
+            "palette_colors": "",
+            "show_color_wheel": true,
+            "return_format": "string"
+        },
+        {
+            "key": "field_rms_tab_layout",
+            "label": "Layout",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_header_version",
+            "label": "Header Version",
+            "name": "company_header_version",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "header-one": "Header One",
+                "header-two": "Header Two",
+                "header-three": "Header Three"
+            },
+            "multiple": 0,
+            "allow_null": 0,
+            "default_value": false,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0
+        },
+        {
+            "key": "field_rms_company_footer_version",
+            "label": "Footer Version",
+            "name": "company_footer_version",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "footer-one": "Footer One",
+                "footer-two": "Footer Two"
+            },
+            "multiple": 0,
+            "allow_null": 0,
+            "default_value": false,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0
+        },
+        {
+            "key": "field_rms_tab_business",
+            "label": "Business",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_company_payment_methods",
+            "label": "Payment Methods",
+            "name": "company_payment_methods",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_payment_method_name",
+                    "label": "Type of Payment",
+                    "name": "payment_method_name",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Cash, Check, Credit Card, Zelle, etc.",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_payment_methods"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_company_services",
+            "label": "Services",
+            "name": "company_services",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_service_name",
+                    "label": "Name",
+                    "name": "service_name",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "33",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_services"
+                },
+                {
+                    "key": "field_rms_service_slug",
+                    "label": "Slug",
+                    "name": "service_slug",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "33",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_company_services"
+                },
+                {
+                    "key": "field_rms_service_short_description",
+                    "label": "Short Description",
+                    "name": "service_short_description",
+                    "aria-label": "",
+                    "type": "textarea",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "34",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "new_lines": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "rows": "",
+                    "parent_repeater": "field_rms_company_services"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_tab_schema",
+            "label": "Schema",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_schema_business_type",
+            "label": "Business Type",
+            "name": "schema_business_type",
+            "aria-label": "",
+            "type": "select",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Organization": "Organization",
+                "LocalBusiness": "LocalBusiness",
+                "HomeAndConstructionBusiness": "HomeAndConstructionBusiness",
+                "RoofingContractor": "RoofingContractor",
+                "Contractor": "Contractor"
+            },
+            "multiple": 0,
+            "allow_null": 0,
+            "default_value": false,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": "",
+            "return_format": "value",
+            "create_options": 0,
+            "save_options": 0
+        },
+        {
+            "key": "field_rms_schema_short_description",
+            "label": "Short Description",
+            "name": "schema_short_description",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "new_lines": "",
+            "maxlength": "",
+            "placeholder": "",
+            "rows": ""
+        },
+        {
+            "key": "field_rms_schema_price_range",
+            "label": "Price Range",
+            "name": "schema_price_range",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "$$",
+            "default_value": "",
+            "maxlength": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_schema_founder_name",
+            "label": "Founder Name",
+            "name": "schema_founder_name",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_schema_founding_date",
+            "label": "Founding Date",
+            "name": "schema_founding_date",
+            "aria-label": "",
+            "type": "date_picker",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "F j, Y",
+            "first_day": 1,
+            "default_to_current_date": 0
+        },
+        {
+            "key": "field_rms_schema_latitude",
+            "label": "Latitude",
+            "name": "schema_latitude",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_schema_longitude",
+            "label": "Longitude",
+            "name": "schema_longitude",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_rms_schema_has_map_url",
+            "label": "Map URL",
+            "name": "schema_has_map_url",
+            "aria-label": "",
+            "type": "url",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": ""
+        },
+        {
+            "key": "field_rms_schema_service_areas",
+            "label": "Service Areas",
+            "name": "schema_service_areas",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_service_area_name",
+                    "label": "Area Name",
+                    "name": "service_area_name",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": "",
+                    "parent_repeater": "field_rms_schema_service_areas"
+                },
+                {
+                    "key": "field_rms_service_area_type",
+                    "label": "Area Type",
+                    "name": "service_area_type",
+                    "aria-label": "",
+                    "type": "select",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "50",
+                        "class": "",
+                        "id": ""
+                    },
+                    "choices": {
+                        "city": "City",
+                        "county": "County",
+                        "state": "State",
+                        "region": "Region"
+                    },
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "default_value": false,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": "",
+                    "return_format": "value",
+                    "create_options": 0,
+                    "save_options": 0,
+                    "parent_repeater": "field_rms_schema_service_areas"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_schema_same_as_links",
+            "label": "Same-As Links",
+            "name": "schema_same_as_links",
+            "aria-label": "",
+            "type": "repeater",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "rows_per_page": 20,
+            "button_label": "Add Row",
+            "collapsed": "",
+            "sub_fields": [
+                {
+                    "key": "field_rms_same_as_url",
+                    "label": "URL",
+                    "name": "same_as_url",
+                    "aria-label": "",
+                    "type": "url",
+                    "instructions": "",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "100",
+                        "class": "",
+                        "id": ""
+                    },
+                    "default_value": "",
+                    "placeholder": "",
+                    "parent_repeater": "field_rms_schema_same_as_links"
+                }
+            ]
+        },
+        {
+            "key": "field_rms_schema_default_logo",
+            "label": "Default Logo",
+            "name": "schema_default_logo",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "url",
+            "preview_size": "medium",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": ""
+        },
+        {
+            "key": "field_rms_schema_default_image",
+            "label": "Default Image",
+            "name": "schema_default_image",
+            "aria-label": "",
+            "type": "image",
+            "instructions": "",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "url",
+            "preview_size": "medium",
+            "library": "all",
+            "min_width": 0,
+            "min_height": 0,
+            "min_size": 0,
+            "max_width": 0,
+            "max_height": 0,
+            "max_size": 0,
+            "mime_types": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "rms-theme-settings"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "left",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 0,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "modified": 1777686559
+}
