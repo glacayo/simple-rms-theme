@@ -5,9 +5,17 @@
             <div class="area-coverage-v1__content">
                 <p class="area-coverage-v1__eyebrow">Regional Coverage</p>
                 <h2 id="area-coverage-v1-heading" class="area-coverage-v1__headline">Areas We Proudly Serve</h2>
+                <?php
+                $covered = rms_get_option('company_covered_areas');
+                if ($covered) : ?>
+                <p class="area-coverage-v1__description">
+                    <?php echo esc_html($covered); ?>
+                </p>
+                <?php else : ?>
                 <p class="area-coverage-v1__description">
                     From central city neighborhoods to surrounding communities, our crew delivers consistent craftsmanship across the greater Orlando region with dependable response times and local expertise you can trust.
                 </p>
+                <?php endif; ?>
 
                 <p class="area-coverage-v1__radius" role="status" aria-label="Current service radius">
                     Service Radius: 50 Miles

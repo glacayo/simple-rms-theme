@@ -44,6 +44,32 @@
         if ($filter_js) {
             wp_enqueue_script('portfolio-filter-js', $filter_js, [], null, true);
         }
+
+        // FAQ sections (below the fold — deferred)
+        foreach (['faq-v1', 'faq-v2'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+
+        // FAQ JS (accordion)
+        $faq_js = $vite->get_asset('src/ts/faq.ts');
+        if ($faq_js) {
+            wp_enqueue_script('faq-js', $faq_js, [], null, true);
+        }
+
+        // Video sections (below the fold — deferred)
+        foreach (['video-v1', 'video-v2'] as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+
+        // Video JS (poster-to-iframe + lightbox)
+        $video1_js = $vite->get_asset('src/ts/video-v1.ts');
+        if ($video1_js) {
+            wp_enqueue_script('video-v1-js', $video1_js, [], null, true);
+        }
+        $video2_js = $vite->get_asset('src/ts/video-v2.ts');
+        if ($video2_js) {
+            wp_enqueue_script('video-v2-js', $video2_js, [], null, true);
+        }
     }
 
     // Internal page: About Us — breadcrumb above the fold
@@ -106,22 +132,24 @@
     }
 
      // Header — loaded as separate <link> (not inline)
-     $header_css = $vite->get_asset('src/scss/layout/header-two.scss');
+     $header_version = sanitize_key(rms_get_option('company_header_version') ?: 'header-one');
+     $header_css = $vite->get_asset("src/scss/layout/{$header_version}.scss");
      if ($header_css) {
-         wp_enqueue_style('header-two', $header_css, [], null);
+         wp_enqueue_style($header_version, $header_css, [], null);
      }
 
      // Header menu JS
-     $menu_js = $vite->get_asset('src/ts/header-two-menu.ts');
+     $menu_js = $vite->get_asset("src/ts/{$header_version}-menu.ts");
      if ($menu_js) {
-         wp_enqueue_script('header-two-menu', $menu_js, [], null, true);
+         wp_enqueue_script("{$header_version}-menu", $menu_js, [], null, true);
      }
 
     // Footer — deferred
-    $vite->get_deferred_style('layout-footer-v2', 'src/scss/layout/footer-v2.scss');
+    $footer_version = sanitize_key(rms_get_option('company_footer_version') ?: 'footer-v2');
+    $vite->get_deferred_style("layout-{$footer_version}", "src/scss/layout/{$footer_version}.scss");
     ?>
     <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
 
-<?php get_template_part('templates/header-two'); ?>
+<?php get_template_part("templates/{$header_version}"); ?>

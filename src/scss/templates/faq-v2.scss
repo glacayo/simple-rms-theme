@@ -1,0 +1,166 @@
+// ============================================
+// FAQ V2 — Grid de Cards con Expand Inline
+// ============================================
+// Cards en grid 2 columnas con iconos.
+// Toggle con +/-. Diseño más editorial.
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+.faq-v2 {
+  background-color: $color-white;
+  padding: $space-16 0;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-24 0;
+  }
+}
+
+.faq-v2__headline {
+  color: $color-gray-900;
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  text-align: center;
+  margin-bottom: $space-3;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-4xl;
+  }
+}
+
+.faq-v2__subheadline {
+  color: $color-gray-500;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  margin-bottom: $space-12;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+    margin-bottom: $space-16;
+  }
+}
+
+.faq-v2__grid {
+  display: grid;
+  gap: $space-4;
+
+  @include breakpoint($breakpoint-md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-6;
+  }
+}
+
+.faq-v2__card {
+  display: flex;
+  flex-direction: column;
+  background-color: $color-gray-50;
+  border-radius: $radius-xl;
+  border: 1px solid $color-gray-200;
+  overflow: hidden;
+  transition: border-color $transition-base, box-shadow $transition-base, transform $transition-base;
+  text-align: left;
+  font-family: inherit;
+
+  &:hover {
+    border-color: $color-gray-300;
+    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
+  }
+
+  &:focus-within {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+  }
+}
+
+.faq-v2__card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+  padding: $space-6;
+  cursor: pointer;
+
+  @include breakpoint($breakpoint-md) {
+    padding: $space-8;
+  }
+}
+
+.faq-v2__card-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba($color-primary, 0.08);
+  border-radius: $radius-lg;
+  color: $color-primary;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.faq-v2__card-question {
+  flex: 1;
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $color-gray-900;
+  line-height: $line-height-normal;
+
+  @include breakpoint($breakpoint-md) {
+    font-size: $font-size-lg;
+  }
+}
+
+.faq-v2__card-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: $color-gray-200;
+  border: none;
+  border-radius: $radius-full;
+  cursor: pointer;
+  color: $color-gray-600;
+  transition: background-color $transition-fast, color $transition-fast, transform $transition-base;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  [aria-expanded="true"] & {
+    background-color: $color-primary;
+    color: $color-white;
+    transform: rotate(45deg);
+  }
+
+  @include focus-ring;
+}
+
+.faq-v2__card-answer {
+  overflow: hidden;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.faq-v2__card-answer p {
+  margin: 0;
+  padding: 0 $space-6 $space-6;
+  color: $color-gray-600;
+  font-size: $font-size-sm;
+  line-height: $line-height-relaxed;
+
+  @include breakpoint($breakpoint-md) {
+    padding: 0 $space-8 $space-8;
+    font-size: $font-size-base;
+  }
+}
