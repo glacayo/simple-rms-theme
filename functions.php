@@ -12,6 +12,9 @@ require_once get_template_directory() . '/inc/setup.php';
 // ─── ACF Theme Options ─────────────────────────────────────────────────
 require_once get_template_directory() . '/inc/acf-theme-options.php';
 
+// ─── ACF Flexible Content — Page Sections ───────────────────────────────
+require_once get_template_directory() . '/inc/acf-flexible-content.php';
+
 // ─── WordPress Cleanup & Optimization ───────────────────────────────
 require_once get_template_directory() . '/inc/optimize.php';
 

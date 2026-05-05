@@ -1,12 +1,17 @@
 <!-- Contact Info + Form — Two Column Layout -->
 <section class="contact-info" id="contact">
+    <?php
+    $headline       = get_sub_field('contact_info_headline') ?: 'Get in Touch';
+    $intro          = get_sub_field('contact_info_intro') ?: "We're here to help with any roofing project. Reach out for a free estimate or to schedule a consultation.";
+    $form_shortcode = get_sub_field('contact_info_form_shortcode');
+    ?>
     <div class="container">
         <div class="contact-info__grid">
 
             <!-- Left Column: Company Info -->
             <div class="contact-info__info">
-                <h2 class="contact-info__headline">Get in Touch</h2>
-                <p class="contact-info__intro">We're here to help with any roofing project. Reach out for a free estimate or to schedule a consultation.</p>
+                <h2 class="contact-info__headline"><?php echo esc_html($headline); ?></h2>
+                <p class="contact-info__intro"><?php echo wp_kses_post($intro); ?></p>
 
                 <div class="contact-info__list">
 
@@ -214,6 +219,9 @@
 
             <!-- Right Column: Contact Form -->
             <div class="contact-info__form-wrapper">
+                <?php if (!empty($form_shortcode)) : ?>
+                    <?php echo do_shortcode($form_shortcode); ?>
+                <?php else : ?>
                 <h3 class="contact-info__form-headline">Request a Free Estimate</h3>
                 <form class="contact-info__form" action="#" method="POST" novalidate>
 
@@ -271,6 +279,7 @@
                     </div>
 
                 </form>
+                <?php endif; ?>
             </div>
 
         </div>

@@ -1,7 +1,18 @@
+<?php
+/**
+ * Blog V1 Section Template
+ *
+ * @package Simple_RMS_Theme
+ */
+
+$headline = get_sub_field( 'blog_headline' ) ?: 'Latest Blog Posts';
+$cta_text = get_sub_field( 'blog_cta_text' ) ?: 'Read More Blog Posts';
+$cta_url  = get_sub_field( 'blog_cta_url' ) ?: '#';
+?>
 <!-- Blog V1 — Featured Post + Grid Cards -->
 <section class="blog-v1" aria-labelledby="blog-v1-heading">
     <div class="container">
-        <h2 id="blog-v1-heading" class="blog-v1__headline">Latest Blog Posts</h2>
+        <h2 id="blog-v1-heading" class="blog-v1__headline"><?php echo esc_html( $headline ); ?></h2>
 
         <div class="blog-v1__layout grid-2">
             <article class="blog-v1__featured">
@@ -99,7 +110,7 @@
         </div>
 
         <div class="blog-v1__cta-wrap">
-            <a href="#" class="btn blog-v1__cta">Read More Blog Posts</a>
+            <a href="<?php echo esc_url( $cta_url ); ?>" class="btn blog-v1__cta"><?php echo esc_html( $cta_text ); ?></a>
         </div>
     </div>
 </section>

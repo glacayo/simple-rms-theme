@@ -364,3 +364,12 @@ class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
         // Don't close <li> here — end_lvl closes it after children
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Remove Classic Editor (TinyMCE) from all post types
+// ══════════════════════════════════════════════════════════════════════════
+add_action('init', function () {
+    foreach (get_post_types() as $post_type) {
+        remove_post_type_support($post_type, 'editor');
+    }
+}, 20);
