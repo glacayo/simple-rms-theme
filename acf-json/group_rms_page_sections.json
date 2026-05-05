@@ -1196,6 +1196,434 @@
                             ]
                         }
                     ]
+                },
+                "layout_faq_v1": {
+                    "key": "layout_faq_v1",
+                    "name": "faq-v1",
+                    "label": "FAQ V1",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_faq_v1_headline",
+                            "label": "Headline",
+                            "name": "faq_v1_headline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Frequently Asked Questions"
+                        },
+                        {
+                            "key": "field_rms_faq_v1_subheadline",
+                            "label": "Subheadline",
+                            "name": "faq_v1_subheadline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Get Answers to Common Roofing Questions"
+                        },
+                        {
+                            "key": "field_rms_faq_v1_faqs",
+                            "label": "FAQ Items",
+                            "name": "faq_v1_faqs",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add FAQ",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_faq_v1_question",
+                                    "label": "Question",
+                                    "name": "faq_question",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. How much does a new roof cost?",
+                                    "parent_repeater": "field_rms_faq_v1_faqs"
+                                },
+                                {
+                                    "key": "field_rms_faq_v1_answer",
+                                    "label": "Answer",
+                                    "name": "faq_answer",
+                                    "type": "wysiwyg",
+                                    "tabs": "visual",
+                                    "toolbar": "basic",
+                                    "media_upload": 0,
+                                    "parent_repeater": "field_rms_faq_v1_faqs"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_faq_v2": {
+                    "key": "layout_faq_v2",
+                    "name": "faq-v2",
+                    "label": "FAQ V2",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_faq_v2_headline",
+                            "label": "Headline",
+                            "name": "faq_v2_headline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Frequently Asked Questions"
+                        },
+                        {
+                            "key": "field_rms_faq_v2_subheadline",
+                            "label": "Subheadline",
+                            "name": "faq_v2_subheadline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Everything You Need to Know"
+                        },
+                        {
+                            "key": "field_rms_faq_v2_faqs",
+                            "label": "FAQ Items",
+                            "name": "faq_v2_faqs",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add FAQ",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_faq_v2_question",
+                                    "label": "Question",
+                                    "name": "faq_question",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. How much does a new roof cost?",
+                                    "parent_repeater": "field_rms_faq_v2_faqs"
+                                },
+                                {
+                                    "key": "field_rms_faq_v2_answer",
+                                    "label": "Answer",
+                                    "name": "faq_answer",
+                                    "type": "wysiwyg",
+                                    "tabs": "visual",
+                                    "toolbar": "basic",
+                                    "media_upload": 0,
+                                    "parent_repeater": "field_rms_faq_v2_faqs"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_gallery_grid": {
+                    "key": "layout_gallery_grid",
+                    "name": "gallery-grid",
+                    "label": "Gallery Grid",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_gallery_items",
+                            "label": "Gallery Items",
+                            "name": "gallery_items",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add Image",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_gallery_thumbnail",
+                                    "label": "Thumbnail",
+                                    "name": "gallery_thumbnail",
+                                    "type": "image",
+                                    "return_format": "url",
+                                    "wrapper": {
+                                        "width": "33",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "parent_repeater": "field_rms_gallery_items"
+                                },
+                                {
+                                    "key": "field_rms_gallery_full",
+                                    "label": "Full Size",
+                                    "name": "gallery_full",
+                                    "type": "image",
+                                    "return_format": "url",
+                                    "wrapper": {
+                                        "width": "33",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "parent_repeater": "field_rms_gallery_items"
+                                },
+                                {
+                                    "key": "field_rms_gallery_label",
+                                    "label": "Label",
+                                    "name": "gallery_label",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "34",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Commercial Roofing",
+                                    "parent_repeater": "field_rms_gallery_items"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_portfolio_v1": {
+                    "key": "layout_portfolio_v1",
+                    "name": "portfolio-v1",
+                    "label": "Portfolio V1",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_portfolio_v1_headline",
+                            "label": "Headline",
+                            "name": "portfolio_v1_headline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Our Recent Projects"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v1_subheadline",
+                            "label": "Subheadline",
+                            "name": "portfolio_v1_subheadline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Quality Work, Proven Results"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v1_projects",
+                            "label": "Projects",
+                            "name": "portfolio_v1_projects",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add Project",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_portfolio_v1_image",
+                                    "label": "Image",
+                                    "name": "project_image",
+                                    "type": "image",
+                                    "return_format": "url",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "parent_repeater": "field_rms_portfolio_v1_projects"
+                                },
+                                {
+                                    "key": "field_rms_portfolio_v1_label",
+                                    "label": "Label",
+                                    "name": "project_label",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Residential Roofing",
+                                    "parent_repeater": "field_rms_portfolio_v1_projects"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_portfolio_v2": {
+                    "key": "layout_portfolio_v2",
+                    "name": "portfolio-v2",
+                    "label": "Portfolio V2",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_portfolio_v2_headline",
+                            "label": "Headline",
+                            "name": "portfolio_v2_headline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Featured Work"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v2_subheadline",
+                            "label": "Subheadline",
+                            "name": "portfolio_v2_subheadline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Browse Our Best Projects"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v2_projects",
+                            "label": "Projects",
+                            "name": "portfolio_v2_projects",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add Project",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_portfolio_v2_image",
+                                    "label": "Image",
+                                    "name": "project_image",
+                                    "type": "image",
+                                    "return_format": "url",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "parent_repeater": "field_rms_portfolio_v2_projects"
+                                },
+                                {
+                                    "key": "field_rms_portfolio_v2_label",
+                                    "label": "Label",
+                                    "name": "project_label",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Residential Roofing",
+                                    "parent_repeater": "field_rms_portfolio_v2_projects"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_portfolio_v3": {
+                    "key": "layout_portfolio_v3",
+                    "name": "portfolio-v3",
+                    "label": "Portfolio V3",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_portfolio_v3_headline",
+                            "label": "Headline",
+                            "name": "portfolio_v3_headline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Project Gallery"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v3_subheadline",
+                            "label": "Subheadline",
+                            "name": "portfolio_v3_subheadline",
+                            "type": "text",
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Explore Our Work by Category"
+                        },
+                        {
+                            "key": "field_rms_portfolio_v3_filters",
+                            "label": "Filter Tabs",
+                            "name": "portfolio_v3_filters",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add Filter",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_portfolio_v3_filter_label",
+                                    "label": "Filter Label",
+                                    "name": "filter_label",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "100",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Residential",
+                                    "parent_repeater": "field_rms_portfolio_v3_filters"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_rms_portfolio_v3_projects",
+                            "label": "Projects",
+                            "name": "portfolio_v3_projects",
+                            "type": "repeater",
+                            "layout": "block",
+                            "button_label": "Add Project",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_portfolio_v3_image",
+                                    "label": "Image",
+                                    "name": "project_image",
+                                    "type": "image",
+                                    "return_format": "url",
+                                    "wrapper": {
+                                        "width": "33",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "parent_repeater": "field_rms_portfolio_v3_projects"
+                                },
+                                {
+                                    "key": "field_rms_portfolio_v3_label",
+                                    "label": "Label",
+                                    "name": "project_label",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "33",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Residential Roofing",
+                                    "parent_repeater": "field_rms_portfolio_v3_projects"
+                                },
+                                {
+                                    "key": "field_rms_portfolio_v3_category",
+                                    "label": "Category",
+                                    "name": "project_category",
+                                    "type": "text",
+                                    "wrapper": {
+                                        "width": "34",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. residential",
+                                    "instructions": "Must match a filter tab value (lowercase).",
+                                    "parent_repeater": "field_rms_portfolio_v3_projects"
+                                }
+                            ]
+                        }
+                    ]
                 }
             },
             "button_label": "Add Section",
@@ -1220,5 +1648,5 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "modified": 1778010083
+    "modified": 1778015400
 }

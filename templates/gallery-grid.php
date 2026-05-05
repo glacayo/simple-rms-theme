@@ -8,27 +8,47 @@
  * Pagination above and below grid
  */
 
-// Mock data — replace with ACF/CPT later
-$total_images = 48; // Total images across all pages
+$gallery_items_acf = get_sub_field('gallery_items');
 $per_page = 12;
-$total_pages = ceil($total_images / $per_page);
 $current_page = isset($_GET['gallery_page']) ? max(1, intval($_GET['gallery_page'])) : 1;
-$current_page = min($current_page, $total_pages);
 
-// Sample gallery items (repeated to simulate 48 images)
-$gallery_items = [];
-$project_names = [
-    'Commercial Roofing', 'Residential Repair', 'Storm Damage', 'New Construction',
-    'Gutter Install', 'Skylight Setup', 'Metal Roofing', 'Tile Restoration',
-    'Emergency Patch', 'Inspection Report', 'Leak Detection', 'Preventive Care',
-];
-for ($i = 0; $i < $per_page; $i++) {
-    $index = (($current_page - 1) * $per_page) + $i;
-    $gallery_items[] = [
-        'thumb' => 'https://placehold.co/400x300',
-        'full'  => 'https://placehold.co/1200x900',
-        'label' => $project_names[$index % count($project_names)],
+if (!empty($gallery_items_acf)) {
+    $total_images = count($gallery_items_acf);
+    $total_pages = ceil($total_images / $per_page);
+    $current_page = min($current_page, $total_pages);
+
+    $offset = ($current_page - 1) * $per_page;
+    $page_items = array_slice($gallery_items_acf, $offset, $per_page);
+
+    $gallery_items = [];
+    foreach ($page_items as $item) {
+        $gallery_items[] = [
+            'thumb' => $item['gallery_thumbnail'] ?? '',
+            'full'  => $item['gallery_full'] ?? '',
+            'label' => $item['gallery_label'] ?? '',
+        ];
+    }
+} else {
+    // Mock data — fallback
+    $total_images = 48; // Total images across all pages
+    $total_pages = ceil($total_images / $per_page);
+    $current_page = min($current_page, $total_pages);
+
+    // Sample gallery items (repeated to simulate 48 images)
+    $gallery_items = [];
+    $project_names = [
+        'Commercial Roofing', 'Residential Repair', 'Storm Damage', 'New Construction',
+        'Gutter Install', 'Skylight Setup', 'Metal Roofing', 'Tile Restoration',
+        'Emergency Patch', 'Inspection Report', 'Leak Detection', 'Preventive Care',
     ];
+    for ($i = 0; $i < $per_page; $i++) {
+        $index = (($current_page - 1) * $per_page) + $i;
+        $gallery_items[] = [
+            'thumb' => 'https://placehold.co/400x300',
+            'full'  => 'https://placehold.co/1200x900',
+            'label' => $project_names[$index % count($project_names)],
+        ];
+    }
 }
 ?>
 
@@ -70,8 +90,8 @@ for ($i = 0; $i < $per_page; $i++) {
         <!-- Gallery Grid -->
         <div class="gallery-grid__container">
             <?php foreach ($gallery_items as $item) : ?>
-                <div class="gallery-grid__item" data-lightbox="<?php echo esc_attr($item['full']); ?>">
-                    <img src="<?php echo esc_attr($item['thumb']); ?>"
+                <div class="gallery-grid__item" data-lightbox="<?php echo esc_url($item['full']); ?>">
+                    <img src="<?php echo esc_url($item['thumb']); ?>"
                          alt="<?php echo esc_attr($item['label']); ?>"
                          width="400" height="300" loading="lazy">
                     <div class="gallery-grid__overlay">
