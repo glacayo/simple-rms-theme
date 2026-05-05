@@ -364,3 +364,8 @@ class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
         // Don't close <li> here — end_lvl closes it after children
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// Disable Block Editor — use Classic Editor for all post types
+// ══════════════════════════════════════════════════════════════════════════
+add_filter('use_block_editor_for_post_type', '__return_false', 10);
