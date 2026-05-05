@@ -791,6 +791,411 @@
                             "default_value": ""
                         }
                     ]
+                },
+                "layout_contact_info": {
+                    "key": "layout_contact_info",
+                    "name": "contact-info",
+                    "label": "Contact Info",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_contact_info_headline",
+                            "label": "Headline",
+                            "name": "contact_info_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Get in Touch",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_contact_info_intro",
+                            "label": "Intro",
+                            "name": "contact_info_intro",
+                            "aria-label": "",
+                            "type": "wysiwyg",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "",
+                            "default_value": "",
+                            "tabs": "visual",
+                            "toolbar": "basic",
+                            "media_upload": 0
+                        },
+                        {
+                            "key": "field_rms_contact_info_form_shortcode",
+                            "label": "Form Shortcode",
+                            "name": "contact_info_form_shortcode",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "Paste a contact form shortcode. Leave empty to use the default form.",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. [contact-form-7 id='123' title='Contact']",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        }
+                    ]
+                },
+                "layout_cta_v1": {
+                    "key": "layout_cta_v1",
+                    "name": "cta-v1",
+                    "label": "CTA V1",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_cta_v1_headline",
+                            "label": "Headline",
+                            "name": "cta_v1_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Ready to Protect Your Home?",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v1_text",
+                            "label": "Text",
+                            "name": "cta_v1_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Get a free inspection and estimate today.",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v1_button_text",
+                            "label": "Button Text",
+                            "name": "cta_v1_button_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Get Your Free Estimate",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v1_button_url",
+                            "label": "Button URL",
+                            "name": "cta_v1_button_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. #contact",
+                            "default_value": ""
+                        }
+                    ]
+                },
+                "layout_cta_v2": {
+                    "key": "layout_cta_v2",
+                    "name": "cta-v2",
+                    "label": "CTA V2",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_cta_v2_headline",
+                            "label": "Headline",
+                            "name": "cta_v2_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Let's Build Something Great Together",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v2_text",
+                            "label": "Text",
+                            "name": "cta_v2_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Contact us today to discuss your project.",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v2_primary_text",
+                            "label": "Primary Button Text",
+                            "name": "cta_v2_primary_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Free Estimate",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v2_primary_url",
+                            "label": "Primary Button URL",
+                            "name": "cta_v2_primary_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. #contact",
+                            "default_value": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v2_secondary_text",
+                            "label": "Secondary Button Text",
+                            "name": "cta_v2_secondary_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Call Now",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v2_secondary_url",
+                            "label": "Secondary Button URL",
+                            "name": "cta_v2_secondary_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. tel:+1234567890",
+                            "default_value": ""
+                        }
+                    ]
+                },
+                "layout_cta_v3": {
+                    "key": "layout_cta_v3",
+                    "name": "cta-v3",
+                    "label": "CTA V3",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_cta_v3_headline",
+                            "label": "Headline",
+                            "name": "cta_v3_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Join Our Growing List of Happy Homeowners",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v3_button_text",
+                            "label": "Button Text",
+                            "name": "cta_v3_button_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Start Your Project Today",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v3_button_url",
+                            "label": "Button URL",
+                            "name": "cta_v3_button_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. #contact",
+                            "default_value": ""
+                        },
+                        {
+                            "key": "field_rms_cta_v3_stats",
+                            "label": "Stats",
+                            "name": "cta_v3_stats",
+                            "aria-label": "",
+                            "type": "repeater",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "min": 0,
+                            "max": 0,
+                            "rows_per_page": 20,
+                            "button_label": "Add Stat",
+                            "collapsed": "",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_cta_v3_stat_number",
+                                    "label": "Stat Number",
+                                    "name": "stat_number",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. 500+",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_cta_v3_stats"
+                                },
+                                {
+                                    "key": "field_rms_cta_v3_stat_label",
+                                    "label": "Stat Label",
+                                    "name": "stat_label",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Projects Completed",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_cta_v3_stats"
+                                }
+                            ]
+                        }
+                    ]
                 }
             },
             "button_label": "Add Section",
@@ -815,5 +1220,5 @@
     "hide_on_screen": "",
     "active": true,
     "description": "",
-    "modified": 1746470000
+    "modified": 1778010083
 }
