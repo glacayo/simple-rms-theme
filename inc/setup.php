@@ -366,6 +366,10 @@ class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// Disable Block Editor — use Classic Editor for all post types
+// Remove Classic Editor (TinyMCE) from all post types
 // ══════════════════════════════════════════════════════════════════════════
-add_filter('use_block_editor_for_post_type', '__return_false', 10);
+add_action('init', function () {
+    foreach (get_post_types() as $post_type) {
+        remove_post_type_support($post_type, 'editor');
+    }
+}, 20);

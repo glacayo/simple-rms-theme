@@ -43,5 +43,6 @@ wp-content/backup-db/
 *.tsbuildinfo
 
 # Agent tooling (local, not project source)
+.atl/
 .claude/
 .windsurf/

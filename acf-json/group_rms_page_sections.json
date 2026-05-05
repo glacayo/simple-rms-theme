@@ -1,0 +1,819 @@
+{
+    "key": "group_rms_page_sections",
+    "title": "Page Sections",
+    "fields": [
+        {
+            "key": "field_rms_page_sections",
+            "label": "Page Sections",
+            "name": "page_sections",
+            "aria-label": "",
+            "type": "flexible_content",
+            "instructions": "Add and reorder sections for this page.",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layouts": {
+                "layout_hero": {
+                    "key": "layout_hero",
+                    "name": "hero",
+                    "label": "Hero",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_hero_bg_image",
+                            "label": "Background Image",
+                            "name": "hero_bg_image",
+                            "aria-label": "",
+                            "type": "image",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "return_format": "url",
+                            "preview_size": "medium",
+                            "library": "all",
+                            "min_width": 0,
+                            "min_height": 0,
+                            "min_size": 0,
+                            "max_width": 0,
+                            "max_height": 0,
+                            "max_size": 0,
+                            "mime_types": ""
+                        },
+                        {
+                            "key": "field_rms_hero_reviews_label",
+                            "label": "Reviews Label",
+                            "name": "hero_reviews_label",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. 5.0 Google Reviews",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_hero_title",
+                            "label": "Title",
+                            "name": "hero_title",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Professional Roofing Solutions You Can Trust",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_hero_description",
+                            "label": "Description",
+                            "name": "hero_description",
+                            "aria-label": "",
+                            "type": "wysiwyg",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. We deliver high-quality roofing services for residential and commercial properties...",
+                            "default_value": "",
+                            "tabs": "visual",
+                            "toolbar": "basic",
+                            "media_upload": 0
+                        },
+                        {
+                            "key": "field_rms_hero_form_shortcode",
+                            "label": "Form Shortcode",
+                            "name": "hero_form_shortcode",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "Paste a contact form shortcode here to replace the default form.",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. [contact-form-7 id='123' title='Free Estimate']",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        }
+                    ]
+                },
+                "layout_slider": {
+                    "key": "layout_slider",
+                    "name": "slider",
+                    "label": "Slider",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_slider_slides",
+                            "label": "Slides",
+                            "name": "slider_slides",
+                            "aria-label": "",
+                            "type": "repeater",
+                            "instructions": "Add one or more slides. The first slide will use an H1 tag; subsequent slides use H2.",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "min": 0,
+                            "max": 0,
+                            "rows_per_page": 20,
+                            "button_label": "Add Slide",
+                            "collapsed": "",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_slide_bg_image",
+                                    "label": "Background Image",
+                                    "name": "slide_bg_image",
+                                    "aria-label": "",
+                                    "type": "image",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "return_format": "url",
+                                    "preview_size": "medium",
+                                    "library": "all",
+                                    "min_width": 0,
+                                    "min_height": 0,
+                                    "min_size": 0,
+                                    "max_width": 0,
+                                    "max_height": 0,
+                                    "max_size": 0,
+                                    "mime_types": "",
+                                    "parent_repeater": "field_rms_slider_slides"
+                                },
+                                {
+                                    "key": "field_rms_slide_subheadline",
+                                    "label": "Subheadline",
+                                    "name": "slide_subheadline",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Trusted Roofing Experts",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_slider_slides"
+                                },
+                                {
+                                    "key": "field_rms_slide_headline",
+                                    "label": "Headline",
+                                    "name": "slide_headline",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Protecting What Matters Most",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_slider_slides"
+                                },
+                                {
+                                    "key": "field_rms_slide_text",
+                                    "label": "Text",
+                                    "name": "slide_text",
+                                    "aria-label": "",
+                                    "type": "wysiwyg",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. We deliver premium roofing solutions...",
+                                    "default_value": "",
+                                    "tabs": "visual",
+                                    "toolbar": "basic",
+                                    "media_upload": 0,
+                                    "parent_repeater": "field_rms_slider_slides"
+                                },
+                                {
+                                    "key": "field_rms_slide_cta_text",
+                                    "label": "CTA Text",
+                                    "name": "slide_cta_text",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Get Free Estimate",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_slider_slides"
+                                },
+                                {
+                                    "key": "field_rms_slide_cta_url",
+                                    "label": "CTA URL",
+                                    "name": "slide_cta_url",
+                                    "aria-label": "",
+                                    "type": "url",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. #estimate",
+                                    "default_value": "",
+                                    "parent_repeater": "field_rms_slider_slides"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_about_us": {
+                    "key": "layout_about_us",
+                    "name": "about-us",
+                    "label": "About Us",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_about_headline",
+                            "label": "Headline",
+                            "name": "about_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "100",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. We Are The Best Roofing Company",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_about_subheadline",
+                            "label": "Subheadline",
+                            "name": "about_subheadline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "100",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Trusted by Homeowners Across the Region",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_about_text",
+                            "label": "Text",
+                            "name": "about_text",
+                            "aria-label": "",
+                            "type": "wysiwyg",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. With decades of hands-on experience...",
+                            "default_value": "",
+                            "tabs": "visual",
+                            "toolbar": "basic",
+                            "media_upload": 0
+                        },
+                        {
+                            "key": "field_rms_about_image",
+                            "label": "Image",
+                            "name": "about_image",
+                            "aria-label": "",
+                            "type": "image",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "return_format": "url",
+                            "preview_size": "medium",
+                            "library": "all",
+                            "min_width": 0,
+                            "min_height": 0,
+                            "min_size": 0,
+                            "max_width": 0,
+                            "max_height": 0,
+                            "max_size": 0,
+                            "mime_types": ""
+                        },
+                        {
+                            "key": "field_rms_about_badge_years",
+                            "label": "Badge Years",
+                            "name": "about_badge_years",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. 25",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_about_badge_label",
+                            "label": "Badge Label",
+                            "name": "about_badge_label",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Years Of Experience",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        }
+                    ]
+                },
+                "layout_area_coverage_v1": {
+                    "key": "layout_area_coverage_v1",
+                    "name": "area-coverage-v1",
+                    "label": "Area Coverage V1",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_area_eyebrow",
+                            "label": "Eyebrow",
+                            "name": "area_eyebrow",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Regional Coverage",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_area_headline",
+                            "label": "Headline",
+                            "name": "area_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Areas We Proudly Serve",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_area_description",
+                            "label": "Description",
+                            "name": "area_description",
+                            "aria-label": "",
+                            "type": "wysiwyg",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "",
+                            "default_value": "",
+                            "tabs": "visual",
+                            "toolbar": "basic",
+                            "media_upload": 0
+                        },
+                        {
+                            "key": "field_rms_area_radius",
+                            "label": "Service Radius",
+                            "name": "area_radius",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. 50 Miles",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_area_cities",
+                            "label": "Cities",
+                            "name": "area_cities",
+                            "aria-label": "",
+                            "type": "repeater",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "min": 0,
+                            "max": 0,
+                            "rows_per_page": 20,
+                            "button_label": "Add City",
+                            "collapsed": "",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_area_city_name",
+                                    "label": "City Name",
+                                    "name": "city_name",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "100",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. Orlando",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_area_cities"
+                                }
+                            ]
+                        },
+                        {
+                            "key": "field_rms_area_cta_text",
+                            "label": "CTA Text",
+                            "name": "area_cta_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Check Your Location",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_area_cta_url",
+                            "label": "CTA URL",
+                            "name": "area_cta_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. #contact",
+                            "default_value": ""
+                        },
+                        {
+                            "key": "field_rms_area_map_image",
+                            "label": "Map Image",
+                            "name": "area_map_image",
+                            "aria-label": "",
+                            "type": "image",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "return_format": "url",
+                            "preview_size": "medium",
+                            "library": "all",
+                            "min_width": 0,
+                            "min_height": 0,
+                            "min_size": 0,
+                            "max_width": 0,
+                            "max_height": 0,
+                            "max_size": 0,
+                            "mime_types": ""
+                        }
+                    ]
+                },
+                "layout_badges": {
+                    "key": "layout_badges",
+                    "name": "badges",
+                    "label": "Badges",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_badge_label",
+                            "label": "Label",
+                            "name": "badges_label",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Trusted & Verified On",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_badge_items",
+                            "label": "Badges",
+                            "name": "badges_items",
+                            "aria-label": "",
+                            "type": "repeater",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "",
+                                "class": "",
+                                "id": ""
+                            },
+                            "layout": "block",
+                            "min": 0,
+                            "max": 0,
+                            "rows_per_page": 20,
+                            "button_label": "Add Badge",
+                            "collapsed": "",
+                            "sub_fields": [
+                                {
+                                    "key": "field_rms_badge_item_icon",
+                                    "label": "Icon",
+                                    "name": "badge_icon",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. BBB, HA, YP",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_badge_items"
+                                },
+                                {
+                                    "key": "field_rms_badge_item_name",
+                                    "label": "Name",
+                                    "name": "badge_name",
+                                    "aria-label": "",
+                                    "type": "text",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "50",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. BBB Accredited",
+                                    "default_value": "",
+                                    "maxlength": "",
+                                    "prepend": "",
+                                    "append": "",
+                                    "parent_repeater": "field_rms_badge_items"
+                                },
+                                {
+                                    "key": "field_rms_badge_url",
+                                    "label": "Badge URL",
+                                    "name": "badge_url",
+                                    "aria-label": "",
+                                    "type": "url",
+                                    "instructions": "",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "100",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "placeholder": "e.g. https://www.bbb.org/your-business",
+                                    "default_value": "",
+                                    "parent_repeater": "field_rms_badge_items"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "layout_blog_v1": {
+                    "key": "layout_blog_v1",
+                    "name": "blog-v1",
+                    "label": "Blog V1",
+                    "display": "block",
+                    "sub_fields": [
+                        {
+                            "key": "field_rms_blog_headline",
+                            "label": "Headline",
+                            "name": "blog_headline",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Latest Blog Posts",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_blog_cta_text",
+                            "label": "CTA Text",
+                            "name": "blog_cta_text",
+                            "aria-label": "",
+                            "type": "text",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. Read More Blog Posts",
+                            "default_value": "",
+                            "maxlength": "",
+                            "prepend": "",
+                            "append": ""
+                        },
+                        {
+                            "key": "field_rms_blog_cta_url",
+                            "label": "CTA URL",
+                            "name": "blog_cta_url",
+                            "aria-label": "",
+                            "type": "url",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "50",
+                                "class": "",
+                                "id": ""
+                            },
+                            "placeholder": "e.g. /blog/",
+                            "default_value": ""
+                        }
+                    ]
+                }
+            },
+            "button_label": "Add Section",
+            "min": "",
+            "max": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "page",
+                "operator": "==",
+                "value": "all"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "modified": 1746470000
+}
