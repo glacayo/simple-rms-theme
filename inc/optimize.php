@@ -70,13 +70,8 @@ add_action('wp_enqueue_scripts', 'simple_rms_dequeue_styles', 100);
 
 // ─── Dequeue Unnecessary Scripts ──────────────────────────────────────────
 
-function simple_rms_dequeue_scripts() {
-    // Remove jQuery migrate (not needed with modern jQuery)
-    if (!is_admin()) {
-        wp_deregister_script('jquery');
-    }
-}
-add_action('wp_enqueue_scripts', 'simple_rms_dequeue_scripts', 100);
+// Do not deregister core jQuery on the frontend.
+// Plugins such as Wordfence may enqueue scripts that depend on it.
 
 // ─── Preload Critical Fonts (example) ─────────────────────────────────────
 // Uncomment and customize when you load custom fonts

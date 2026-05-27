@@ -480,7 +480,7 @@
                 },
                 {
                     "key": "field_rms_schedule_is_closed",
-                    "label": "Closed \/ 24Hrs",
+                    "label": "Closed / 24Hrs",
                     "name": "schedule_is_closed",
                     "aria-label": "",
                     "type": "true_false",
@@ -515,7 +515,7 @@
                 "class": "",
                 "id": ""
             },
-            "placeholder": "e.g. https:\/\/maps.google.com\/?q=...",
+            "placeholder": "e.g. https://maps.google.com/?q=...",
             "default_value": ""
         },
         {
@@ -627,7 +627,7 @@
                         "class": "",
                         "id": ""
                     },
-                    "placeholder": "https:\/\/facebook.com\/yourpage",
+                    "placeholder": "https://facebook.com/yourpage",
                     "default_value": "",
                     "parent_repeater": "field_rms_company_social_media"
                 },
@@ -1427,5 +1427,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1777686559
+    "modified": 1779850014
 }
