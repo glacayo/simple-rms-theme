@@ -366,10 +366,10 @@ class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// Remove Classic Editor (TinyMCE) from all post types
+// Remove Classic Editor (TinyMCE) only from selected public post types
 // ══════════════════════════════════════════════════════════════════════════
 add_action('init', function () {
-    foreach (get_post_types() as $post_type) {
+    foreach (['post', 'page'] as $post_type) {
         remove_post_type_support($post_type, 'editor');
     }
 }, 20);
