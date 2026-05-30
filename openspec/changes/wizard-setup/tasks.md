@@ -35,12 +35,12 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Core Step Services
 
-- [ ] 2.1 Create `inc/wizard/class-step-dependencies.php` to check/install plugins via TGMPA wrappers.
-- [ ] 2.2 Create `inc/wizard/class-step-acf-import.php` to import ACF field definitions and log existing group conflicts.
-- [ ] 2.3 Create `inc/wizard/class-step-client-data.php` to persist client inputs in ACF settings.
-- [ ] 2.4 Create `inc/wizard/class-ai-adapter.php` with `wp_remote_request()` and exponential backoff (max 3 retries).
-- [ ] 2.5 Create `inc/wizard/class-content-builder.php` to build pages, flexible contents, and attach fallback images.
-- [ ] 2.6 Create `inc/wizard/class-yoast-meta-writer.php` to populate SEO titles and descriptions on generated pages.
+- [x] 2.1 Create `inc/wizard/class-step-dependencies.php` to check/install plugins via TGMPA wrappers.
+- [x] 2.2 Create `inc/wizard/class-step-acf-import.php` to import ACF field definitions and log existing group conflicts.
+- [x] 2.3 Create `inc/wizard/class-step-client-data.php` to persist client inputs in ACF settings.
+- [x] 2.4 Create `inc/wizard/class-ai-adapter.php` with `wp_remote_request()` and exponential backoff (max 3 retries).
+- [x] 2.5 Create `inc/wizard/class-content-builder.php` to build pages, flexible contents, and attach fallback images.
+- [x] 2.6 Create `inc/wizard/class-yoast-meta-writer.php` to populate SEO titles and descriptions on generated pages.
 
 ## Phase 3: REST Endpoints & Orchestration
 
