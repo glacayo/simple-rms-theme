@@ -34,7 +34,7 @@ function simple_rms_theme_register_required_plugins() {
         array(
             'name'     => 'Yoast SEO',
             'slug'     => 'wordpress-seo',
-            'required' => false,
+            'required' => true,
         ),
         // Contact Form 7
         array(
