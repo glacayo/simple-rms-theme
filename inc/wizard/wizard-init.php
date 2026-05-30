@@ -123,7 +123,12 @@ function rms_wizard_render_admin_page(): void {
 		'content-creation' => __( 'Create pages from prepared JSON content and write related metadata.', 'simple-rms-theme' ),
 	];
 	?>
-	<div class="wrap rms-setup-wizard" data-rms-wizard>
+	<div
+		class="wrap rms-setup-wizard"
+		data-rms-wizard
+		data-rms-wizard-root="<?php echo esc_url( rest_url( \Inc\Wizard\Rest_Controller::NAMESPACE . '/' ) ); ?>"
+		data-rms-wizard-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+	>
 		<h1><?php esc_html_e( 'Setup Wizard', 'simple-rms-theme' ); ?></h1>
 		<?php if ( $locked ) : ?>
 			<div class="notice notice-success inline">

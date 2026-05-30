@@ -43,9 +43,10 @@ declare global {
   'use strict';
 
   const root = document.querySelector<HTMLElement>('[data-rms-wizard]');
-  const settings = window.rmsWizardSettings;
+  const settings = getSettings(root);
 
   if (!root || !settings?.root || !settings?.nonce) {
+    showBootstrapError(root, 'Wizard configuration was not found. Refresh the page or rebuild the theme assets.');
     return;
   }
 
@@ -220,6 +221,22 @@ declare global {
     render();
   };
 
+  const handleStateLoadError = (error: unknown): void => {
+    const message = errorMessage(error);
+
+    setNotice(`Unable to load wizard state: ${message}`, 'error');
+
+    if (progressText) {
+      progressText.textContent = 'Unable to load progress';
+    }
+
+    if (logList) {
+      logList.innerHTML = `<li class="rms-wizard-log__item">Unable to load log entries: ${escapeHtml(message)}</li>`;
+    }
+
+    updateButtons();
+  };
+
   const runStep = async (step: string): Promise<void> => {
     runningStep = step;
     setActiveStep(step);
@@ -361,5 +378,38 @@ declare global {
     void completeWizard();
   });
 
-  void loadState();
+  render();
+  void loadState().catch(handleStateLoadError);
 })();
+
+function getSettings(root: HTMLElement | null): WizardSettings | undefined {
+  if (window.rmsWizardSettings?.root && window.rmsWizardSettings?.nonce) {
+    return window.rmsWizardSettings;
+  }
+
+  if (!root) {
+    return undefined;
+  }
+
+  const rootUrl = root.dataset.rmsWizardRoot;
+  const nonce = root.dataset.rmsWizardNonce;
+
+  if (!rootUrl || !nonce) {
+    return undefined;
+  }
+
+  return { root: rootUrl, nonce };
+}
+
+function showBootstrapError(root: HTMLElement | null, message: string): void {
+  const target = root?.querySelector<HTMLElement>('[data-wizard-notice]')
+    ?? root?.querySelector<HTMLElement>('[data-wizard-progress-text]');
+
+  if (!target) {
+    return;
+  }
+
+  target.hidden = false;
+  target.textContent = message;
+  target.classList.add('is-error');
+}
