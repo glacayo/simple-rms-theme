@@ -8,9 +8,9 @@ Standard.
 
 - Mode: chained PR slice.
 - Chain strategy: feature-branch-chain.
-- Current work unit: PR 2 — Core Step Services.
-- Boundary: PR 2 was created from tracker branch `feature/wizard-setup`, which already contains PR 1 foundation. This slice is limited to Phase 2 services.
-- Scope guard: Phase 3+ controllers/routes and Phase 4 frontend assets were not implemented.
+- Current work unit: PR 3 — REST Endpoints & Orchestration.
+- Boundary: PR 3 was created from tracker branch `feature/wizard-setup`, which already contains PR 1 foundation and PR 2 services. This slice is limited to Phase 3 REST endpoints and orchestration.
+- Scope guard: Phase 4 frontend assets, Vite entries, TypeScript, and SCSS were not implemented.
 
 ## Completed Tasks
 
@@ -25,6 +25,9 @@ Standard.
 - [x] 2.4 Create `inc/wizard/class-ai-adapter.php` with `wp_remote_request()` and exponential backoff (max 3 retries).
 - [x] 2.5 Create `inc/wizard/class-content-builder.php` to build pages, flexible contents, and attach fallback images.
 - [x] 2.6 Create `inc/wizard/class-yoast-meta-writer.php` to populate SEO titles and descriptions on generated pages.
+- [x] 3.1 Create loader `inc/wizard/wizard-init.php` to load classes, register admin page, and enqueue assets.
+- [x] 3.2 Create `inc/wizard/class-step-controller.php` to orchestrate actions, manage resume, and verify access.
+- [x] 3.3 Create `inc/wizard/class-rest-controller.php` to expose endpoints for step executions and state retrieval.
 
 ## Files Changed
 
@@ -44,19 +47,24 @@ Standard.
 | `inc/wizard/class-content-builder.php` | Created | Creates pages, writes flexible content, and applies bundled fallback images. |
 | `inc/wizard/class-yoast-meta-writer.php` | Created | Writes Yoast title and description post meta for generated pages. |
 | `openspec/changes/wizard-setup/tasks.md` | Modified | Marks only tasks 2.1 through 2.6 complete for PR 2. |
+| `inc/wizard/wizard-init.php` | Modified | Registers the admin page, minimal server-rendered placeholder, REST controller bootstrap, and REST nonce settings without Phase 4 assets. |
+| `inc/wizard/class-step-controller.php` | Created | Orchestrates step execution, resume state, capability checks, completion lock enforcement, and completion gating. |
+| `inc/wizard/class-rest-controller.php` | Created | Registers state, step execution, and completion REST endpoints guarded by `manage_options`. |
+| `openspec/changes/wizard-setup/tasks.md` | Modified | Marks only tasks 3.1 through 3.3 complete for PR 3. |
 
 ## Verification
 
 ```bash
 php -l "functions.php" && php -l "inc/tgmpa.php" && php -l "inc/wizard/wizard-init.php" && php -l "inc/wizard/class-logger.php" && php -l "inc/wizard/class-state-manager.php"
 php -l "inc/wizard/class-step-dependencies.php" && php -l "inc/wizard/class-step-acf-import.php" && php -l "inc/wizard/class-step-client-data.php" && php -l "inc/wizard/class-ai-adapter.php" && php -l "inc/wizard/class-content-builder.php" && php -l "inc/wizard/class-yoast-meta-writer.php"
+php -l "inc/wizard/wizard-init.php" && php -l "inc/wizard/class-step-controller.php" && php -l "inc/wizard/class-rest-controller.php"
 ```
 
-Result: passed; no syntax errors detected in all PR 1 and PR 2 changed PHP files.
+Result: passed; no syntax errors detected in all PR 1, PR 2, and PR 3 changed PHP files.
 
 ## Deviations from Design
 
-None — implementation matches the PR 1 and PR 2 slices of the design.
+None — implementation matches the PR 1, PR 2, and PR 3 slices of the design.
 
 ## Issues Found
 
@@ -65,6 +73,5 @@ None — implementation matches the PR 1 and PR 2 slices of the design.
 
 ## Remaining Tasks
 
-- [ ] Phase 3: REST Endpoints & Orchestration.
 - [ ] Phase 4: Frontend Development & Build.
 - [ ] Phase 5: Verification & Testing.
