@@ -50,9 +50,9 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Frontend Development & Build
 
-- [ ] 4.1 Create UI stylesheet `src/scss/admin/wizard.scss` with steps and progress layouts.
-- [ ] 4.2 Create client script `src/ts/admin/wizard.ts` for step-navigation, async calls, progress bars, and retries.
-- [ ] 4.3 Modify `vite.config.ts` to add `admin/wizard` entry points for SCSS and TypeScript build compilation.
+- [x] 4.1 Create UI stylesheet `src/scss/admin/wizard.scss` with steps and progress layouts.
+- [x] 4.2 Create client script `src/ts/admin/wizard.ts` for step-navigation, async calls, progress bars, and retries.
+- [x] 4.3 Modify `vite.config.ts` to add `admin/wizard` entry points for SCSS and TypeScript build compilation.
 
 ## Phase 5: Verification & Testing
 

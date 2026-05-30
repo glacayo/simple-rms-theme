@@ -45,11 +45,6 @@ export default defineConfig({
         'main-css': path.resolve(__dirname, 'src/scss/main.scss'),
         // Section CSS — loaded conditionally per page
         hero: path.resolve(__dirname, 'src/scss/templates/hero.scss'),
-        services: path.resolve(__dirname, 'src/scss/templates/services.scss'),
-        projects: path.resolve(__dirname, 'src/scss/templates/projects.scss'),
-        testimonials: path.resolve(__dirname, 'src/scss/templates/testimonials.scss'),
-        cta: path.resolve(__dirname, 'src/scss/templates/cta.scss'),
-        'content-section': path.resolve(__dirname, 'src/scss/templates/content-section.scss'),
         slider: path.resolve(__dirname, 'src/scss/templates/slider.scss'),
         badges: path.resolve(__dirname, 'src/scss/templates/badges.scss'),
         'about-us': path.resolve(__dirname, 'src/scss/templates/about-us.scss'),
@@ -111,6 +106,9 @@ export default defineConfig({
         'video-v2': path.resolve(__dirname, 'src/scss/templates/video-v2.scss'),
         'video-v1-js': path.resolve(__dirname, 'src/ts/video-v1.ts'),
         'video-v2-js': path.resolve(__dirname, 'src/ts/video-v2.ts'),
+        // Admin setup wizard CSS + JS
+        'admin/wizard': path.resolve(__dirname, 'src/scss/admin/wizard.scss'),
+        'admin/wizard-js': path.resolve(__dirname, 'src/ts/admin/wizard.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',
