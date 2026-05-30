@@ -56,9 +56,9 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Verification & Testing
 
-- [ ] 5.1 Test: Verify unauthorized access is blocked (must have `manage_options`).
-- [ ] 5.2 Test: Verify dependencies are checked/installed correctly via TGMPA.
-- [ ] 5.3 Test: Verify ACF JSON import skip/log behavior on existing conflicts.
-- [ ] 5.4 Test: Verify AI Adapter retry/backoff mechanism on simulated failures.
-- [ ] 5.5 Test: Verify content, ACF flexible fields, and Yoast meta are successfully created.
-- [ ] 5.6 Test: Verify state/lock storage and Developer Force Bypass (`RMS_WIZARD_FORCE`).
+- [x] 5.1 Test: Verify unauthorized access is blocked (must have `manage_options`).
+- [x] 5.2 Test: Verify dependencies are checked/installed correctly via TGMPA.
+- [x] 5.3 Test: Verify ACF JSON import skip/log behavior on existing conflicts.
+- [x] 5.4 Test: Verify AI Adapter retry/backoff mechanism on simulated failures.
+- [x] 5.5 Test: Verify content, ACF flexible fields, and Yoast meta are successfully created.
+- [x] 5.6 Test: Verify state/lock storage and Developer Force Bypass (`RMS_WIZARD_FORCE`).
