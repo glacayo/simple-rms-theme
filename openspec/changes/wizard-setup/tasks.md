@@ -44,9 +44,9 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: REST Endpoints & Orchestration
 
-- [ ] 3.1 Create loader `inc/wizard/wizard-init.php` to load classes, register admin page, and enqueue assets.
-- [ ] 3.2 Create `inc/wizard/class-step-controller.php` to orchestrate actions, manage resume, and verify access.
-- [ ] 3.3 Create `inc/wizard/class-rest-controller.php` to expose endpoints for step executions and state retrieval.
+- [x] 3.1 Create loader `inc/wizard/wizard-init.php` to load classes, register admin page, and enqueue assets.
+- [x] 3.2 Create `inc/wizard/class-step-controller.php` to orchestrate actions, manage resume, and verify access.
+- [x] 3.3 Create `inc/wizard/class-rest-controller.php` to expose endpoints for step executions and state retrieval.
 
 ## Phase 4: Frontend Development & Build
 
