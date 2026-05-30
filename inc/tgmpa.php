@@ -40,7 +40,7 @@ function simple_rms_theme_register_required_plugins() {
         array(
             'name'     => 'Contact Form 7',
             'slug'     => 'contact-form-7',
-            'required' => false,
+            'required' => true,
         ),
         // WP Fastest Cache
         array(
