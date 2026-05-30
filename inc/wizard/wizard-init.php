@@ -54,6 +54,7 @@ add_action(
 		}
 
 		wp_enqueue_script( 'wp-api-fetch' );
+		wp_enqueue_media();
 
 		if ( class_exists( 'Vite_Icons_Integration' ) ) {
 			$vite = Vite_Icons_Integration::get_instance();
@@ -115,6 +116,7 @@ function rms_wizard_render_admin_page(): void {
 		'ai-generation'    => __( 'AI Generation', 'simple-rms-theme' ),
 		'content-creation' => __( 'Content Creation', 'simple-rms-theme' ),
 	];
+	$step_slugs = array_keys( $steps );
 	$descriptions = [
 		'dependencies'     => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
 		'acf-import'       => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
@@ -170,6 +172,10 @@ function rms_wizard_render_admin_page(): void {
 				<div class="rms-wizard-notice" data-wizard-notice hidden></div>
 
 				<?php foreach ( $steps as $slug => $label ) : ?>
+					<?php
+					$next_step_index = array_search( $slug, $step_slugs, true ) + 1;
+					$next_step_slug  = $step_slugs[ $next_step_index ] ?? '';
+					?>
 					<section class="rms-wizard-step-panel" data-wizard-step-panel="<?php echo esc_attr( $slug ); ?>" <?php echo (string) $state['current_step'] === $slug ? '' : 'hidden'; ?>>
 						<header class="rms-wizard-step-panel__header">
 							<h2><?php echo esc_html( $label ); ?></h2>
@@ -177,24 +183,7 @@ function rms_wizard_render_admin_page(): void {
 						</header>
 
 						<?php if ( 'client-data' === $slug ) : ?>
-							<form class="rms-wizard-fields">
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-company-name"><?php esc_html_e( 'Company name', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-company-name" type="text" name="company_name" autocomplete="organization">
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-phone"><?php esc_html_e( 'Primary phone', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-phone" type="tel" name="primary_phone" autocomplete="tel">
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-email"><?php esc_html_e( 'Primary email', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-email" type="email" name="primary_email" autocomplete="email">
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-service-area"><?php esc_html_e( 'Service area', 'simple-rms-theme' ); ?></label>
-									<textarea id="rms-wizard-service-area" name="service_area"></textarea>
-								</div>
-							</form>
+							<?php rms_wizard_render_client_data_form(); ?>
 						<?php elseif ( 'ai-generation' === $slug ) : ?>
 							<form class="rms-wizard-fields">
 								<div class="rms-wizard-field">
@@ -226,6 +215,9 @@ function rms_wizard_render_admin_page(): void {
 						<div class="rms-wizard-actions">
 							<button type="button" class="button button-primary" data-wizard-run-step="<?php echo esc_attr( $slug ); ?>"><?php esc_html_e( 'Run step', 'simple-rms-theme' ); ?></button>
 							<button type="button" class="button" data-wizard-retry-step="<?php echo esc_attr( $slug ); ?>"><?php esc_html_e( 'Retry', 'simple-rms-theme' ); ?></button>
+							<?php if ( '' !== $next_step_slug ) : ?>
+								<button type="button" class="button button-secondary rms-wizard-next-step" data-wizard-next-step="<?php echo esc_attr( $slug ); ?>" data-wizard-next-target="<?php echo esc_attr( $next_step_slug ); ?>" disabled><?php esc_html_e( 'Next step', 'simple-rms-theme' ); ?></button>
+							<?php endif; ?>
 							<span class="rms-wizard-action-status" data-wizard-action-status></span>
 						</div>
 
@@ -248,4 +240,385 @@ function rms_wizard_render_admin_page(): void {
 		</div>
 	</div>
 	<?php
+}
+
+/**
+ * Render the Client Data form from the Theme Settings ACF JSON field group.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_form(): void {
+	$field_repository = new Inc\Wizard\Client_Data_Fields();
+	$sections         = $field_repository->get_sections();
+
+	if ( [] === $sections ) {
+		?>
+		<div class="notice notice-warning inline">
+			<p><?php esc_html_e( 'Theme Settings fields were not found. Run the ACF Import step first and verify that acf-json/group_rms_theme_settings.json exists.', 'simple-rms-theme' ); ?></p>
+		</div>
+		<?php
+		return;
+	}
+	?>
+	<form class="rms-wizard-fields rms-wizard-client-data-fields" data-wizard-client-data-form>
+		<p class="rms-wizard-fields__intro">
+			<?php esc_html_e( 'Complete the Theme Settings fields below. Schema fields are intentionally excluded from this setup step.', 'simple-rms-theme' ); ?>
+		</p>
+
+		<?php foreach ( $sections as $section ) : ?>
+			<fieldset class="rms-wizard-fieldset rms-wizard-fieldset--<?php echo esc_attr( $section['slug'] ); ?>">
+				<legend><?php echo esc_html( $section['label'] ); ?></legend>
+				<div class="rms-wizard-fieldset__fields">
+					<?php foreach ( $section['fields'] as $field ) : ?>
+						<?php rms_wizard_render_client_data_field( $field, rms_wizard_get_client_data_field_value( $field ) ); ?>
+					<?php endforeach; ?>
+				</div>
+			</fieldset>
+		<?php endforeach; ?>
+	</form>
+	<?php
+}
+
+/**
+ * Render one Client Data field.
+ *
+ * @param array<string,mixed> $field       ACF field definition.
+ * @param mixed               $value       Current field value.
+ * @param string              $name_prefix Optional bracket notation prefix.
+ * @param string              $id_prefix   Optional ID prefix.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_field( array $field, $value = null, string $name_prefix = '', string $id_prefix = '' ): void {
+	$type = (string) ( $field['type'] ?? 'text' );
+
+	if ( 'repeater' === $type ) {
+		rms_wizard_render_client_data_repeater( $field, $value );
+		return;
+	}
+
+	$name       = (string) ( $field['name'] ?? '' );
+	$label      = (string) ( $field['label'] ?? $name );
+	$input_name = '' !== $name_prefix ? $name_prefix . '[' . $name . ']' : $name;
+	$field_id   = 'rms-wizard-field-' . rms_wizard_field_id_token( '' !== $id_prefix ? $id_prefix . '-' . $name : $name );
+	$required   = ! empty( $field['required'] );
+	$style      = rms_wizard_field_width_style( $field );
+	?>
+	<div class="rms-wizard-field rms-wizard-field--type-<?php echo esc_attr( sanitize_html_class( $type ) ); ?>" <?php echo '' !== $style ? 'style="' . esc_attr( $style ) . '"' : ''; ?>>
+		<label for="<?php echo esc_attr( $field_id ); ?>">
+			<?php echo esc_html( $label ); ?>
+			<?php if ( $required ) : ?>
+				<span class="rms-wizard-field__required"><?php esc_html_e( 'Required', 'simple-rms-theme' ); ?></span>
+			<?php endif; ?>
+		</label>
+
+		<?php rms_wizard_render_client_data_control( $field, $value, $input_name, $field_id, $required ); ?>
+		<?php rms_wizard_render_client_data_field_instructions( $field ); ?>
+	</div>
+	<?php
+}
+
+/**
+ * Render a non-repeater Client Data control.
+ *
+ * @param array<string,mixed> $field      ACF field definition.
+ * @param mixed               $value      Current field value.
+ * @param string              $input_name Input name.
+ * @param string              $field_id   Input ID.
+ * @param bool                $required   Whether the field is required.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_control( array $field, $value, string $input_name, string $field_id, bool $required ): void {
+	$type         = (string) ( $field['type'] ?? 'text' );
+	$scalar_value = rms_wizard_scalar_field_value( $value );
+	$placeholder  = (string) ( $field['placeholder'] ?? '' );
+
+	switch ( $type ) {
+		case 'textarea':
+			$rows = max( 3, absint( $field['rows'] ?? 4 ) );
+			?>
+			<textarea id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $input_name ); ?>" rows="<?php echo esc_attr( (string) $rows ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" data-wizard-field-type="textarea" <?php echo $required ? 'required aria-required="true"' : ''; ?>><?php echo esc_textarea( $scalar_value ); ?></textarea>
+			<?php
+			break;
+
+		case 'email':
+		case 'url':
+		case 'text':
+		case 'time_picker':
+			$input_type = 'time_picker' === $type ? 'time' : $type;
+			?>
+			<input id="<?php echo esc_attr( $field_id ); ?>" type="<?php echo esc_attr( $input_type ); ?>" name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $scalar_value ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" data-wizard-field-type="<?php echo esc_attr( $type ); ?>" <?php echo $required ? 'required aria-required="true"' : ''; ?>>
+			<?php
+			break;
+
+		case 'select':
+			$choices = is_array( $field['choices'] ?? null ) ? $field['choices'] : [];
+			?>
+			<select id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $input_name ); ?>" data-wizard-field-type="select" <?php echo $required ? 'required aria-required="true"' : ''; ?>>
+				<option value=""><?php esc_html_e( 'Select an option', 'simple-rms-theme' ); ?></option>
+				<?php foreach ( $choices as $choice_value => $choice_label ) : ?>
+					<option value="<?php echo esc_attr( (string) $choice_value ); ?>" <?php echo (string) $choice_value === $scalar_value ? 'selected' : ''; ?>><?php echo esc_html( (string) $choice_label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<?php
+			break;
+
+		case 'true_false':
+			$checked = ! empty( $value ) && '0' !== (string) $value;
+			$message = (string) ( $field['message'] ?? '' );
+			?>
+			<input type="hidden" name="<?php echo esc_attr( $input_name ); ?>" value="0" data-wizard-field-type="true_false">
+			<label class="rms-wizard-checkbox" for="<?php echo esc_attr( $field_id ); ?>">
+				<input id="<?php echo esc_attr( $field_id ); ?>" type="checkbox" name="<?php echo esc_attr( $input_name ); ?>" value="1" data-wizard-field-type="true_false" <?php checked( $checked ); ?>>
+				<span><?php echo esc_html( '' !== $message ? $message : __( 'Enabled', 'simple-rms-theme' ) ); ?></span>
+			</label>
+			<?php
+			break;
+
+		case 'color_picker':
+			$color          = sanitize_hex_color( $scalar_value );
+			$has_color      = is_string( $color ) && '' !== $color;
+			$color_value    = $has_color ? $color : '#000000';
+			$empty_attribute = $has_color ? '' : 'data-wizard-empty-color="1"';
+			?>
+			<input id="<?php echo esc_attr( $field_id ); ?>" type="color" name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $color_value ); ?>" data-wizard-field-type="color_picker" <?php echo $empty_attribute; ?>>
+			<?php
+			break;
+
+		case 'image':
+			rms_wizard_render_client_data_image_control( $field, $value, $input_name, $field_id );
+			break;
+
+		default:
+			?>
+			<input id="<?php echo esc_attr( $field_id ); ?>" type="text" name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $scalar_value ); ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" data-wizard-field-type="text" <?php echo $required ? 'required aria-required="true"' : ''; ?>>
+			<?php
+			break;
+	}
+}
+
+/**
+ * Render an ACF image field with WordPress Media Library controls.
+ *
+ * @param array<string,mixed> $field      ACF field definition.
+ * @param mixed               $value      Current field value.
+ * @param string              $input_name Input name.
+ * @param string              $field_id   Input ID.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_image_control( array $field, $value, string $input_name, string $field_id ): void {
+	$label         = (string) ( $field['label'] ?? __( 'Image', 'simple-rms-theme' ) );
+	$attachment_id = is_numeric( $value ) ? absint( $value ) : 0;
+	$preview_url   = $attachment_id > 0 ? wp_get_attachment_image_url( $attachment_id, 'thumbnail' ) : '';
+
+	if ( ! $preview_url && is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ) {
+		$preview_url = $value;
+	}
+	?>
+	<div class="rms-wizard-media-field" data-wizard-media-field>
+		<div class="rms-wizard-media-field__controls">
+			<input id="<?php echo esc_attr( $field_id ); ?>" class="small-text" type="number" min="0" step="1" name="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $attachment_id ); ?>" data-wizard-field-type="image" data-wizard-media-input>
+			<button type="button" class="button" data-wizard-media-open data-wizard-media-title="<?php echo esc_attr( sprintf( __( 'Select %s', 'simple-rms-theme' ), $label ) ); ?>">
+				<?php esc_html_e( 'Select image', 'simple-rms-theme' ); ?>
+			</button>
+			<button type="button" class="button-link-delete" data-wizard-media-clear>
+				<?php esc_html_e( 'Clear', 'simple-rms-theme' ); ?>
+			</button>
+		</div>
+		<div class="rms-wizard-media-field__preview" data-wizard-media-preview>
+			<?php if ( $preview_url ) : ?>
+				<img src="<?php echo esc_url( $preview_url ); ?>" alt="<?php esc_attr_e( 'Selected image preview', 'simple-rms-theme' ); ?>">
+			<?php endif; ?>
+			<span><?php echo $attachment_id > 0 ? esc_html( sprintf( __( 'Attachment ID: %d', 'simple-rms-theme' ), $attachment_id ) ) : esc_html__( 'No image selected.', 'simple-rms-theme' ); ?></span>
+		</div>
+	</div>
+	<?php
+}
+
+/**
+ * Render an ACF repeater field.
+ *
+ * @param array<string,mixed> $field ACF field definition.
+ * @param mixed               $value Current field value.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_repeater( array $field, $value ): void {
+	$name  = (string) ( $field['name'] ?? '' );
+	$label = (string) ( $field['label'] ?? $name );
+	$rows  = rms_wizard_normalize_repeater_rows( $value );
+	?>
+	<div class="rms-wizard-field rms-wizard-repeater" data-wizard-repeater="<?php echo esc_attr( $name ); ?>">
+		<div class="rms-wizard-repeater__header">
+			<div>
+				<span class="rms-wizard-repeater__label"><?php echo esc_html( $label ); ?></span>
+				<?php rms_wizard_render_client_data_field_instructions( $field ); ?>
+			</div>
+			<button type="button" class="button" data-wizard-repeater-add="<?php echo esc_attr( $name ); ?>">
+				<?php echo esc_html( (string) ( $field['button_label'] ?? __( 'Add Row', 'simple-rms-theme' ) ) ); ?>
+			</button>
+		</div>
+
+		<div class="rms-wizard-repeater__rows" data-wizard-repeater-rows>
+			<?php foreach ( $rows as $index => $row ) : ?>
+				<?php rms_wizard_render_client_data_repeater_row( $field, $row, (string) $index ); ?>
+			<?php endforeach; ?>
+		</div>
+
+		<template data-wizard-repeater-template>
+			<?php rms_wizard_render_client_data_repeater_row( $field, [], '__INDEX__' ); ?>
+		</template>
+	</div>
+	<?php
+}
+
+/**
+ * Render one repeater row.
+ *
+ * @param array<string,mixed> $field ACF repeater definition.
+ * @param array<string,mixed> $row   Current row data.
+ * @param string              $index Row index or template token.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_repeater_row( array $field, array $row, string $index ): void {
+	$name       = (string) ( $field['name'] ?? '' );
+	$sub_fields = is_array( $field['sub_fields'] ?? null ) ? $field['sub_fields'] : [];
+	?>
+	<div class="rms-wizard-repeater__row" data-wizard-repeater-row>
+		<div class="rms-wizard-repeater__row-fields">
+			<?php foreach ( $sub_fields as $sub_field ) : ?>
+				<?php
+				$sub_name  = (string) ( $sub_field['name'] ?? '' );
+				$sub_value = $row[ $sub_name ] ?? null;
+				rms_wizard_render_client_data_field( $sub_field, $sub_value, $name . '[' . $index . ']', $name . '-' . $index );
+				?>
+			<?php endforeach; ?>
+		</div>
+		<button type="button" class="button-link-delete rms-wizard-repeater__remove" data-wizard-repeater-remove>
+			<?php esc_html_e( 'Remove row', 'simple-rms-theme' ); ?>
+		</button>
+	</div>
+	<?php
+}
+
+/**
+ * Get the current option value for a Client Data ACF field.
+ *
+ * @param array<string,mixed> $field ACF field definition.
+ *
+ * @return mixed
+ */
+function rms_wizard_get_client_data_field_value( array $field ) {
+	$name = (string) ( $field['name'] ?? '' );
+
+	if ( '' === $name ) {
+		return '';
+	}
+
+	if ( function_exists( 'get_field' ) ) {
+		$value = get_field( $name, 'option', false );
+
+		if ( null !== $value ) {
+			return $value;
+		}
+	}
+
+	$fallback = get_option( 'options_' . $name, null );
+
+	if ( null !== $fallback && false !== $fallback ) {
+		return $fallback;
+	}
+
+	return $field['default_value'] ?? ( 'repeater' === ( $field['type'] ?? '' ) ? [] : '' );
+}
+
+/**
+ * Render field instructions when present.
+ *
+ * @param array<string,mixed> $field ACF field definition.
+ *
+ * @return void
+ */
+function rms_wizard_render_client_data_field_instructions( array $field ): void {
+	$instructions = trim( (string) ( $field['instructions'] ?? '' ) );
+
+	if ( '' === $instructions ) {
+		return;
+	}
+	?>
+	<p class="rms-wizard-field__instructions"><?php echo esc_html( $instructions ); ?></p>
+	<?php
+}
+
+/**
+ * Normalize a scalar field value for safe output in controls.
+ *
+ * @param mixed $value Raw value.
+ *
+ * @return string
+ */
+function rms_wizard_scalar_field_value( $value ): string {
+	if ( is_bool( $value ) ) {
+		return $value ? '1' : '0';
+	}
+
+	return is_scalar( $value ) ? (string) $value : '';
+}
+
+/**
+ * Normalize repeater rows and keep one empty row available for editing.
+ *
+ * @param mixed $value Raw repeater value.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function rms_wizard_normalize_repeater_rows( $value ): array {
+	if ( ! is_array( $value ) ) {
+		return [ [] ];
+	}
+
+	$rows = [];
+
+	foreach ( $value as $row ) {
+		if ( is_array( $row ) ) {
+			$rows[] = $row;
+		}
+	}
+
+	return [] === $rows ? [ [] ] : array_values( $rows );
+}
+
+/**
+ * Build a safe HTML ID token.
+ *
+ * @param string $value Raw token.
+ *
+ * @return string
+ */
+function rms_wizard_field_id_token( string $value ): string {
+	$token = preg_replace( '/[^A-Za-z0-9_-]+/', '-', $value );
+	$token = trim( (string) $token, '-' );
+
+	return '' !== $token ? $token : 'field';
+}
+
+/**
+ * Get optional field width style from the ACF wrapper width setting.
+ *
+ * @param array<string,mixed> $field ACF field definition.
+ *
+ * @return string
+ */
+function rms_wizard_field_width_style( array $field ): string {
+	$wrapper = is_array( $field['wrapper'] ?? null ) ? $field['wrapper'] : [];
+	$width   = absint( $wrapper['width'] ?? 0 );
+
+	if ( $width <= 0 || $width > 100 ) {
+		return '';
+	}
+
+	return '--rms-wizard-field-width: ' . $width . '%;';
 }

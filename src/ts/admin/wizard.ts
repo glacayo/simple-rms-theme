@@ -33,9 +33,51 @@ interface StepResponse {
   message?: string;
 }
 
+type NestedFormValue = string | number | NestedFormValue[] | { [key: string]: NestedFormValue };
+type NestedFormObject = Record<string, NestedFormValue>;
+type NestedFormContainer = NestedFormObject | NestedFormValue[];
+type FieldElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
+interface MediaAttachmentData {
+  id?: number | string;
+  url?: string;
+  sizes?: Record<string, { url?: string }>;
+}
+
+interface WpMediaAttachment {
+  id?: number | string;
+  toJSON?: () => MediaAttachmentData;
+}
+
+interface WpMediaSelection {
+  first: () => WpMediaAttachment | undefined;
+}
+
+interface WpMediaState {
+  get: (key: 'selection') => WpMediaSelection;
+}
+
+interface WpMediaFrame {
+  on: (event: 'select', callback: () => void) => void;
+  open: () => void;
+  state: () => WpMediaState;
+}
+
+interface WpMediaOptions {
+  title: string;
+  button: { text: string };
+  library: { type: string };
+  multiple: boolean;
+}
+
+interface WpMediaApi {
+  media: (options: WpMediaOptions) => WpMediaFrame;
+}
+
 declare global {
   interface Window {
     rmsWizardSettings?: WizardSettings;
+    wp?: WpMediaApi;
   }
 }
 
@@ -62,6 +104,7 @@ declare global {
   const panels = Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-step-panel]'));
   const runButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-run-step]'));
   const retryButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-retry-step]'));
+  const nextButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-next-step]'));
   const refreshButton = root.querySelector<HTMLButtonElement>('[data-wizard-refresh]');
   const completeButton = root.querySelector<HTMLButtonElement>('[data-wizard-complete]');
   const progressBar = root.querySelector<HTMLElement>('[data-wizard-progress-bar]');
@@ -158,6 +201,19 @@ declare global {
     [...runButtons, ...retryButtons].forEach((button) => {
       const step = button.dataset.wizardRunStep || button.dataset.wizardRetryStep || '';
       button.disabled = isLocked || runningStep !== null || statusFor(step) === 'running';
+    });
+
+    nextButtons.forEach((button) => {
+      const step = button.dataset.wizardNextStep || '';
+      const target = button.dataset.wizardNextTarget || nextStepFor(step);
+      const canContinue = statusFor(step) === 'complete' && target !== '';
+
+      button.disabled = isLocked || runningStep !== null || !canContinue;
+      button.classList.toggle('is-ready', canContinue && !isLocked);
+      button.setAttribute(
+        'aria-label',
+        canContinue ? `Continue to ${labelFor(target)}` : `Complete ${labelFor(step)} before continuing`
+      );
     });
 
     if (completeButton) {
@@ -257,7 +313,13 @@ declare global {
 
       setStepResult(step, response.result ?? response);
       setStepActionStatus(step, 'Step completed.', 'success');
-      setNotice(`${labelFor(step)} completed successfully.`, 'success');
+      const nextStep = nextStepFor(step);
+      setNotice(
+        nextStep
+          ? `${labelFor(step)} completed successfully. Continue to ${labelFor(nextStep)} when ready.`
+          : `${labelFor(step)} completed successfully.`,
+        'success'
+      );
     } catch (error) {
       setStepActionStatus(step, errorMessage(error), 'error');
       setNotice(errorMessage(error), 'error');
@@ -303,7 +365,7 @@ declare global {
     const data = new FormData(form);
 
     if (step === 'client-data') {
-      return { client_data: Object.fromEntries(data.entries()) };
+      return { client_data: collectFormPayload(form) };
     }
 
     if (step === 'content-creation') {
@@ -311,7 +373,149 @@ declare global {
       return { pages: rawPages ? JSON.parse(rawPages) as unknown : [] };
     }
 
-    return Object.fromEntries(data.entries());
+    return collectFormPayload(form);
+  };
+
+  const collectFormPayload = (form: HTMLFormElement): NestedFormObject => {
+    const payload: NestedFormObject = {};
+
+    form.querySelectorAll<HTMLElement>('[data-wizard-repeater]').forEach((repeater) => {
+      const name = repeater.dataset.wizardRepeater;
+
+      if (name) {
+        payload[name] = [];
+      }
+    });
+
+    Array.from(form.querySelectorAll<FieldElement>('input[name], textarea[name], select[name]')).forEach((field) => {
+      if (field.disabled || shouldSkipField(field)) {
+        return;
+      }
+
+      assignNestedValue(payload, field.name, normalizeFieldValue(field));
+    });
+
+    return payload;
+  };
+
+  const shouldSkipField = (field: FieldElement): boolean => {
+    if (!(field instanceof HTMLInputElement)) {
+      return false;
+    }
+
+    if (['button', 'submit', 'reset', 'file'].includes(field.type)) {
+      return true;
+    }
+
+    return (field.type === 'checkbox' || field.type === 'radio') && !field.checked;
+  };
+
+  const normalizeFieldValue = (field: FieldElement): NestedFormValue => {
+    const fieldType = field.dataset.wizardFieldType ?? '';
+
+    if (field instanceof HTMLSelectElement && field.multiple) {
+      return Array.from(field.selectedOptions).map((option) => option.value);
+    }
+
+    if (
+      field instanceof HTMLInputElement
+      && field.type === 'color'
+      && field.dataset.wizardEmptyColor === '1'
+      && field.dataset.wizardColorTouched !== '1'
+    ) {
+      return '';
+    }
+
+    if (fieldType === 'true_false') {
+      return field.value === '1' || field.value === 'true' ? 1 : 0;
+    }
+
+    if (fieldType === 'image') {
+      const attachmentId = Number.parseInt(field.value, 10);
+
+      return Number.isFinite(attachmentId) && attachmentId > 0 ? attachmentId : '';
+    }
+
+    return field.value;
+  };
+
+  const assignNestedValue = (target: NestedFormObject, fieldName: string, value: NestedFormValue): void => {
+    const path = parseFieldName(fieldName);
+
+    if (path.length === 0) {
+      return;
+    }
+
+    let current: NestedFormContainer = target;
+
+    path.forEach((part, index) => {
+      const isLast = index === path.length - 1;
+
+      if (isLast) {
+        setContainerValue(current, part, value);
+        return;
+      }
+
+      const nextPart = path[index + 1];
+      let nextValue = getContainerValue(current, part);
+
+      if (!isContainer(nextValue)) {
+        nextValue = typeof nextPart === 'number' ? [] : {};
+        setContainerValue(current, part, nextValue);
+      }
+
+      current = nextValue;
+    });
+  };
+
+  const parseFieldName = (fieldName: string): Array<string | number> => {
+    const baseMatch = fieldName.match(/^[^[\]]+/);
+
+    if (!baseMatch) {
+      return [];
+    }
+
+    const path: Array<string | number> = [baseMatch[0]];
+    const bracketPattern = /\[([^\]]*)\]/g;
+    let match: RegExpExecArray | null = bracketPattern.exec(fieldName);
+
+    while (match) {
+      const token = match[1];
+
+      if (token !== '') {
+        path.push(/^\d+$/.test(token) ? Number.parseInt(token, 10) : token);
+      }
+
+      match = bracketPattern.exec(fieldName);
+    }
+
+    return path;
+  };
+
+  const isContainer = (value: NestedFormValue | undefined): value is NestedFormContainer => (
+    Array.isArray(value) || (typeof value === 'object' && value !== null)
+  );
+
+  const getContainerValue = (container: NestedFormContainer, key: string | number): NestedFormValue | undefined => {
+    if (Array.isArray(container)) {
+      return typeof key === 'number' ? container[key] : (container as unknown as NestedFormObject)[key];
+    }
+
+    return container[String(key)];
+  };
+
+  const setContainerValue = (container: NestedFormContainer, key: string | number, value: NestedFormValue): void => {
+    if (Array.isArray(container)) {
+      if (typeof key === 'number') {
+        container[key] = value;
+        return;
+      }
+
+      (container as unknown as NestedFormObject)[key] = value;
+      return;
+    }
+
+    container[String(key)] = value;
   };
 
   const setStepActionStatus = (step: string, message: string, tone: 'info' | 'success' | 'error'): void => {
@@ -337,6 +541,12 @@ declare global {
 
   const labelFor = (step: string): string => steps.find((item) => item.slug === step)?.label ?? step;
 
+  const nextStepFor = (step: string): string => {
+    const index = steps.findIndex((item) => item.slug === step);
+
+    return index >= 0 ? steps[index + 1]?.slug ?? '' : '';
+  };
+
   const delay = (duration: number): Promise<void> => new Promise((resolve) => {
     window.setTimeout(resolve, duration);
   });
@@ -348,6 +558,205 @@ declare global {
     node.textContent = value;
     return node.innerHTML;
   };
+
+  const setupDynamicFieldControls = (): void => {
+    root.addEventListener('input', (event) => {
+      const target = event.target;
+
+      if (target instanceof HTMLInputElement && target.matches('input[type="color"][data-wizard-empty-color]')) {
+        target.dataset.wizardColorTouched = '1';
+      }
+    });
+
+    root.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+
+      if (!target) {
+        return;
+      }
+
+      const addButton = target.closest<HTMLButtonElement>('[data-wizard-repeater-add]');
+
+      if (addButton) {
+        event.preventDefault();
+        addRepeaterRow(addButton);
+        return;
+      }
+
+      const removeButton = target.closest<HTMLButtonElement>('[data-wizard-repeater-remove]');
+
+      if (removeButton) {
+        event.preventDefault();
+        removeRepeaterRow(removeButton);
+        return;
+      }
+
+      const mediaButton = target.closest<HTMLButtonElement>('[data-wizard-media-open]');
+
+      if (mediaButton) {
+        event.preventDefault();
+        openMediaLibrary(mediaButton);
+        return;
+      }
+
+      const mediaClearButton = target.closest<HTMLButtonElement>('[data-wizard-media-clear]');
+
+      if (mediaClearButton) {
+        event.preventDefault();
+        clearMediaField(mediaClearButton);
+      }
+    });
+
+    root.addEventListener('change', (event) => {
+      const target = event.target;
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-media-input]')) {
+        const wrapper = target.closest<HTMLElement>('[data-wizard-media-field]');
+        const attachmentId = Number.parseInt(target.value, 10);
+
+        if (wrapper) {
+          updateMediaPreview(wrapper, Number.isFinite(attachmentId) ? attachmentId : 0);
+        }
+      }
+    });
+
+    root.querySelectorAll<HTMLElement>('[data-wizard-repeater]').forEach(reindexRepeaterRows);
+  };
+
+  const addRepeaterRow = (button: HTMLButtonElement): void => {
+    const repeater = button.closest<HTMLElement>('[data-wizard-repeater]');
+    const rows = repeater?.querySelector<HTMLElement>('[data-wizard-repeater-rows]');
+    const template = repeater?.querySelector<HTMLTemplateElement>('template[data-wizard-repeater-template]');
+
+    if (!repeater || !rows || !template) {
+      return;
+    }
+
+    const index = rows.querySelectorAll('[data-wizard-repeater-row]').length;
+    rows.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__INDEX__', String(index)));
+    reindexRepeaterRows(repeater);
+  };
+
+  const removeRepeaterRow = (button: HTMLButtonElement): void => {
+    const repeater = button.closest<HTMLElement>('[data-wizard-repeater]');
+    const row = button.closest<HTMLElement>('[data-wizard-repeater-row]');
+
+    row?.remove();
+
+    if (repeater) {
+      reindexRepeaterRows(repeater);
+    }
+  };
+
+  const reindexRepeaterRows = (repeater: HTMLElement): void => {
+    const repeaterName = repeater.dataset.wizardRepeater;
+
+    if (!repeaterName) {
+      return;
+    }
+
+    const rows = Array.from(repeater.querySelectorAll<HTMLElement>('[data-wizard-repeater-row]'));
+
+    rows.forEach((row, index) => {
+      row.dataset.wizardRepeaterIndex = String(index);
+
+      row.querySelectorAll<FieldElement>('[name]').forEach((field) => {
+        field.name = replaceRepeaterIndex(field.name, repeaterName, index);
+      });
+
+      row.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
+        element.id = replaceRepeaterIndex(element.id, repeaterName, index);
+      });
+
+      row.querySelectorAll<HTMLLabelElement>('label[for]').forEach((label) => {
+        label.htmlFor = replaceRepeaterIndex(label.htmlFor, repeaterName, index);
+      });
+    });
+  };
+
+  const replaceRepeaterIndex = (value: string, repeaterName: string, index: number): string => {
+    const bracketPattern = new RegExp(`(${escapeRegExp(repeaterName)}\\[)(?:__INDEX__|\\d+)(\\])`, 'g');
+    const idPattern = new RegExp(`(${escapeRegExp(repeaterName)}-)(?:__INDEX__|\\d+)(-)`, 'g');
+
+    return value
+      .replace(bracketPattern, (_match, before: string, after: string) => `${before}${index}${after}`)
+      .replace(idPattern, (_match, before: string, after: string) => `${before}${index}${after}`);
+  };
+
+  const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const openMediaLibrary = (button: HTMLButtonElement): void => {
+    const wrapper = button.closest<HTMLElement>('[data-wizard-media-field]');
+    const input = wrapper?.querySelector<HTMLInputElement>('[data-wizard-media-input]');
+    const media = window.wp?.media;
+
+    if (!wrapper || !input) {
+      return;
+    }
+
+    if (!media) {
+      setNotice('The WordPress Media Library is unavailable. Enter an attachment ID manually.', 'error');
+      return;
+    }
+
+    const frame = media({
+      title: button.dataset.wizardMediaTitle || 'Select image',
+      button: { text: 'Use this image' },
+      library: { type: 'image' },
+      multiple: false,
+    });
+
+    frame.on('select', () => {
+      const attachment = frame.state().get('selection').first();
+      const data = attachment?.toJSON?.() ?? {};
+      const attachmentId = Number.parseInt(String(data.id ?? attachment?.id ?? ''), 10);
+      const previewUrl = data.sizes?.thumbnail?.url ?? data.url ?? '';
+
+      if (!Number.isFinite(attachmentId) || attachmentId <= 0) {
+        return;
+      }
+
+      input.value = String(attachmentId);
+      updateMediaPreview(wrapper, attachmentId, previewUrl);
+    });
+
+    frame.open();
+  };
+
+  const clearMediaField = (button: HTMLButtonElement): void => {
+    const wrapper = button.closest<HTMLElement>('[data-wizard-media-field]');
+    const input = wrapper?.querySelector<HTMLInputElement>('[data-wizard-media-input]');
+
+    if (!wrapper || !input) {
+      return;
+    }
+
+    input.value = '';
+    updateMediaPreview(wrapper, 0);
+  };
+
+  const updateMediaPreview = (wrapper: HTMLElement, attachmentId: number, previewUrl = ''): void => {
+    const preview = wrapper.querySelector<HTMLElement>('[data-wizard-media-preview]');
+
+    if (!preview) {
+      return;
+    }
+
+    preview.replaceChildren();
+
+    if (attachmentId > 0 && previewUrl) {
+      const image = document.createElement('img');
+      image.src = previewUrl;
+      image.alt = 'Selected image preview';
+      preview.append(image);
+    }
+
+    const label = document.createElement('span');
+    label.textContent = attachmentId > 0 ? `Attachment ID: ${attachmentId}` : 'No image selected.';
+    preview.append(label);
+  };
+
+  setupDynamicFieldControls();
 
   navButtons.forEach((button) => {
     button.addEventListener('click', () => {
@@ -367,6 +776,18 @@ declare global {
     button.addEventListener('click', () => {
       const step = button.dataset.wizardRetryStep;
       if (step) void runStep(step);
+    });
+  });
+
+  nextButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const step = button.dataset.wizardNextStep || activeStep;
+      const target = button.dataset.wizardNextTarget || nextStepFor(step);
+
+      if (target && statusFor(step) === 'complete') {
+        setActiveStep(target);
+        setNotice(`Ready for ${labelFor(target)}.`, 'info');
+      }
     });
   });
 
