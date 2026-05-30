@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "touch hot && vite",
-    "build": "rm -f hot && tsc && vite build"
+    "dev": "node -e \"require('fs').closeSync(require('fs').openSync('hot','w'))\" && vite",
+    "build": "node -e \"require('fs').rmSync('hot',{force:true})\" && tsc && vite build"
   },
   "keywords": [],
   "author": "Geovanny Lacayo",

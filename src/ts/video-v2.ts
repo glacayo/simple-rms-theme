@@ -16,6 +16,11 @@
 
   if (!lightbox || !backdrop || !closeBtn || !iframe) return;
 
+  const lightboxEl = lightbox;
+  const backdropEl = backdrop;
+  const closeButtonEl = closeBtn;
+  const iframeEl = iframe;
+
   const videoCards = document.querySelectorAll<HTMLButtonElement>('.video-v2__card');
 
   // ─── Open lightbox ──────────────────────────────────────────────
@@ -29,8 +34,8 @@
 
       // Set iframe src
       const baseUrl = 'https://www.youtube.com/embed/';
-      iframe.src = `${baseUrl}${videoId}?autoplay=1&rel=0`;
-      iframe.title = videoTitle;
+      iframeEl.src = `${baseUrl}${videoId}?autoplay=1&rel=0`;
+      iframeEl.title = videoTitle;
 
       // Set title
       if (lightboxTitle) {
@@ -38,23 +43,23 @@
       }
 
       // Show lightbox
-      lightbox.hidden = false;
+      lightboxEl.hidden = false;
 
       // Prevent body scroll
       document.body.style.overflow = 'hidden';
 
       // Focus close button for accessibility
-      closeBtn.focus();
+      closeButtonEl.focus();
     });
   });
 
   // ─── Close lightbox ──────────────────────────────────────────────
 
   function closeLightbox() {
-    lightbox.hidden = true;
+    lightboxEl.hidden = true;
 
     // Clear iframe src to stop video
-    iframe.src = '';
+    iframeEl.src = '';
 
     // Restore body scroll
     document.body.style.overflow = '';
@@ -67,22 +72,22 @@
     }
   }
 
-  backdrop.addEventListener('click', closeLightbox);
-  closeBtn.addEventListener('click', closeLightbox);
+  backdropEl.addEventListener('click', closeLightbox);
+  closeButtonEl.addEventListener('click', closeLightbox);
 
   // Escape key closes
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !lightbox.hidden) {
+    if (e.key === 'Escape' && !lightboxEl.hidden) {
       closeLightbox();
     }
   });
 
   // ─── Trap focus inside lightbox ─────────────────────────────────
 
-  lightbox.addEventListener('keydown', (e: KeyboardEvent) => {
+  lightboxEl.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
 
-    const focusableElements = lightbox.querySelectorAll<HTMLElement>(
+    const focusableElements = lightboxEl.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     const firstEl = focusableElements[0];
