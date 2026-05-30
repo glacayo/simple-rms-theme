@@ -27,6 +27,9 @@ require_once get_template_directory() . '/inc/schema.php';
 // ─── TGM Plugin Activation ────────────────────────────────────────
 require_once get_template_directory() . '/inc/tgmpa.php';
 
+// ─── Wizard Setup Module ──────────────────────────────────────────
+require_once get_template_directory() . '/inc/wizard/wizard-init.php';
+
 // ─── Favicon Filter ──────────────────────────────────────────────
 add_filter('get_site_icon_url', 'rms_acf_favicon_filter', 20);
 
