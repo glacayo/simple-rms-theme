@@ -456,15 +456,18 @@ function rms_wizard_render_client_data_repeater( array $field, $value ): void {
 				<span class="rms-wizard-repeater__label"><?php echo esc_html( $label ); ?></span>
 				<?php rms_wizard_render_client_data_field_instructions( $field ); ?>
 			</div>
-			<button type="button" class="button" data-wizard-repeater-add="<?php echo esc_attr( $name ); ?>">
-				<?php echo esc_html( (string) ( $field['button_label'] ?? __( 'Add Row', 'simple-rms-theme' ) ) ); ?>
-			</button>
 		</div>
 
 		<div class="rms-wizard-repeater__rows" data-wizard-repeater-rows>
 			<?php foreach ( $rows as $index => $row ) : ?>
 				<?php rms_wizard_render_client_data_repeater_row( $field, $row, (string) $index ); ?>
 			<?php endforeach; ?>
+		</div>
+
+		<div class="rms-wizard-repeater__footer">
+			<button type="button" class="button" data-wizard-repeater-add="<?php echo esc_attr( $name ); ?>">
+				<?php echo esc_html( (string) ( $field['button_label'] ?? __( 'Add Row', 'simple-rms-theme' ) ) ); ?>
+			</button>
 		</div>
 
 		<template data-wizard-repeater-template>

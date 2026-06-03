@@ -269,7 +269,6 @@
   border-radius: 8px;
 }
 
-.rms-wizard-repeater__header,
 .rms-wizard-media-field__controls {
   display: flex;
   flex-wrap: wrap;
@@ -278,7 +277,6 @@
 }
 
 .rms-wizard-repeater__header {
-  justify-content: space-between;
   margin-bottom: 12px;
 }
 
@@ -290,6 +288,12 @@
 .rms-wizard-repeater__rows {
   display: grid;
   gap: 12px;
+}
+
+.rms-wizard-repeater__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .rms-wizard-repeater__row {
