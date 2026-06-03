@@ -24,14 +24,21 @@ class State_Manager {
      */
     public function defaults(): array {
         return [
-            'current_step'  => 'dependencies',
-            'step_status'   => [],
-            'client_data'   => [],
-            'generated'     => [],
-            'created_posts' => [],
-            'logs'          => self::LOG_OPTION,
-            'locks'         => [],
-            'updated_at'    => '',
+            'current_step'           => 'dependencies',
+            'step_status'            => [],
+            'client_data'            => [],
+            'generated'              => [],
+            'created_posts'          => [],
+            'generated_pages'        => [],
+            'home_page_slug'         => '',
+            'blog_page_slug'         => '',
+            'ai_config'              => [],
+            'menu_config'            => [],
+            'selected_home_sections' => [],
+            'home_sections'          => [],
+            'logs'                   => self::LOG_OPTION,
+            'locks'                  => [],
+            'updated_at'             => '',
         ];
     }
 

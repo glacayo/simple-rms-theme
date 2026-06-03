@@ -14,6 +14,15 @@ defined( 'ABSPATH' ) || exit;
  */
 class Step_Controller {
 	private const LOCK_NAME = 'step_execution';
+	private const REQUIRED_STEPS = [
+		'dependencies',
+		'acf-import',
+		'client-data',
+		'generate-pages',
+		'menu-setup',
+		'ia-generation',
+		'home-page-builder',
+	];
 
 	private $state_manager;
 	private $logger;
@@ -98,7 +107,7 @@ class Step_Controller {
 		}
 
 		$state    = $this->state_manager->get_state();
-		$required = [ 'dependencies', 'acf-import', 'client-data', 'ai-generation', 'content-creation' ];
+		$required = self::REQUIRED_STEPS;
 
 		foreach ( $required as $step ) {
 			if ( 'complete' !== ( $state['step_status'][ $step ] ?? '' ) ) {
@@ -131,12 +140,17 @@ class Step_Controller {
 				$data = is_array( $payload['client_data'] ?? null ) ? $payload['client_data'] : $payload;
 				return ( new Step_Client_Data( $this->logger, $this->state_manager ) )->save( $data );
 
-			case 'ai-generation':
-				return $this->generate_ai_content( $payload );
+			case 'generate-pages':
+				return ( new Step_Generate_Pages( $this->logger, $this->state_manager ) )->run( $payload );
 
-			case 'content-creation':
-				$pages = is_array( $payload['pages'] ?? null ) ? $payload['pages'] : [];
-				return ( new Content_Builder( $this->logger, $this->state_manager ) )->build_pages( $pages );
+			case 'menu-setup':
+				return ( new Step_Menu_Setup( $this->logger, $this->state_manager ) )->run( $payload );
+
+			case 'ia-generation':
+				return $this->configure_ai_provider( $payload );
+
+			case 'home-page-builder':
+				return ( new Step_Home_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
 			default:
 				$this->state_manager->set_step_status( $step, 'failed' );
@@ -145,49 +159,58 @@ class Step_Controller {
 	}
 
 	/**
-	 * Generate one content section through the existing AI adapter service.
+	 * Save AI provider configuration without generating content.
 	 *
 	 * @param array $payload Request payload.
 	 *
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	private function generate_ai_content( array $payload ) {
+	private function configure_ai_provider( array $payload ) {
 		$provider = \sanitize_key( (string) ( $payload['provider'] ?? AI_Provider_Registry::default_provider() ) );
 		$api_key  = AI_Credential_Store::normalize_api_key( (string) ( $payload['api_key'] ?? '' ) );
-		$prompt   = \sanitize_textarea_field( (string) ( $payload['prompt'] ?? '' ) );
 		$model    = \sanitize_text_field( (string) ( $payload['model'] ?? '' ) );
-		$context  = is_array( $payload['context'] ?? null ) ? $payload['context'] : [];
 
 		if ( ! AI_Provider_Registry::provider_exists( $provider ) ) {
-			$this->state_manager->set_step_status( 'ai-generation', 'failed' );
+			$this->state_manager->set_step_status( 'ia-generation', 'failed' );
 			return new \WP_Error( 'rms_wizard_unknown_ai_provider', \__( 'Unknown AI provider selected.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		if ( '' === $prompt || '' === $model ) {
-			$this->state_manager->set_step_status( 'ai-generation', 'failed' );
-			return new \WP_Error( 'rms_wizard_missing_ai_payload', \__( 'The AI generation step requires a model and prompt.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+		if ( '' === $model ) {
+			$this->state_manager->set_step_status( 'ia-generation', 'failed' );
+			return new \WP_Error( 'rms_wizard_missing_ai_config', \__( 'The IA Generation step requires a provider and model.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		$result = AI_Provider_Registry::make_provider( $provider, $api_key )->generate( $model, $prompt, $context );
-		$this->state_manager->set_step_status( 'ai-generation', ! empty( $result['success'] ) ? 'complete' : 'failed' );
-
-		if ( ! empty( $result['success'] ) && '' !== $api_key ) {
+		if ( '' !== $api_key ) {
 			try {
 				AI_Credential_Store::save( $provider, $api_key );
 			} catch ( \Throwable $error ) {
-				$this->state_manager->set_step_status( 'ai-generation', 'failed' );
+				$this->state_manager->set_step_status( 'ia-generation', 'failed' );
 				return new \WP_Error( 'rms_wizard_ai_key_save_failed', \__( 'The API key could not be encrypted and saved.', 'simple-rms-theme' ), [ 'status' => 500 ] );
 			}
 		}
 
-		if ( ! empty( $result['success'] ) && ! empty( $context['section_key'] ) && ! empty( $context['session_id'] ) ) {
-			$key   = 'rms_wizard_section_' . md5( (string) $context['session_id'] . ':' . (string) $context['section_key'] );
-			$state = $this->state_manager->get_state();
-			$state['generated'][ \sanitize_key( (string) $context['section_key'] ) ] = $key;
-			$this->state_manager->save_state( $state );
+		$credential = AI_Credential_Store::status( $provider );
+
+		if ( empty( $credential['has_key'] ) ) {
+			$this->state_manager->set_step_status( 'ia-generation', 'failed' );
+			return new \WP_Error( 'rms_wizard_missing_ai_credentials', \__( 'The IA Generation step requires saved provider credentials.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		return $result;
+		$state              = $this->state_manager->get_state();
+		$state['ai_config'] = [
+			'provider'         => $provider,
+			'provider_label'   => AI_Provider_Registry::get_provider_label( $provider ),
+			'model'            => $model,
+			'credential'       => $credential,
+			'has_credentials'  => ! empty( $credential['has_key'] ),
+			'configured_at'    => \current_time( 'mysql', true ),
+		];
+
+		$this->state_manager->save_state( $state );
+		$this->state_manager->set_step_status( 'ia-generation', 'complete' );
+		$this->logger->log( 'info', 'Wizard AI configuration saved.', [ 'provider' => $provider, 'model' => $model, 'has_credentials' => ! empty( $credential['has_key'] ) ] );
+
+		return [ 'ai_config' => $state['ai_config'] ];
 	}
 
 	private function normalize_step( string $step ): string {
@@ -196,8 +219,12 @@ class Step_Controller {
 		$aliases = [
 			'acf_import'       => 'acf-import',
 			'client_data'      => 'client-data',
-			'ai_generation'    => 'ai-generation',
-			'content_creation' => 'content-creation',
+			'ai-generation'    => 'ia-generation',
+			'ai_generation'    => 'ia-generation',
+			'ia_generation'    => 'ia-generation',
+			'generate_pages'    => 'generate-pages',
+			'menu_setup'        => 'menu-setup',
+			'home_page_builder' => 'home-page-builder',
 		];
 
 		return $aliases[ $step ] ?? $step;

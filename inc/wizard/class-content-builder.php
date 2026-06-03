@@ -57,15 +57,27 @@ class Content_Builder {
 	 * @return int Page ID, or 0 on failure.
 	 */
 	public function build_page( array $page ): int {
-		$title   = \sanitize_text_field( (string) ( $page['title'] ?? '' ) );
-		$post_id = (int) ( $page['id'] ?? 0 );
+		$post_id      = \absint( $page['id'] ?? 0 );
+		$section_only = $post_id > 0 && ! empty( $page['section_only'] );
+		$existing     = $post_id > 0 ? \get_post( $post_id ) : null;
+
+		if ( $section_only && ! $existing ) {
+			$this->logger->log( 'error', 'Wizard section-only page update failed because the page was not found.', [ 'post_id' => $post_id ] );
+
+			return 0;
+		}
+
+		$title   = \sanitize_text_field( (string) ( $page['title'] ?? ( $section_only ? $existing->post_title : '' ) ) );
+		$slug    = \sanitize_title( (string) ( $page['slug'] ?? ( $section_only ? $existing->post_name : $title ) ) );
+		$status  = \sanitize_key( (string) ( $page['status'] ?? ( $section_only ? $existing->post_status : 'publish' ) ) );
+		$content = \wp_kses_post( (string) ( $page['content'] ?? ( $section_only ? $existing->post_content : '' ) ) );
 
 		$post_data = [
 			'post_type'    => 'page',
-			'post_status'  => \sanitize_key( (string) ( $page['status'] ?? 'publish' ) ),
+			'post_status'  => $status,
 			'post_title'   => $title,
-			'post_name'    => \sanitize_title( (string) ( $page['slug'] ?? $title ) ),
-			'post_content' => \wp_kses_post( (string) ( $page['content'] ?? '' ) ),
+			'post_name'    => $slug,
+			'post_content' => $content,
 		];
 
 		if ( $post_id > 0 ) {
@@ -123,18 +135,34 @@ class Content_Builder {
 		return array_values( $sections );
 	}
 
-	private function prepare_image_fallbacks( array $value ): array {
+	public function prepare_image_fallbacks( array $value ): array {
 		foreach ( $value as $key => $child_value ) {
 			if ( is_array( $child_value ) ) {
 				$value[ $key ] = $this->prepare_image_fallbacks( $child_value );
 				continue;
 			}
 
-			if ( is_string( $key ) && false !== strpos( $key, 'image' ) && '' === (string) $child_value ) {
+			if ( is_string( $key ) && $this->is_image_fallback_field( $key ) && '' === (string) $child_value ) {
 				$value[ $key ] = $this->fallback_image_url();
 			}
 		}
 
 		return $value;
+	}
+
+	private function is_image_fallback_field( string $key ): bool {
+		$exact_image_fields = [ 'gallery_full' ];
+
+		if ( in_array( $key, $exact_image_fields, true ) ) {
+			return true;
+		}
+
+		foreach ( [ 'image', 'thumbnail', 'avatar', 'poster', 'photo', 'logo' ] as $marker ) {
+			if ( false !== strpos( $key, $marker ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

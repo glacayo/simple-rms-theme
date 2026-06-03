@@ -95,9 +95,7 @@ add_action(
 );
 
 /**
- * Render the minimal server-side wizard placeholder.
- *
- * Phase 4 owns the full interactive UI and Vite assets.
+ * Render the setup wizard admin UI.
  *
  * @return void
  */
@@ -110,19 +108,23 @@ function rms_wizard_render_admin_page(): void {
 	$state      = $controller->get_resume_state();
 	$locked     = ! empty( $state['locked'] );
 	$steps      = [
-		'dependencies'     => __( 'Dependencies', 'simple-rms-theme' ),
-		'acf-import'       => __( 'ACF Import', 'simple-rms-theme' ),
-		'client-data'      => __( 'Client Data', 'simple-rms-theme' ),
-		'ai-generation'    => __( 'AI Generation', 'simple-rms-theme' ),
-		'content-creation' => __( 'Content Creation', 'simple-rms-theme' ),
+		'dependencies'      => __( 'Dependencies', 'simple-rms-theme' ),
+		'acf-import'        => __( 'ACF Import', 'simple-rms-theme' ),
+		'client-data'       => __( 'Client Data', 'simple-rms-theme' ),
+		'generate-pages'    => __( 'Generate Pages', 'simple-rms-theme' ),
+		'menu-setup'        => __( 'Menu Setup', 'simple-rms-theme' ),
+		'ia-generation'     => __( 'IA Generation', 'simple-rms-theme' ),
+		'home-page-builder' => __( 'Home Page Builder', 'simple-rms-theme' ),
 	];
 	$step_slugs = array_keys( $steps );
 	$descriptions = [
-		'dependencies'     => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
-		'acf-import'       => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
-		'client-data'      => __( 'Save contractor business information into the theme options.', 'simple-rms-theme' ),
-		'ai-generation'    => __( 'Generate one content section through the selected AI provider and model.', 'simple-rms-theme' ),
-		'content-creation' => __( 'Create pages from prepared JSON content and write related metadata.', 'simple-rms-theme' ),
+		'dependencies'      => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
+		'acf-import'        => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
+		'client-data'       => __( 'Save contractor business information into the theme options.', 'simple-rms-theme' ),
+		'generate-pages'    => __( 'Add the site pages to create, then assign the Home and optional Blog roles.', 'simple-rms-theme' ),
+		'menu-setup'        => __( 'Choose generated pages for the primary and mobile menus.', 'simple-rms-theme' ),
+		'ia-generation'     => __( 'Configure the AI provider, model, and encrypted credentials for later content generation.', 'simple-rms-theme' ),
+		'home-page-builder' => __( 'Choose Home page sections and build them from the saved client data.', 'simple-rms-theme' ),
 	];
 	?>
 	<div
@@ -184,47 +186,14 @@ function rms_wizard_render_admin_page(): void {
 
 						<?php if ( 'client-data' === $slug ) : ?>
 							<?php rms_wizard_render_client_data_form(); ?>
-						<?php elseif ( 'ai-generation' === $slug ) : ?>
-							<form class="rms-wizard-fields">
-								<?php
-								$ai_providers        = Inc\Wizard\AI_Provider_Registry::list_providers();
-								$default_ai_provider = Inc\Wizard\AI_Provider_Registry::default_provider();
-								?>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-ai-provider"><?php esc_html_e( 'Provider', 'simple-rms-theme' ); ?></label>
-									<select id="rms-wizard-ai-provider" name="provider" data-wizard-ai-provider>
-										<?php foreach ( $ai_providers as $provider ) : ?>
-											<option value="<?php echo esc_attr( $provider['slug'] ); ?>" <?php selected( $default_ai_provider, $provider['slug'] ); ?>><?php echo esc_html( $provider['label'] ); ?></option>
-										<?php endforeach; ?>
-									</select>
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-ai-key"><?php esc_html_e( 'API key', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-ai-key" type="password" name="api_key" autocomplete="off" placeholder="<?php esc_attr_e( 'Leave blank to use the saved encrypted key', 'simple-rms-theme' ); ?>">
-									<p class="rms-wizard-field__instructions" data-wizard-ai-credential-status><?php echo esc_html( Inc\Wizard\AI_Credential_Store::mask_status( $default_ai_provider ) ); ?></p>
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-ai-model"><?php esc_html_e( 'Model', 'simple-rms-theme' ); ?></label>
-									<div class="rms-wizard-ai-model-picker">
-										<select id="rms-wizard-ai-model" name="model" data-wizard-ai-model>
-											<option value=""><?php esc_html_e( 'Load models from the selected provider', 'simple-rms-theme' ); ?></option>
-										</select>
-										<button type="button" class="button" data-wizard-ai-load-models><?php esc_html_e( 'Test / Load models', 'simple-rms-theme' ); ?></button>
-									</div>
-									<p class="rms-wizard-field__instructions" data-wizard-ai-model-status><?php esc_html_e( 'The API key is encrypted after a successful provider check.', 'simple-rms-theme' ); ?></p>
-								</div>
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-ai-prompt"><?php esc_html_e( 'Prompt', 'simple-rms-theme' ); ?></label>
-									<textarea id="rms-wizard-ai-prompt" name="prompt"></textarea>
-								</div>
-							</form>
-						<?php elseif ( 'content-creation' === $slug ) : ?>
-							<form class="rms-wizard-fields">
-								<div class="rms-wizard-field">
-									<label for="rms-wizard-pages-json"><?php esc_html_e( 'Pages JSON', 'simple-rms-theme' ); ?></label>
-									<textarea id="rms-wizard-pages-json" name="pages" placeholder='[{"title":"Home","content":"..."}]'></textarea>
-								</div>
-							</form>
+						<?php elseif ( 'generate-pages' === $slug ) : ?>
+							<?php rms_wizard_render_generate_pages_form(); ?>
+						<?php elseif ( 'menu-setup' === $slug ) : ?>
+							<?php rms_wizard_render_menu_setup_form(); ?>
+						<?php elseif ( 'ia-generation' === $slug ) : ?>
+							<?php rms_wizard_render_ia_generation_form(); ?>
+						<?php elseif ( 'home-page-builder' === $slug ) : ?>
+							<?php rms_wizard_render_home_page_builder_form(); ?>
 						<?php endif; ?>
 
 						<div class="rms-wizard-actions">
@@ -253,8 +222,354 @@ function rms_wizard_render_admin_page(): void {
 				</section>
 			</main>
 		</div>
+
+		<?php rms_wizard_render_confirmation_modal(); ?>
 	</div>
 	<?php
+}
+
+/**
+ * Render the guided Generate Pages step form.
+ *
+ * @return void
+ */
+function rms_wizard_render_generate_pages_form(): void {
+	$pages = rms_wizard_page_generation_choices();
+	$common_pages = [];
+
+	foreach ( $pages as $slug => $page ) {
+		$common_pages[] = [
+			'slug'        => $slug,
+			'title'       => $page['title'],
+			'description' => $page['description'],
+			'role'        => 'home' === $slug || 'blog' === $slug ? $slug : '',
+		];
+	}
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-generate-pages-form>
+		<div class="rms-wizard-guided-panel">
+			<p class="rms-wizard-fields__intro">
+				<?php esc_html_e( 'Create the pages this wizard should generate. Use the common pages shortcut as a starting point, or add custom pages one at a time. After pages are generated, only these pages remain in the active page set.', 'simple-rms-theme' ); ?>
+			</p>
+
+			<div class="rms-wizard-page-quick-actions">
+				<button type="button" class="button" data-wizard-add-common-pages><?php esc_html_e( 'Add common pages', 'simple-rms-theme' ); ?></button>
+				<button type="button" class="button button-secondary" data-wizard-add-page><?php esc_html_e( 'Add Page', 'simple-rms-theme' ); ?></button>
+				<p class="rms-wizard-field__instructions"><?php esc_html_e( 'Common pages are only a shortcut. You can rename, remove, or add any page before running the step.', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<script type="application/json" data-wizard-common-pages><?php echo wp_json_encode( $common_pages, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+			<div class="rms-wizard-page-builder" data-wizard-custom-pages>
+				<div class="rms-wizard-page-builder__header" aria-hidden="true">
+					<span><?php esc_html_e( 'Page title', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Slug', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Role', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Action', 'simple-rms-theme' ); ?></span>
+				</div>
+				<div class="rms-wizard-page-rows" role="list" data-wizard-page-rows></div>
+				<p class="rms-wizard-page-builder__empty" data-wizard-page-empty><?php esc_html_e( 'No pages added yet. Add a custom page or use the common pages shortcut.', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<label class="rms-wizard-no-blog-option">
+				<input type="radio" name="blog_slug" value="" data-wizard-page-no-blog checked>
+				<span><?php esc_html_e( 'Do not assign a Blog page', 'simple-rms-theme' ); ?></span>
+			</label>
+
+			<template data-wizard-page-row-template>
+				<article class="rms-wizard-page-row" role="listitem" data-wizard-page-row>
+					<div class="rms-wizard-field rms-wizard-page-row__title">
+						<label for="rms-wizard-page-title-__INDEX__"><?php esc_html_e( 'Page title', 'simple-rms-theme' ); ?></label>
+						<input id="rms-wizard-page-title-__INDEX__" type="text" name="pages[__INDEX__][title]" data-wizard-page-title placeholder="<?php esc_attr_e( 'Services', 'simple-rms-theme' ); ?>">
+					</div>
+					<div class="rms-wizard-field rms-wizard-page-row__slug">
+						<label for="rms-wizard-page-slug-__INDEX__"><?php esc_html_e( 'Slug', 'simple-rms-theme' ); ?></label>
+						<input id="rms-wizard-page-slug-__INDEX__" type="text" name="pages[__INDEX__][slug]" data-wizard-page-slug data-wizard-slug-auto="1" placeholder="<?php esc_attr_e( 'services', 'simple-rms-theme' ); ?>">
+					</div>
+					<div class="rms-wizard-page-row__roles" aria-label="<?php esc_attr_e( 'Page roles', 'simple-rms-theme' ); ?>">
+						<label>
+							<input type="radio" name="home_slug" value="" data-wizard-page-home>
+							<span><?php esc_html_e( 'Home', 'simple-rms-theme' ); ?></span>
+						</label>
+						<label>
+							<input type="radio" name="blog_slug" value="" data-wizard-page-blog>
+							<span><?php esc_html_e( 'Blog', 'simple-rms-theme' ); ?></span>
+						</label>
+					</div>
+					<button type="button" class="button-link-delete rms-wizard-page-row__remove" data-wizard-remove-page><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
+				</article>
+			</template>
+		</div>
+
+		<?php
+		rms_wizard_render_destructive_confirmation(
+			'generate-pages',
+			__( 'Existing pages not in your selection will be permanently deleted. This cannot be undone.', 'simple-rms-theme' ),
+			__( 'I understand the wizard will delete or replace existing pages that are not selected here.', 'simple-rms-theme' )
+		);
+		?>
+	</form>
+	<?php
+}
+
+/**
+ * Render the guided Menu Setup step form.
+ *
+ * @return void
+ */
+function rms_wizard_render_menu_setup_form(): void {
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-menu-form>
+		<div class="rms-wizard-guided-panel">
+			<p class="rms-wizard-fields__intro">
+				<?php esc_html_e( 'Menus are built only from pages created by the Generate Pages step. Refresh the state after generating pages if this list is empty.', 'simple-rms-theme' ); ?>
+			</p>
+
+			<div class="notice notice-warning inline rms-wizard-menu-empty" data-wizard-menu-empty hidden>
+				<p><?php esc_html_e( 'No pages found. Please complete the Generate Pages step first', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<div class="rms-wizard-menu-builder" data-wizard-menu-builder>
+				<fieldset class="rms-wizard-menu-column">
+					<legend><?php esc_html_e( 'Primary menu', 'simple-rms-theme' ); ?></legend>
+					<p><?php esc_html_e( 'Select at least one generated page for the primary navigation.', 'simple-rms-theme' ); ?></p>
+					<div class="rms-wizard-menu-list" data-wizard-menu-list="primary"></div>
+				</fieldset>
+
+				<fieldset class="rms-wizard-menu-column">
+					<legend><?php esc_html_e( 'Mobile menu', 'simple-rms-theme' ); ?></legend>
+					<p><?php esc_html_e( 'Leave empty to reuse the primary menu for the mobile location.', 'simple-rms-theme' ); ?></p>
+					<div class="rms-wizard-menu-list" data-wizard-menu-list="mobile"></div>
+				</fieldset>
+			</div>
+		</div>
+
+		<?php
+		rms_wizard_render_destructive_confirmation(
+			'menu-setup',
+			__( 'Existing menus and location assignments will be removed and replaced. This cannot be undone.', 'simple-rms-theme' ),
+			__( 'I understand the wizard will delete existing menus and replace theme location assignments.', 'simple-rms-theme' )
+		);
+		?>
+	</form>
+	<?php
+}
+
+/**
+ * Render the IA Generation configuration form.
+ *
+ * @return void
+ */
+function rms_wizard_render_ia_generation_form(): void {
+	$ai_providers        = Inc\Wizard\AI_Provider_Registry::list_providers();
+	$default_ai_provider = Inc\Wizard\AI_Provider_Registry::default_provider();
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-ia-generation-form>
+		<p class="rms-wizard-fields__intro">
+			<?php esc_html_e( 'Save the provider, model, and encrypted credentials the Home Page Builder will use for section copy.', 'simple-rms-theme' ); ?>
+		</p>
+
+		<div class="rms-wizard-field">
+			<label for="rms-wizard-ai-provider"><?php esc_html_e( 'Provider', 'simple-rms-theme' ); ?></label>
+			<select id="rms-wizard-ai-provider" name="provider" data-wizard-ai-provider>
+				<?php foreach ( $ai_providers as $provider ) : ?>
+					<option value="<?php echo esc_attr( $provider['slug'] ); ?>" <?php selected( $default_ai_provider, $provider['slug'] ); ?>><?php echo esc_html( $provider['label'] ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+
+		<div class="rms-wizard-field">
+			<label for="rms-wizard-ai-key"><?php esc_html_e( 'API key', 'simple-rms-theme' ); ?></label>
+			<input id="rms-wizard-ai-key" type="password" name="api_key" autocomplete="off" placeholder="<?php esc_attr_e( 'Leave blank to use the saved encrypted key', 'simple-rms-theme' ); ?>">
+			<p class="rms-wizard-field__instructions" data-wizard-ai-credential-status><?php echo esc_html( Inc\Wizard\AI_Credential_Store::mask_status( $default_ai_provider ) ); ?></p>
+		</div>
+
+		<div class="rms-wizard-field">
+			<label for="rms-wizard-ai-model"><?php esc_html_e( 'Model', 'simple-rms-theme' ); ?></label>
+			<div class="rms-wizard-ai-model-picker">
+				<select id="rms-wizard-ai-model" name="model" data-wizard-ai-model>
+					<option value=""><?php esc_html_e( 'Load models from the selected provider', 'simple-rms-theme' ); ?></option>
+				</select>
+				<button type="button" class="button" data-wizard-ai-load-models><?php esc_html_e( 'Test / Load models', 'simple-rms-theme' ); ?></button>
+			</div>
+			<p class="rms-wizard-field__instructions" data-wizard-ai-model-status><?php esc_html_e( 'The API key is encrypted after a successful provider check.', 'simple-rms-theme' ); ?></p>
+		</div>
+
+		<div class="rms-wizard-field">
+			<label for="rms-wizard-ai-model-manual"><?php esc_html_e( 'Manual model name', 'simple-rms-theme' ); ?></label>
+			<input id="rms-wizard-ai-model-manual" type="text" name="model_manual" data-wizard-ai-model-manual placeholder="<?php esc_attr_e( 'Enter a model manually if loading models fails', 'simple-rms-theme' ); ?>">
+			<p class="rms-wizard-field__instructions"><?php esc_html_e( 'This field is used only when no model is selected from the loaded list.', 'simple-rms-theme' ); ?></p>
+		</div>
+	</form>
+	<?php
+}
+
+/**
+ * Render the guided Home Page Builder form.
+ *
+ * @return void
+ */
+function rms_wizard_render_home_page_builder_form(): void {
+	$sections        = rms_wizard_home_section_choices();
+	$common_sections = rms_wizard_home_common_section_choices();
+	$section_options = array_values(
+		array_map(
+			static function ( array $section ): array {
+				return [
+					'layout'      => $section['name'],
+					'label'       => $section['label'],
+					'description' => $section['description'],
+				];
+			},
+			$sections
+		)
+	);
+	$common_options  = array_values(
+		array_map(
+			static function ( array $section ): array {
+				return [
+					'layout'      => $section['name'],
+					'label'       => $section['label'],
+					'description' => $section['description'],
+				];
+			},
+			$common_sections
+		)
+	);
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-home-page-builder-form>
+		<div class="rms-wizard-guided-panel">
+			<p class="rms-wizard-fields__intro">
+				<?php esc_html_e( 'Add Home page sections from the available ACF Flexible Content layouts. The wizard will use saved Client Data and the IA Generation configuration to draft the section copy.', 'simple-rms-theme' ); ?>
+			</p>
+
+			<script type="application/json" data-wizard-home-sections><?php echo wp_json_encode( $section_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+			<script type="application/json" data-wizard-common-home-sections><?php echo wp_json_encode( $common_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+			<div class="rms-wizard-home-section-picker">
+				<div class="rms-wizard-field">
+					<label for="rms-wizard-home-section-layout"><?php esc_html_e( 'Section layout', 'simple-rms-theme' ); ?></label>
+					<select id="rms-wizard-home-section-layout" data-wizard-home-section-select>
+						<?php foreach ( $sections as $layout => $section ) : ?>
+							<option value="<?php echo esc_attr( $layout ); ?>" data-label="<?php echo esc_attr( $section['label'] ); ?>" data-description="<?php echo esc_attr( $section['description'] ); ?>">
+								<?php echo esc_html( sprintf( '%1$s (%2$s)', $section['label'], $layout ) ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<button type="button" class="button" data-wizard-add-home-section><?php esc_html_e( 'Add Section', 'simple-rms-theme' ); ?></button>
+			</div>
+
+			<?php if ( [] !== $common_sections ) : ?>
+				<div class="rms-wizard-home-section-quick-actions">
+					<button type="button" class="button" data-wizard-add-common-home-sections><?php esc_html_e( 'Add common Home sections', 'simple-rms-theme' ); ?></button>
+					<p class="rms-wizard-field__instructions"><?php esc_html_e( 'Quick-start sections are templates only. You can still add any layout from the dropdown above.', 'simple-rms-theme' ); ?></p>
+				</div>
+			<?php endif; ?>
+
+			<div class="rms-wizard-home-section-builder" data-wizard-home-section-builder>
+				<div class="rms-wizard-home-section-builder__header" aria-hidden="true">
+					<span><?php esc_html_e( 'Section', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Layout key', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Action', 'simple-rms-theme' ); ?></span>
+				</div>
+				<div class="rms-wizard-home-section-rows" role="list" data-wizard-home-section-rows></div>
+				<p class="rms-wizard-home-section-builder__empty" data-wizard-home-section-empty><?php esc_html_e( 'No sections added yet. Choose a layout and add it to the Home page.', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<template data-wizard-home-section-row-template>
+				<article class="rms-wizard-home-section-row" role="listitem" data-wizard-home-section-row>
+					<input type="hidden" name="sections[]" value="" data-wizard-home-section-value>
+					<div class="rms-wizard-home-section-row__label">
+						<strong data-wizard-home-section-label></strong>
+						<small data-wizard-home-section-description></small>
+					</div>
+					<code data-wizard-home-section-key></code>
+					<button type="button" class="button-link-delete rms-wizard-home-section-row__remove" data-wizard-remove-home-section><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
+				</article>
+			</template>
+		</div>
+	</form>
+	<?php
+}
+
+/**
+ * Render a destructive action warning with an explicit checkbox.
+ *
+ * @param string $step           Step slug.
+ * @param string $message        Warning message.
+ * @param string $checkbox_label Confirmation checkbox label.
+ *
+ * @return void
+ */
+function rms_wizard_render_destructive_confirmation( string $step, string $message, string $checkbox_label ): void {
+	$field_id = 'rms-wizard-confirm-' . rms_wizard_field_id_token( $step );
+	?>
+	<div class="rms-wizard-destructive-warning" data-wizard-destructive-warning="<?php echo esc_attr( $step ); ?>">
+		<strong><?php esc_html_e( 'Destructive action', 'simple-rms-theme' ); ?></strong>
+		<p><?php echo esc_html( $message ); ?></p>
+		<label class="rms-wizard-confirm-checkbox" for="<?php echo esc_attr( $field_id ); ?>">
+			<input id="<?php echo esc_attr( $field_id ); ?>" type="checkbox" name="confirm_cleanup" value="1" data-wizard-destructive-confirm="<?php echo esc_attr( $step ); ?>">
+			<span><?php echo esc_html( $checkbox_label ); ?></span>
+		</label>
+	</div>
+	<?php
+}
+
+/**
+ * Render the reusable destructive confirmation modal.
+ *
+ * @return void
+ */
+function rms_wizard_render_confirmation_modal(): void {
+	?>
+	<div class="rms-wizard-confirmation-modal" data-wizard-confirm-dialog hidden>
+		<div class="rms-wizard-confirmation-modal__backdrop" data-wizard-confirm-cancel></div>
+		<section class="rms-wizard-confirmation-modal__panel" role="dialog" aria-modal="true" aria-labelledby="rms-wizard-confirm-title" aria-describedby="rms-wizard-confirm-message">
+			<h2 id="rms-wizard-confirm-title"><?php esc_html_e( 'Confirm destructive action', 'simple-rms-theme' ); ?></h2>
+			<p id="rms-wizard-confirm-message" data-wizard-confirm-message></p>
+			<div class="rms-wizard-confirmation-modal__actions">
+				<button type="button" class="button" data-wizard-confirm-cancel><?php esc_html_e( 'Cancel', 'simple-rms-theme' ); ?></button>
+				<button type="button" class="button button-primary" data-wizard-confirm-accept><?php esc_html_e( 'Yes, continue', 'simple-rms-theme' ); ?></button>
+			</div>
+		</section>
+	</div>
+	<?php
+}
+
+/**
+ * Return guided page choices for the Generate Pages step.
+ *
+ * @return array<string,array{title:string,description:string}>
+ */
+function rms_wizard_page_generation_choices(): array {
+	return [
+		'home'         => [ 'title' => __( 'Home', 'simple-rms-theme' ), 'description' => __( 'The main landing page for the site.', 'simple-rms-theme' ) ],
+		'about'        => [ 'title' => __( 'About', 'simple-rms-theme' ), 'description' => __( 'Company story, experience, and trust signals.', 'simple-rms-theme' ) ],
+		'services'     => [ 'title' => __( 'Services', 'simple-rms-theme' ), 'description' => __( 'Overview of core services from Client Data.', 'simple-rms-theme' ) ],
+		'blog'         => [ 'title' => __( 'Blog', 'simple-rms-theme' ), 'description' => __( 'Posts index and content hub.', 'simple-rms-theme' ) ],
+		'contact'      => [ 'title' => __( 'Contact', 'simple-rms-theme' ), 'description' => __( 'Contact details and conversion form area.', 'simple-rms-theme' ) ],
+		'projects'     => [ 'title' => __( 'Projects', 'simple-rms-theme' ), 'description' => __( 'Portfolio or completed work page.', 'simple-rms-theme' ) ],
+		'testimonials' => [ 'title' => __( 'Testimonials', 'simple-rms-theme' ), 'description' => __( 'Customer proof and reviews page.', 'simple-rms-theme' ) ],
+	];
+}
+
+/**
+ * Return all ACF Home section choices.
+ *
+ * @return array<string,array{key:string,name:string,label:string,description:string,sub_fields:array<int,array<string,mixed>>}>
+ */
+function rms_wizard_home_section_choices(): array {
+	return ( new Inc\Wizard\Flexible_Content_Layouts() )->get_layouts();
+}
+
+/**
+ * Return common ACF Home section quick-start choices.
+ *
+ * @return array<string,array{key:string,name:string,label:string,description:string,sub_fields:array<int,array<string,mixed>>}>
+ */
+function rms_wizard_home_common_section_choices(): array {
+	return ( new Inc\Wizard\Flexible_Content_Layouts() )->get_common_layouts();
 }
 
 /**

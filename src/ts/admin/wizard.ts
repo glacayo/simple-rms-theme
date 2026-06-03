@@ -13,9 +13,37 @@ interface WizardLogEntry {
   message?: string;
 }
 
+interface GeneratedPage {
+  id?: number | string;
+  title?: string;
+  slug?: string;
+  role?: string;
+}
+
+interface WizardPageTemplate {
+  title?: string;
+  slug?: string;
+  description?: string;
+  role?: string;
+}
+
+interface HomeSectionTemplate {
+  layout?: string;
+  label?: string;
+  description?: string;
+}
+
+interface PagePayloadItem {
+  slug: string;
+  title: string;
+  generate: boolean;
+  role: string;
+}
+
 interface WizardState {
   current_step?: string;
   step_status?: Record<string, StepStatus>;
+  generated_pages?: GeneratedPage[];
   locked?: boolean;
   logs?: WizardLogEntry[];
 }
@@ -51,6 +79,7 @@ interface AiModelsResponse {
 type NestedFormValue = string | number | NestedFormValue[] | { [key: string]: NestedFormValue };
 type NestedFormObject = Record<string, NestedFormValue>;
 type NestedFormContainer = NestedFormObject | NestedFormValue[];
+type StepPayload = Record<string, unknown>;
 type FieldElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 interface MediaAttachmentData {
@@ -111,9 +140,22 @@ declare global {
     { slug: 'dependencies', label: 'Dependencies' },
     { slug: 'acf-import', label: 'ACF Import' },
     { slug: 'client-data', label: 'Client Data' },
-    { slug: 'ai-generation', label: 'AI Generation' },
-    { slug: 'content-creation', label: 'Content Creation' },
+    { slug: 'generate-pages', label: 'Generate Pages' },
+    { slug: 'menu-setup', label: 'Menu Setup' },
+    { slug: 'ia-generation', label: 'IA Generation' },
+    { slug: 'home-page-builder', label: 'Home Page Builder' },
   ];
+
+  const destructiveWarnings: Record<string, { message: string; checkboxMessage: string }> = {
+    'generate-pages': {
+      message: 'Existing pages not in your selection will be permanently deleted. This cannot be undone.',
+      checkboxMessage: 'Confirm that existing pages can be deleted or replaced before continuing.',
+    },
+    'menu-setup': {
+      message: 'Existing menus and location assignments will be removed and replaced. This cannot be undone.',
+      checkboxMessage: 'Confirm that existing menus and location assignments can be replaced before continuing.',
+    },
+  };
 
   const navButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-step-nav]'));
   const panels = Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-step-panel]'));
@@ -247,6 +289,8 @@ declare global {
       ? state.current_step
       : activeStep;
 
+    renderGeneratedPageControls();
+    syncGuidedControlState();
     setActiveStep(nextStep);
     updateNav();
     updateProgress();
@@ -322,6 +366,13 @@ declare global {
 
     try {
       const payload = collectPayload(step);
+
+      if (!await ensureDestructiveConfirmation(step, payload)) {
+        setStepActionStatus(step, 'Step canceled before changes were made.', 'info');
+        setNotice('Step canceled before changes were made.', 'info');
+        return;
+      }
+
       const response = await request<StepResponse>(`steps/${step}/run`, {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -370,7 +421,7 @@ declare global {
     }
   };
 
-  const collectPayload = (step: string): Record<string, unknown> => {
+  const collectPayload = (step: string): StepPayload => {
     const panel = root.querySelector<HTMLElement>(`[data-wizard-step-panel="${step}"]`);
     const form = panel?.querySelector<HTMLFormElement>('form');
 
@@ -382,18 +433,652 @@ declare global {
       return {};
     }
 
-    const data = new FormData(form);
-
     if (step === 'client-data') {
       return { client_data: collectFormPayload(form) };
     }
 
-    if (step === 'content-creation') {
-      const rawPages = String(data.get('pages') ?? '').trim();
-      return { pages: rawPages ? JSON.parse(rawPages) as unknown : [] };
+    if (step === 'generate-pages') {
+      return collectGeneratePagesPayload(form);
+    }
+
+    if (step === 'menu-setup') {
+      return collectMenuSetupPayload(form);
+    }
+
+    if (step === 'ia-generation') {
+      return collectIaGenerationPayload(form);
+    }
+
+    if (step === 'home-page-builder') {
+      return collectHomePageBuilderPayload(form);
     }
 
     return collectFormPayload(form);
+  };
+
+  const collectGeneratePagesPayload = (form: HTMLFormElement): StepPayload => {
+    const pages: Record<string, PagePayloadItem> = {};
+    const selectedSlugs: string[] = [];
+    let homeSlug = '';
+    let blogSlug = '';
+
+    form.querySelectorAll<HTMLElement>('[data-wizard-page-row]').forEach((row) => {
+      const titleInput = row.querySelector<HTMLInputElement>('[data-wizard-page-title]');
+      const slugInput = row.querySelector<HTMLInputElement>('[data-wizard-page-slug]');
+      const rawTitle = titleInput?.value.trim() ?? '';
+      const rawSlug = slugInput?.value.trim() ?? '';
+
+      if (!rawTitle && !rawSlug) {
+        return;
+      }
+
+      if (!rawTitle) {
+        throw new Error('Every generated page needs a title.');
+      }
+
+      const slug = sanitizeSlug(rawSlug);
+
+      if (!slug) {
+        throw new Error(`Enter a valid slug for ${rawTitle}.`);
+      }
+
+      if (selectedSlugs.includes(slug)) {
+        throw new Error(`Page slugs must be unique. "${slug}" is already used.`);
+      }
+
+      const isHome = Boolean(row.querySelector<HTMLInputElement>('[data-wizard-page-home]')?.checked);
+      const isBlog = Boolean(row.querySelector<HTMLInputElement>('[data-wizard-page-blog]')?.checked);
+      const role = isBlog ? 'blog' : (isHome ? 'home' : '');
+
+      pages[slug] = { slug, title: rawTitle, generate: true, role };
+      selectedSlugs.push(slug);
+
+      if (isHome) {
+        homeSlug = slug;
+      }
+
+      if (isBlog) {
+        blogSlug = slug;
+      }
+    });
+
+    if (selectedSlugs.length === 0) {
+      throw new Error('Select at least one page to generate.');
+    }
+
+    if (!homeSlug || !selectedSlugs.includes(homeSlug)) {
+      throw new Error('Please mark one page as Home.');
+    }
+
+    if (blogSlug && !selectedSlugs.includes(blogSlug)) {
+      throw new Error('Blog page must be one of the selected pages.');
+    }
+
+    return {
+      pages,
+      home_slug: homeSlug,
+      blog_slug: blogSlug,
+      confirm_cleanup: isDestructiveCheckboxChecked(form, 'generate-pages'),
+    };
+  };
+
+  const collectMenuSetupPayload = (form: HTMLFormElement): StepPayload => {
+    renderGeneratedPageControls();
+
+    if (getGeneratedPages().length === 0) {
+      throw new Error('No pages found. Please complete the Generate Pages step first');
+    }
+
+    const primary = selectedCheckboxValues(form, 'input[name="primary_page_ids[]"]:checked');
+    const mobile = selectedCheckboxValues(form, 'input[name="mobile_page_ids[]"]:checked');
+
+    if (primary.length === 0) {
+      throw new Error('Primary menu requires at least one page');
+    }
+
+    return {
+      primary,
+      mobile,
+      confirm_cleanup: isDestructiveCheckboxChecked(form, 'menu-setup'),
+    };
+  };
+
+  const collectIaGenerationPayload = (form: HTMLFormElement): StepPayload => {
+    const provider = form.querySelector<HTMLSelectElement>('[data-wizard-ai-provider]')?.value ?? '';
+    const apiKey = form.querySelector<HTMLInputElement>('input[name="api_key"]')?.value ?? '';
+    const selectedModel = form.querySelector<HTMLSelectElement>('[data-wizard-ai-model]')?.value ?? '';
+    const manualModel = form.querySelector<HTMLInputElement>('[data-wizard-ai-model-manual]')?.value.trim() ?? '';
+    const model = selectedModel || manualModel;
+
+    if (!provider) {
+      throw new Error('Select an AI provider before continuing.');
+    }
+
+    if (!model) {
+      throw new Error('Select or enter an AI model before continuing.');
+    }
+
+    return { provider, api_key: apiKey, model };
+  };
+
+  const collectHomePageBuilderPayload = (form: HTMLFormElement): StepPayload => {
+    const sections = Array.from(form.querySelectorAll<HTMLInputElement>('[data-wizard-home-section-value]'))
+      .map((input) => input.value.trim())
+      .filter(Boolean);
+
+    if (sections.length === 0) {
+      throw new Error('Select at least one section for the Home page');
+    }
+
+    return { sections };
+  };
+
+  const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
+    const warning = destructiveWarnings[step];
+
+    if (!warning) {
+      return true;
+    }
+
+    const panel = root.querySelector<HTMLElement>(`[data-wizard-step-panel="${step}"]`);
+    const form = panel?.querySelector<HTMLFormElement>('form');
+
+    if (!form || !isDestructiveCheckboxChecked(form, step)) {
+      throw new Error(warning.checkboxMessage);
+    }
+
+    const confirmed = await openConfirmationModal(warning.message);
+
+    if (confirmed) {
+      payload.confirm_cleanup = true;
+    }
+
+    return confirmed;
+  };
+
+  const openConfirmationModal = (message: string): Promise<boolean> => {
+    const modal = root.querySelector<HTMLElement>('[data-wizard-confirm-dialog]');
+    const messageTarget = modal?.querySelector<HTMLElement>('[data-wizard-confirm-message]');
+    const acceptButton = modal?.querySelector<HTMLButtonElement>('[data-wizard-confirm-accept]');
+    const cancelControls = modal ? Array.from(modal.querySelectorAll<HTMLElement>('[data-wizard-confirm-cancel]')) : [];
+
+    if (!modal || !messageTarget || !acceptButton) {
+      return Promise.resolve(window.confirm(message));
+    }
+
+    const previousFocus = document.activeElement;
+    messageTarget.textContent = message;
+    modal.hidden = false;
+    acceptButton.focus();
+
+    return new Promise((resolve) => {
+      let onAccept: () => void;
+      let onCancel: () => void;
+      let onKeyDown: (event: KeyboardEvent) => void;
+      const close = (confirmed: boolean): void => {
+        modal.hidden = true;
+        acceptButton.removeEventListener('click', onAccept);
+        cancelControls.forEach((control) => control.removeEventListener('click', onCancel));
+        document.removeEventListener('keydown', onKeyDown);
+
+        if (previousFocus instanceof HTMLElement) {
+          previousFocus.focus();
+        }
+
+        resolve(confirmed);
+      };
+      onAccept = (): void => close(true);
+      onCancel = (): void => close(false);
+      onKeyDown = (event: KeyboardEvent): void => {
+        if (event.key === 'Escape') {
+          close(false);
+        }
+      };
+
+      acceptButton.addEventListener('click', onAccept);
+      cancelControls.forEach((control) => control.addEventListener('click', onCancel));
+      document.addEventListener('keydown', onKeyDown);
+    });
+  };
+
+  const selectedCheckboxValues = (container: ParentNode, selector: string): string[] => (
+    Array.from(container.querySelectorAll<HTMLInputElement>(selector)).map((input) => input.value).filter(Boolean)
+  );
+
+  const isDestructiveCheckboxChecked = (form: HTMLFormElement, step: string): boolean => (
+    Boolean(form.querySelector<HTMLInputElement>(`[data-wizard-destructive-confirm="${step}"]`)?.checked)
+  );
+
+  const renderGeneratedPageControls = (): void => {
+    const pages = getGeneratedPages();
+    const signature = pages.map((page) => `${generatedPageValue(page)}:${page.title ?? ''}:${page.slug ?? ''}`).join('|') || 'empty';
+    const emptyNotice = root.querySelector<HTMLElement>('[data-wizard-menu-empty]');
+    const builder = root.querySelector<HTMLElement>('[data-wizard-menu-builder]');
+    const containers = Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-menu-list]'));
+
+    if (emptyNotice) {
+      emptyNotice.hidden = pages.length > 0;
+    }
+
+    if (builder) {
+      builder.hidden = pages.length === 0;
+    }
+
+    containers.forEach((container) => {
+      if (container.dataset.wizardRenderedPages === signature) {
+        return;
+      }
+
+      container.dataset.wizardRenderedPages = signature;
+      container.replaceChildren();
+
+      if (pages.length === 0) {
+        const message = document.createElement('p');
+        message.className = 'rms-wizard-menu-list__empty';
+        message.textContent = 'No generated pages are available yet.';
+        container.append(message);
+        return;
+      }
+
+      const menuType = container.dataset.wizardMenuList === 'mobile' ? 'mobile' : 'primary';
+      const fieldName = menuType === 'mobile' ? 'mobile_page_ids[]' : 'primary_page_ids[]';
+
+      pages.forEach((page) => {
+        const value = generatedPageValue(page);
+
+        if (!value) {
+          return;
+        }
+
+        const label = document.createElement('label');
+        label.className = 'rms-wizard-menu-page';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = fieldName;
+        input.value = value;
+        input.checked = true;
+
+        const text = document.createElement('span');
+        const title = document.createElement('strong');
+        const meta = document.createElement('small');
+        title.textContent = page.title || titleFromSlug(page.slug ?? value);
+        meta.textContent = [page.slug ? `/${page.slug}/` : '', page.role ? `${page.role} page` : 'generated page'].filter(Boolean).join(' · ');
+        text.append(title, meta);
+
+        label.append(input, text);
+        container.append(label);
+      });
+    });
+  };
+
+  const getGeneratedPages = (): GeneratedPage[] => (
+    Array.isArray(state.generated_pages) ? state.generated_pages.filter((page) => Boolean(generatedPageValue(page))) : []
+  );
+
+  const generatedPageValue = (page: GeneratedPage): string => {
+    const id = typeof page.id === 'number' || typeof page.id === 'string' ? String(page.id) : '';
+
+    return id || sanitizeSlug(page.slug ?? '');
+  };
+
+  const syncGuidedControlState = (): void => {
+    root.querySelectorAll<HTMLElement>('[data-wizard-page-row]').forEach((row) => {
+      const isHome = Boolean(row.querySelector<HTMLInputElement>('[data-wizard-page-home]')?.checked);
+      const isBlog = Boolean(row.querySelector<HTMLInputElement>('[data-wizard-page-blog]')?.checked);
+
+      row.classList.toggle('is-home', isHome);
+      row.classList.toggle('is-blog', isBlog);
+    });
+
+    syncPageBuilderEmptyState();
+
+    syncHomeSectionBuilderEmptyState();
+  };
+
+  const sanitizeSlug = (value: string): string => value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+
+  const titleFromSlug = (value: string): string => (
+    value.split(/[-_]/).filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(' ') || 'Page'
+  );
+
+  const getPageRowsContainer = (): HTMLElement | null => root.querySelector<HTMLElement>('[data-wizard-page-rows]');
+
+  const getPageRowTemplate = (): HTMLTemplateElement | null => root.querySelector<HTMLTemplateElement>('template[data-wizard-page-row-template]');
+
+  const addPageRow = (data: WizardPageTemplate = {}): HTMLElement | null => {
+    const rows = getPageRowsContainer();
+    const template = getPageRowTemplate();
+
+    if (!rows || !template) {
+      return null;
+    }
+
+    const index = rows.querySelectorAll('[data-wizard-page-row]').length;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(index)).trim();
+    const row = wrapper.firstElementChild instanceof HTMLElement ? wrapper.firstElementChild : null;
+
+    if (!row) {
+      return null;
+    }
+
+    const title = data.title?.trim() ?? '';
+    const slug = sanitizeSlug(data.slug ?? title);
+    const titleInput = row.querySelector<HTMLInputElement>('[data-wizard-page-title]');
+    const slugInput = row.querySelector<HTMLInputElement>('[data-wizard-page-slug]');
+    const homeRadio = row.querySelector<HTMLInputElement>('[data-wizard-page-home]');
+    const blogRadio = row.querySelector<HTMLInputElement>('[data-wizard-page-blog]');
+
+    if (titleInput) {
+      titleInput.value = title;
+    }
+
+    if (slugInput) {
+      slugInput.value = slug;
+      slugInput.dataset.wizardSlugAuto = '1';
+    }
+
+    rows.append(row);
+    updatePageRowRadioValues(row);
+
+    if (homeRadio && data.role === 'home') {
+      homeRadio.checked = true;
+    }
+
+    if (blogRadio && data.role === 'blog') {
+      blogRadio.checked = true;
+    }
+
+    reindexPageRows();
+    syncGuidedControlState();
+    titleInput?.focus();
+
+    return row;
+  };
+
+  const addCommonPageRows = (): void => {
+    const commonPages = readCommonPageTemplates();
+    const existingSlugs = new Set(getCurrentPageSlugs());
+    let hasHome = Boolean(root.querySelector<HTMLInputElement>('[data-wizard-page-home]:checked'));
+    let hasBlog = Boolean(root.querySelector<HTMLInputElement>('[data-wizard-page-blog]:checked'));
+    let added = 0;
+
+    commonPages.forEach((page) => {
+      const slug = sanitizeSlug(page.slug ?? page.title ?? '');
+      let role = page.role ?? '';
+
+      if (!slug || existingSlugs.has(slug)) {
+        return;
+      }
+
+      if (role === 'home' && hasHome) {
+        role = '';
+      }
+
+      if (role === 'blog' && hasBlog) {
+        role = '';
+      }
+
+      addPageRow({ ...page, slug, role });
+
+      if (role === 'home') {
+        hasHome = true;
+      }
+
+      if (role === 'blog') {
+        hasBlog = true;
+      }
+
+      existingSlugs.add(slug);
+      added += 1;
+    });
+
+    setNotice(
+      added > 0
+        ? `Added ${added} common page${added === 1 ? '' : 's'}. You can edit or remove them before generating pages.`
+        : 'Common pages are already in the list.',
+      'info'
+    );
+  };
+
+  const readCommonPageTemplates = (): WizardPageTemplate[] => {
+    const source = root.querySelector<HTMLScriptElement>('script[data-wizard-common-pages]');
+
+    if (!source?.textContent) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(source.textContent) as unknown;
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((item): item is WizardPageTemplate => typeof item === 'object' && item !== null);
+    } catch (_error) {
+      return [];
+    }
+  };
+
+  const getCurrentPageSlugs = (): string[] => (
+    Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-page-row]'))
+      .map((row) => sanitizeSlug(row.querySelector<HTMLInputElement>('[data-wizard-page-slug]')?.value ?? ''))
+      .filter(Boolean)
+  );
+
+  const removePageRow = (button: HTMLButtonElement): void => {
+    const row = button.closest<HTMLElement>('[data-wizard-page-row]');
+    const wasBlog = Boolean(row?.querySelector<HTMLInputElement>('[data-wizard-page-blog]')?.checked);
+
+    row?.remove();
+
+    if (wasBlog) {
+      const noBlog = root.querySelector<HTMLInputElement>('[data-wizard-page-no-blog]');
+
+      if (noBlog) {
+        noBlog.checked = true;
+      }
+    }
+
+    reindexPageRows();
+    syncGuidedControlState();
+  };
+
+  const updatePageRowFromTitle = (input: HTMLInputElement): void => {
+    const row = input.closest<HTMLElement>('[data-wizard-page-row]');
+    const slugInput = row?.querySelector<HTMLInputElement>('[data-wizard-page-slug]');
+
+    if (!row || !slugInput) {
+      return;
+    }
+
+    if (slugInput.dataset.wizardSlugAuto !== '0') {
+      slugInput.value = sanitizeSlug(input.value);
+    }
+
+    updatePageRowRadioValues(row);
+  };
+
+  const updatePageRowFromSlug = (input: HTMLInputElement, forceSanitize = false): void => {
+    const row = input.closest<HTMLElement>('[data-wizard-page-row]');
+    input.dataset.wizardSlugAuto = '0';
+
+    if (forceSanitize) {
+      input.value = sanitizeSlug(input.value);
+    }
+
+    if (row) {
+      updatePageRowRadioValues(row);
+    }
+  };
+
+  const updatePageRowRadioValues = (row: HTMLElement): void => {
+    const title = row.querySelector<HTMLInputElement>('[data-wizard-page-title]')?.value ?? '';
+    const slug = sanitizeSlug(row.querySelector<HTMLInputElement>('[data-wizard-page-slug]')?.value ?? title);
+
+    row.querySelectorAll<HTMLInputElement>('[data-wizard-page-home], [data-wizard-page-blog]').forEach((radio) => {
+      radio.value = slug;
+    });
+  };
+
+  const reindexPageRows = (): void => {
+    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-page-row]'));
+
+    rows.forEach((row, index) => {
+      row.dataset.wizardPageIndex = String(index);
+
+      row.querySelectorAll<FieldElement>('[name]').forEach((field) => {
+        field.name = field.name.replace(/pages\[\d+\]/g, `pages[${index}]`);
+      });
+
+      row.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
+        element.id = element.id.replace(/rms-wizard-page-(title|slug)-\d+/g, `rms-wizard-page-$1-${index}`);
+      });
+
+      row.querySelectorAll<HTMLLabelElement>('label[for]').forEach((label) => {
+        label.htmlFor = label.htmlFor.replace(/rms-wizard-page-(title|slug)-\d+/g, `rms-wizard-page-$1-${index}`);
+      });
+
+      updatePageRowRadioValues(row);
+    });
+  };
+
+  const syncPageBuilderEmptyState = (): void => {
+    const hasRows = Boolean(root.querySelector('[data-wizard-page-row]'));
+    const emptyMessage = root.querySelector<HTMLElement>('[data-wizard-page-empty]');
+
+    if (emptyMessage) {
+      emptyMessage.hidden = hasRows;
+    }
+  };
+
+  const getHomeSectionRowsContainer = (): HTMLElement | null => root.querySelector<HTMLElement>('[data-wizard-home-section-rows]');
+
+  const getHomeSectionRowTemplate = (): HTMLTemplateElement | null => root.querySelector<HTMLTemplateElement>('template[data-wizard-home-section-row-template]');
+
+  const addSelectedHomeSectionRow = (): void => {
+    const select = root.querySelector<HTMLSelectElement>('[data-wizard-home-section-select]');
+    const selectedOption = select?.selectedOptions[0];
+    const layout = selectedOption?.value.trim() ?? '';
+
+    if (!layout) {
+      setNotice('Choose a section layout before adding it.', 'error');
+      return;
+    }
+
+    addHomeSectionRow({
+      layout,
+      label: selectedOption?.dataset.label || selectedOption?.textContent?.replace(/\s*\([^)]*\)\s*$/, '').trim() || layout,
+      description: selectedOption?.dataset.description || '',
+    });
+  };
+
+  const addHomeSectionRow = (section: HomeSectionTemplate): HTMLElement | null => {
+    const rows = getHomeSectionRowsContainer();
+    const template = getHomeSectionRowTemplate();
+    const layout = section.layout?.trim() ?? '';
+
+    if (!rows || !template || !layout) {
+      return null;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template.innerHTML.trim();
+    const row = wrapper.firstElementChild instanceof HTMLElement ? wrapper.firstElementChild : null;
+
+    if (!row) {
+      return null;
+    }
+
+    const label = section.label?.trim() || layout;
+    const description = section.description?.trim() || 'Flexible Content layout';
+    const input = row.querySelector<HTMLInputElement>('[data-wizard-home-section-value]');
+    const labelTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-label]');
+    const descriptionTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-description]');
+    const keyTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-key]');
+
+    if (input) {
+      input.value = layout;
+    }
+
+    if (labelTarget) {
+      labelTarget.textContent = label;
+    }
+
+    if (descriptionTarget) {
+      descriptionTarget.textContent = description;
+    }
+
+    if (keyTarget) {
+      keyTarget.textContent = layout;
+    }
+
+    rows.append(row);
+    reindexHomeSectionRows();
+    syncGuidedControlState();
+
+    return row;
+  };
+
+  const addCommonHomeSectionRows = (): void => {
+    const sections = readHomeSectionTemplates('script[data-wizard-common-home-sections]');
+    let added = 0;
+
+    sections.forEach((section) => {
+      if (section.layout && addHomeSectionRow(section)) {
+        added += 1;
+      }
+    });
+
+    setNotice(
+      added > 0
+        ? `Added ${added} common Home section${added === 1 ? '' : 's'}. You can remove sections or add more layouts before running this step.`
+        : 'No common Home sections were available to add.',
+      added > 0 ? 'info' : 'error'
+    );
+  };
+
+  const readHomeSectionTemplates = (selector: string): HomeSectionTemplate[] => {
+    const source = root.querySelector<HTMLScriptElement>(selector);
+
+    if (!source?.textContent) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(source.textContent) as unknown;
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((item): item is HomeSectionTemplate => typeof item === 'object' && item !== null);
+    } catch (_error) {
+      return [];
+    }
+  };
+
+  const removeHomeSectionRow = (button: HTMLButtonElement): void => {
+    button.closest<HTMLElement>('[data-wizard-home-section-row]')?.remove();
+    reindexHomeSectionRows();
+    syncGuidedControlState();
+  };
+
+  const reindexHomeSectionRows = (): void => {
+    Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-home-section-row]')).forEach((row, index) => {
+      row.dataset.wizardHomeSectionIndex = String(index);
+    });
+  };
+
+  const syncHomeSectionBuilderEmptyState = (): void => {
+    const hasRows = Boolean(root.querySelector('[data-wizard-home-section-row]'));
+    const emptyMessage = root.querySelector<HTMLElement>('[data-wizard-home-section-empty]');
+
+    if (emptyMessage) {
+      emptyMessage.hidden = hasRows;
+    }
   };
 
   const loadAiModels = async (button: HTMLButtonElement): Promise<void> => {
@@ -406,6 +1091,7 @@ declare global {
     const providerSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-provider]');
     const apiKeyInput = form.querySelector<HTMLInputElement>('input[name="api_key"]');
     const modelSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-model]');
+    const manualModelInput = form.querySelector<HTMLInputElement>('[data-wizard-ai-model-manual]');
     const modelStatus = form.querySelector<HTMLElement>('[data-wizard-ai-model-status]');
     const credentialStatus = form.querySelector<HTMLElement>('[data-wizard-ai-credential-status]');
     const provider = providerSelect?.value ?? '';
@@ -445,8 +1131,9 @@ declare global {
     } catch (error) {
       const message = errorMessage(error);
       populateModelSelect(modelSelect, []);
-      setInlineStatus(modelStatus, message, 'error');
-      setNotice(message, 'error');
+      manualModelInput?.focus();
+      setInlineStatus(modelStatus, `${message} Enter a model name manually if needed.`, 'error');
+      setNotice(`${message} Enter a model name manually if needed.`, 'error');
     } finally {
       button.disabled = false;
       button.textContent = originalText;
@@ -712,8 +1399,76 @@ declare global {
       if (mediaClearButton) {
         event.preventDefault();
         clearMediaField(mediaClearButton);
+        return;
+      }
+
+      const addPageButton = target.closest<HTMLButtonElement>('[data-wizard-add-page]');
+
+      if (addPageButton) {
+        event.preventDefault();
+        addPageRow();
+        return;
+      }
+
+      const addCommonPagesButton = target.closest<HTMLButtonElement>('[data-wizard-add-common-pages]');
+
+      if (addCommonPagesButton) {
+        event.preventDefault();
+        addCommonPageRows();
+        return;
+      }
+
+      const addHomeSectionButton = target.closest<HTMLButtonElement>('[data-wizard-add-home-section]');
+
+      if (addHomeSectionButton) {
+        event.preventDefault();
+        addSelectedHomeSectionRow();
+        return;
+      }
+
+      const addCommonHomeSectionsButton = target.closest<HTMLButtonElement>('[data-wizard-add-common-home-sections]');
+
+      if (addCommonHomeSectionsButton) {
+        event.preventDefault();
+        addCommonHomeSectionRows();
+        return;
+      }
+
+      const removeHomeSectionButton = target.closest<HTMLButtonElement>('[data-wizard-remove-home-section]');
+
+      if (removeHomeSectionButton) {
+        event.preventDefault();
+        removeHomeSectionRow(removeHomeSectionButton);
+        return;
+      }
+
+      const removePageButton = target.closest<HTMLButtonElement>('[data-wizard-remove-page]');
+
+      if (removePageButton) {
+        event.preventDefault();
+        removePageRow(removePageButton);
       }
     });
+
+    root.addEventListener('input', (event) => {
+      const target = event.target;
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-title]')) {
+        updatePageRowFromTitle(target);
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-slug]')) {
+        updatePageRowFromSlug(target);
+      }
+    });
+
+    root.addEventListener('blur', (event) => {
+      const target = event.target;
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-slug]')) {
+        updatePageRowFromSlug(target, true);
+      }
+    }, true);
 
     root.addEventListener('change', (event) => {
       const target = event.target;
@@ -725,6 +1480,15 @@ declare global {
         if (wrapper) {
           updateMediaPreview(wrapper, Number.isFinite(attachmentId) ? attachmentId : 0);
         }
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-home], [data-wizard-page-blog], [data-wizard-page-no-blog]')) {
+        syncGuidedControlState();
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-wizard-home-section-select]')) {
+        syncGuidedControlState();
       }
     });
 
