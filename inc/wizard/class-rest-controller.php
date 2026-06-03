@@ -54,6 +54,16 @@ class Rest_Controller {
 				'permission_callback' => [ $this, 'permission_callback' ],
 			]
 		);
+
+		\register_rest_route(
+			self::NAMESPACE,
+			'/ai/models',
+			[
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'list_ai_models' ],
+				'permission_callback' => [ $this, 'permission_callback' ],
+			]
+		);
 	}
 
 	public function permission_callback(): bool {
@@ -89,5 +99,45 @@ class Rest_Controller {
 		}
 
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	public function list_ai_models( \WP_REST_Request $request ) {
+		$payload = $request->get_json_params();
+
+		if ( ! is_array( $payload ) ) {
+			$payload = $request->get_params();
+		}
+
+		$provider = \sanitize_key( (string) ( $payload['provider'] ?? AI_Provider_Registry::default_provider() ) );
+		$api_key  = AI_Credential_Store::normalize_api_key( (string) ( $payload['api_key'] ?? '' ) );
+
+		if ( ! AI_Provider_Registry::provider_exists( $provider ) ) {
+			return new \WP_Error( 'rms_wizard_unknown_ai_provider', \__( 'Unknown AI provider selected.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+		}
+
+		$service = AI_Provider_Registry::make_provider( $provider, $api_key );
+		$models  = $service->list_models();
+
+		if ( \is_wp_error( $models ) ) {
+			return $models;
+		}
+
+		if ( '' !== $api_key ) {
+			try {
+				AI_Credential_Store::save( $provider, $api_key );
+			} catch ( \Throwable $error ) {
+				return new \WP_Error( 'rms_wizard_ai_key_save_failed', \__( 'The API key could not be encrypted and saved.', 'simple-rms-theme' ), [ 'status' => 500 ] );
+			}
+		}
+
+		return new \WP_REST_Response(
+			[
+				'success'    => true,
+				'provider'   => $provider,
+				'models'     => $models,
+				'credential' => AI_Credential_Store::status( $provider ),
+			],
+			200
+		);
 	}
 }

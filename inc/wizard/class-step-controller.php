@@ -152,19 +152,33 @@ class Step_Controller {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	private function generate_ai_content( array $payload ) {
-		$endpoint = \esc_url_raw( (string) ( $payload['endpoint'] ?? '' ) );
-		$api_key  = \sanitize_text_field( (string) ( $payload['api_key'] ?? '' ) );
+		$provider = \sanitize_key( (string) ( $payload['provider'] ?? AI_Provider_Registry::default_provider() ) );
+		$api_key  = AI_Credential_Store::normalize_api_key( (string) ( $payload['api_key'] ?? '' ) );
 		$prompt   = \sanitize_textarea_field( (string) ( $payload['prompt'] ?? '' ) );
 		$model    = \sanitize_text_field( (string) ( $payload['model'] ?? '' ) );
 		$context  = is_array( $payload['context'] ?? null ) ? $payload['context'] : [];
 
-		if ( '' === $endpoint || '' === $prompt ) {
+		if ( ! AI_Provider_Registry::provider_exists( $provider ) ) {
 			$this->state_manager->set_step_status( 'ai-generation', 'failed' );
-			return new \WP_Error( 'rms_wizard_missing_ai_payload', \__( 'The AI generation step requires an endpoint and prompt.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+			return new \WP_Error( 'rms_wizard_unknown_ai_provider', \__( 'Unknown AI provider selected.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		$result = ( new AI_Adapter( $endpoint, $api_key, $model, $this->logger ) )->generate( $prompt, $context );
+		if ( '' === $prompt || '' === $model ) {
+			$this->state_manager->set_step_status( 'ai-generation', 'failed' );
+			return new \WP_Error( 'rms_wizard_missing_ai_payload', \__( 'The AI generation step requires a model and prompt.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+		}
+
+		$result = AI_Provider_Registry::make_provider( $provider, $api_key )->generate( $model, $prompt, $context );
 		$this->state_manager->set_step_status( 'ai-generation', ! empty( $result['success'] ) ? 'complete' : 'failed' );
+
+		if ( ! empty( $result['success'] ) && '' !== $api_key ) {
+			try {
+				AI_Credential_Store::save( $provider, $api_key );
+			} catch ( \Throwable $error ) {
+				$this->state_manager->set_step_status( 'ai-generation', 'failed' );
+				return new \WP_Error( 'rms_wizard_ai_key_save_failed', \__( 'The API key could not be encrypted and saved.', 'simple-rms-theme' ), [ 'status' => 500 ] );
+			}
+		}
 
 		if ( ! empty( $result['success'] ) && ! empty( $context['section_key'] ) && ! empty( $context['session_id'] ) ) {
 			$key   = 'rms_wizard_section_' . md5( (string) $context['session_id'] . ':' . (string) $context['section_key'] );

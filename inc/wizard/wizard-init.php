@@ -121,7 +121,7 @@ function rms_wizard_render_admin_page(): void {
 		'dependencies'     => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
 		'acf-import'       => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
 		'client-data'      => __( 'Save contractor business information into the theme options.', 'simple-rms-theme' ),
-		'ai-generation'    => __( 'Generate one content section through the configured provider endpoint.', 'simple-rms-theme' ),
+		'ai-generation'    => __( 'Generate one content section through the selected AI provider and model.', 'simple-rms-theme' ),
 		'content-creation' => __( 'Create pages from prepared JSON content and write related metadata.', 'simple-rms-theme' ),
 	];
 	?>
@@ -186,17 +186,32 @@ function rms_wizard_render_admin_page(): void {
 							<?php rms_wizard_render_client_data_form(); ?>
 						<?php elseif ( 'ai-generation' === $slug ) : ?>
 							<form class="rms-wizard-fields">
+								<?php
+								$ai_providers        = Inc\Wizard\AI_Provider_Registry::list_providers();
+								$default_ai_provider = Inc\Wizard\AI_Provider_Registry::default_provider();
+								?>
 								<div class="rms-wizard-field">
-									<label for="rms-wizard-ai-endpoint"><?php esc_html_e( 'Provider endpoint', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-ai-endpoint" type="url" name="endpoint" placeholder="https://api.example.com/v1/generate">
+									<label for="rms-wizard-ai-provider"><?php esc_html_e( 'Provider', 'simple-rms-theme' ); ?></label>
+									<select id="rms-wizard-ai-provider" name="provider" data-wizard-ai-provider>
+										<?php foreach ( $ai_providers as $provider ) : ?>
+											<option value="<?php echo esc_attr( $provider['slug'] ); ?>" <?php selected( $default_ai_provider, $provider['slug'] ); ?>><?php echo esc_html( $provider['label'] ); ?></option>
+										<?php endforeach; ?>
+									</select>
 								</div>
 								<div class="rms-wizard-field">
 									<label for="rms-wizard-ai-key"><?php esc_html_e( 'API key', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-ai-key" type="password" name="api_key" autocomplete="off">
+									<input id="rms-wizard-ai-key" type="password" name="api_key" autocomplete="off" placeholder="<?php esc_attr_e( 'Leave blank to use the saved encrypted key', 'simple-rms-theme' ); ?>">
+									<p class="rms-wizard-field__instructions" data-wizard-ai-credential-status><?php echo esc_html( Inc\Wizard\AI_Credential_Store::mask_status( $default_ai_provider ) ); ?></p>
 								</div>
 								<div class="rms-wizard-field">
 									<label for="rms-wizard-ai-model"><?php esc_html_e( 'Model', 'simple-rms-theme' ); ?></label>
-									<input id="rms-wizard-ai-model" type="text" name="model">
+									<div class="rms-wizard-ai-model-picker">
+										<select id="rms-wizard-ai-model" name="model" data-wizard-ai-model>
+											<option value=""><?php esc_html_e( 'Load models from the selected provider', 'simple-rms-theme' ); ?></option>
+										</select>
+										<button type="button" class="button" data-wizard-ai-load-models><?php esc_html_e( 'Test / Load models', 'simple-rms-theme' ); ?></button>
+									</div>
+									<p class="rms-wizard-field__instructions" data-wizard-ai-model-status><?php esc_html_e( 'The API key is encrypted after a successful provider check.', 'simple-rms-theme' ); ?></p>
 								</div>
 								<div class="rms-wizard-field">
 									<label for="rms-wizard-ai-prompt"><?php esc_html_e( 'Prompt', 'simple-rms-theme' ); ?></label>

@@ -33,6 +33,21 @@ interface StepResponse {
   message?: string;
 }
 
+interface AiModelOption {
+  id: string;
+  label: string;
+}
+
+interface AiModelsResponse {
+  success?: boolean;
+  provider?: string;
+  models?: AiModelOption[];
+  credential?: {
+    has_key?: boolean;
+    status?: string;
+  };
+}
+
 type NestedFormValue = string | number | NestedFormValue[] | { [key: string]: NestedFormValue };
 type NestedFormObject = Record<string, NestedFormValue>;
 type NestedFormContainer = NestedFormObject | NestedFormValue[];
@@ -105,6 +120,7 @@ declare global {
   const runButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-run-step]'));
   const retryButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-retry-step]'));
   const nextButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-next-step]'));
+  const loadModelButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-wizard-ai-load-models]'));
   const refreshButton = root.querySelector<HTMLButtonElement>('[data-wizard-refresh]');
   const completeButton = root.querySelector<HTMLButtonElement>('[data-wizard-complete]');
   const progressBar = root.querySelector<HTMLElement>('[data-wizard-progress-bar]');
@@ -201,6 +217,10 @@ declare global {
     [...runButtons, ...retryButtons].forEach((button) => {
       const step = button.dataset.wizardRunStep || button.dataset.wizardRetryStep || '';
       button.disabled = isLocked || runningStep !== null || statusFor(step) === 'running';
+    });
+
+    loadModelButtons.forEach((button) => {
+      button.disabled = isLocked || runningStep !== null;
     });
 
     nextButtons.forEach((button) => {
@@ -374,6 +394,94 @@ declare global {
     }
 
     return collectFormPayload(form);
+  };
+
+  const loadAiModels = async (button: HTMLButtonElement): Promise<void> => {
+    const form = button.closest<HTMLFormElement>('form');
+
+    if (!form) {
+      return;
+    }
+
+    const providerSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-provider]');
+    const apiKeyInput = form.querySelector<HTMLInputElement>('input[name="api_key"]');
+    const modelSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-model]');
+    const modelStatus = form.querySelector<HTMLElement>('[data-wizard-ai-model-status]');
+    const credentialStatus = form.querySelector<HTMLElement>('[data-wizard-ai-credential-status]');
+    const provider = providerSelect?.value ?? '';
+
+    if (!provider || !modelSelect) {
+      setNotice('Select an AI provider before loading models.', 'error');
+      return;
+    }
+
+    const originalText = button.textContent ?? 'Test / Load models';
+    button.disabled = true;
+    button.textContent = 'Loading models...';
+    setInlineStatus(modelStatus, 'Connecting to provider...', 'info');
+
+    try {
+      const response = await request<AiModelsResponse>('ai/models', {
+        method: 'POST',
+        body: JSON.stringify({
+          provider,
+          api_key: apiKeyInput?.value ?? '',
+        }),
+      }, 1);
+      const models = response.models ?? [];
+
+      populateModelSelect(modelSelect, models);
+
+      if (credentialStatus && response.credential?.status) {
+        credentialStatus.textContent = response.credential.status;
+      }
+
+      setInlineStatus(
+        modelStatus,
+        models.length > 0 ? `Loaded ${models.length} model${models.length === 1 ? '' : 's'}.` : 'Provider responded, but no models were returned.',
+        models.length > 0 ? 'success' : 'error'
+      );
+      setNotice('AI provider connection succeeded.', 'success');
+    } catch (error) {
+      const message = errorMessage(error);
+      populateModelSelect(modelSelect, []);
+      setInlineStatus(modelStatus, message, 'error');
+      setNotice(message, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+      updateButtons();
+    }
+  };
+
+  const populateModelSelect = (select: HTMLSelectElement, models: AiModelOption[]): void => {
+    const previousValue = select.value;
+
+    select.replaceChildren();
+    select.append(new Option('Select a model', ''));
+
+    models.forEach((model) => {
+      select.append(new Option(model.label, model.id));
+    });
+
+    if (models.some((model) => model.id === previousValue)) {
+      select.value = previousValue;
+      return;
+    }
+
+    if (models.length === 1) {
+      select.value = models[0].id;
+    }
+  };
+
+  const setInlineStatus = (element: HTMLElement | null, message: string, tone: 'info' | 'success' | 'error'): void => {
+    if (!element) {
+      return;
+    }
+
+    element.textContent = message;
+    element.classList.toggle('is-success', tone === 'success');
+    element.classList.toggle('is-error', tone === 'error');
   };
 
   const collectFormPayload = (form: HTMLFormElement): NestedFormObject => {
@@ -788,6 +896,26 @@ declare global {
         setActiveStep(target);
         setNotice(`Ready for ${labelFor(target)}.`, 'info');
       }
+    });
+  });
+
+  loadModelButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      void loadAiModels(button);
+    });
+  });
+
+  root.querySelectorAll<HTMLSelectElement>('[data-wizard-ai-provider]').forEach((select) => {
+    select.addEventListener('change', () => {
+      const form = select.closest<HTMLFormElement>('form');
+      const modelSelect = form?.querySelector<HTMLSelectElement>('[data-wizard-ai-model]');
+      const modelStatus = form?.querySelector<HTMLElement>('[data-wizard-ai-model-status]') ?? null;
+
+      if (modelSelect) {
+        populateModelSelect(modelSelect, []);
+      }
+
+      setInlineStatus(modelStatus, 'Load models after changing providers.', 'info');
     });
   });
 
