@@ -516,26 +516,111 @@ function rms_wizard_render_client_data_repeater_row( array $field, array $row, s
  */
 function rms_wizard_get_client_data_field_value( array $field ) {
 	$name = (string) ( $field['name'] ?? '' );
+	$type = (string) ( $field['type'] ?? 'text' );
 
 	if ( '' === $name ) {
 		return '';
 	}
 
 	if ( function_exists( 'get_field' ) ) {
-		$value = get_field( $name, 'option', false );
+		$value = 'image' === $type ? get_field( $name, 'option', false ) : get_field( $name, 'option' );
 
-		if ( null !== $value ) {
+		if ( rms_wizard_has_client_data_value( $value, $type ) ) {
 			return $value;
 		}
 	}
 
-	$fallback = get_option( 'options_' . $name, null );
+	$fallback = rms_wizard_get_client_data_option_fallback( $field );
 
-	if ( null !== $fallback && false !== $fallback ) {
+	if ( rms_wizard_has_client_data_value( $fallback, $type ) ) {
 		return $fallback;
 	}
 
 	return $field['default_value'] ?? ( 'repeater' === ( $field['type'] ?? '' ) ? [] : '' );
+}
+
+/**
+ * Determine whether a loaded Client Data value should be used.
+ *
+ * @param mixed  $value Field value.
+ * @param string $type  ACF field type.
+ */
+function rms_wizard_has_client_data_value( $value, string $type ): bool {
+	if ( 'true_false' === $type ) {
+		return null !== $value;
+	}
+
+	if ( 'repeater' === $type ) {
+		return is_array( $value );
+	}
+
+	return null !== $value && false !== $value;
+}
+
+/**
+ * Get a stored option fallback when ACF formatted values are unavailable.
+ *
+ * @param array<string,mixed> $field ACF field definition.
+ *
+ * @return mixed
+ */
+function rms_wizard_get_client_data_option_fallback( array $field ) {
+	$type = (string) ( $field['type'] ?? 'text' );
+
+	if ( 'repeater' === $type ) {
+		return rms_wizard_get_repeater_option_fallback( $field );
+	}
+
+	$name = (string) ( $field['name'] ?? '' );
+
+	return '' !== $name ? get_option( 'options_' . $name, null ) : null;
+}
+
+/**
+ * Reconstruct ACF repeater option rows from raw options table values.
+ *
+ * @param array<string,mixed> $field ACF repeater field definition.
+ *
+ * @return array<int,array<string,mixed>>|null
+ */
+function rms_wizard_get_repeater_option_fallback( array $field ): ?array {
+	$name = (string) ( $field['name'] ?? '' );
+
+	if ( '' === $name ) {
+		return null;
+	}
+
+	$row_count = absint( get_option( 'options_' . $name, 0 ) );
+
+	if ( $row_count <= 0 ) {
+		return null;
+	}
+
+	$sub_fields = is_array( $field['sub_fields'] ?? null ) ? $field['sub_fields'] : [];
+	$rows       = [];
+
+	for ( $index = 0; $index < $row_count; $index++ ) {
+		$row = [];
+
+		foreach ( $sub_fields as $sub_field ) {
+			$sub_name = (string) ( $sub_field['name'] ?? '' );
+
+			if ( '' === $sub_name ) {
+				continue;
+			}
+
+			$option_name = 'options_' . $name . '_' . $index . '_' . $sub_name;
+			$value       = get_option( $option_name, null );
+
+			if ( null !== $value && false !== $value ) {
+				$row[ $sub_name ] = $value;
+			}
+		}
+
+		$rows[] = $row;
+	}
+
+	return $rows;
 }
 
 /**
