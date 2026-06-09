@@ -31,6 +31,14 @@ interface HomeSectionTemplate {
   layout?: string;
   label?: string;
   description?: string;
+  has_repeaters?: boolean;
+  has_fillable_fields?: boolean;
+  default_item_count?: number;
+}
+
+interface HomeSectionPayload {
+  layout: string;
+  item_count: number;
 }
 
 interface PagePayloadItem {
@@ -43,6 +51,7 @@ interface PagePayloadItem {
 interface WizardState {
   current_step?: string;
   step_status?: Record<string, StepStatus>;
+  client_data?: Record<string, unknown>;
   generated_pages?: GeneratedPage[];
   locked?: boolean;
   logs?: WizardLogEntry[];
@@ -392,8 +401,14 @@ declare global {
         'success'
       );
     } catch (error) {
-      setStepActionStatus(step, errorMessage(error), 'error');
-      setNotice(errorMessage(error), 'error');
+      const message = errorMessage(error);
+
+      if (step === 'home-page-builder' && message.includes('Missing required client data:')) {
+        setHomeHarnessWarning(message, 'error');
+      }
+
+      setStepActionStatus(step, message, 'error');
+      setNotice(message, 'error');
     } finally {
       runningStep = null;
       await loadState().catch(() => render());
@@ -562,13 +577,36 @@ declare global {
   };
 
   const collectHomePageBuilderPayload = (form: HTMLFormElement): StepPayload => {
-    const sections = Array.from(form.querySelectorAll<HTMLInputElement>('[data-wizard-home-section-value]'))
-      .map((input) => input.value.trim())
-      .filter(Boolean);
+    const sections: HomeSectionPayload[] = [];
+
+    form.querySelectorAll<HTMLElement>('[data-wizard-home-section-row]').forEach((row) => {
+      const layout = row.querySelector<HTMLInputElement>('[data-wizard-home-section-value]')?.value.trim() ?? '';
+      const countInput = row.querySelector<HTMLInputElement>('[data-wizard-home-section-item-count]');
+
+      if (!layout) {
+        throw new Error('Every Home section row needs a layout.');
+      }
+
+      sections.push({
+        layout,
+        item_count: normalizeItemCount(countInput?.value ?? '', defaultItemCountForLayout(layout)),
+      });
+    });
 
     if (sections.length === 0) {
+      setHomeHarnessWarning('Select at least one section for the Home page', 'error');
       throw new Error('Select at least one section for the Home page');
     }
+
+    const missingClientData = missingHomeBuilderClientData();
+
+    if (missingClientData.length > 0) {
+      const message = `Missing required client data: ${missingClientData.join(', ')}. Complete your client profile before generating.`;
+      setHomeHarnessWarning(message, 'error');
+      throw new Error(message);
+    }
+
+    setHomeHarnessWarning('', 'info');
 
     return { sections };
   };
@@ -972,6 +1010,9 @@ declare global {
       layout,
       label: selectedOption?.dataset.label || selectedOption?.textContent?.replace(/\s*\([^)]*\)\s*$/, '').trim() || layout,
       description: selectedOption?.dataset.description || '',
+      has_repeaters: selectedOption?.dataset.hasRepeaters === '1',
+      has_fillable_fields: selectedOption?.dataset.hasFillableFields === '1',
+      default_item_count: Number.parseInt(selectedOption?.dataset.defaultItemCount ?? '', 10),
     });
   };
 
@@ -984,8 +1025,9 @@ declare global {
       return null;
     }
 
+    const index = rows.querySelectorAll('[data-wizard-home-section-row]').length;
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = template.innerHTML.trim();
+    wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(index)).trim();
     const row = wrapper.firstElementChild instanceof HTMLElement ? wrapper.firstElementChild : null;
 
     if (!row) {
@@ -995,12 +1037,29 @@ declare global {
     const label = section.label?.trim() || layout;
     const description = section.description?.trim() || 'Flexible Content layout';
     const input = row.querySelector<HTMLInputElement>('[data-wizard-home-section-value]');
+    const countWrap = row.querySelector<HTMLElement>('[data-wizard-home-section-count-wrap]');
+    const countInput = row.querySelector<HTMLInputElement>('[data-wizard-home-section-item-count]');
     const labelTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-label]');
     const descriptionTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-description]');
     const keyTarget = row.querySelector<HTMLElement>('[data-wizard-home-section-key]');
+    const hasRepeaters = Boolean(section.has_repeaters);
+    const hasFillableFields = Boolean(section.has_fillable_fields);
+    const itemCount = hasFillableFields ? normalizeItemCount(section.default_item_count, defaultItemCountForLayout(layout)) : 0;
 
     if (input) {
       input.value = layout;
+    }
+
+    row.dataset.wizardHomeSectionHasRepeaters = hasRepeaters ? '1' : '0';
+    row.dataset.wizardHomeSectionHasFillableFields = hasFillableFields ? '1' : '0';
+
+    if (countWrap) {
+      countWrap.hidden = !hasFillableFields;
+    }
+
+    if (countInput) {
+      countInput.value = String(itemCount);
+      countInput.disabled = !hasFillableFields;
     }
 
     if (labelTarget) {
@@ -1013,6 +1072,11 @@ declare global {
 
     if (keyTarget) {
       keyTarget.textContent = layout;
+    }
+
+    const noAiNote = row.querySelector<HTMLElement>('[data-wizard-home-section-no-ai]');
+    if (noAiNote) {
+      noAiNote.hidden = hasFillableFields;
     }
 
     rows.append(row);
@@ -1069,6 +1133,18 @@ declare global {
   const reindexHomeSectionRows = (): void => {
     Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-home-section-row]')).forEach((row, index) => {
       row.dataset.wizardHomeSectionIndex = String(index);
+
+      row.querySelectorAll<FieldElement>('[name]').forEach((field) => {
+        field.name = field.name.replace(/sections\[(?:__INDEX__|\d+)\]/g, `sections[${index}]`);
+      });
+
+      row.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
+        element.id = element.id.replace(/rms-wizard-home-section-count-(?:__INDEX__|\d+)/g, `rms-wizard-home-section-count-${index}`);
+      });
+
+      row.querySelectorAll<HTMLLabelElement>('label[for]').forEach((label) => {
+        label.htmlFor = label.htmlFor.replace(/rms-wizard-home-section-count-(?:__INDEX__|\d+)/g, `rms-wizard-home-section-count-${index}`);
+      });
     });
   };
 
@@ -1079,6 +1155,72 @@ declare global {
     if (emptyMessage) {
       emptyMessage.hidden = hasRows;
     }
+  };
+
+  const setHomeHarnessWarning = (message: string, tone: 'info' | 'error'): void => {
+    const warning = root.querySelector<HTMLElement>('[data-wizard-home-harness-warning]');
+    const target = warning?.querySelector<HTMLElement>('p') ?? warning;
+
+    if (!warning || !target) {
+      return;
+    }
+
+    target.textContent = message;
+    warning.hidden = message === '';
+    warning.classList.toggle('notice-error', tone === 'error');
+    warning.classList.toggle('notice-warning', tone !== 'error');
+  };
+
+  const missingHomeBuilderClientData = (): string[] => {
+    if (!Object.prototype.hasOwnProperty.call(state, 'client_data')) {
+      return ['company_name'];
+    }
+
+    const clientData = state.client_data ?? {};
+
+    return hasUsableValue(clientData.company_name) ? [] : ['company_name'];
+  };
+
+  const hasUsableValue = (value: unknown): boolean => {
+    if (typeof value === 'string') {
+      return value.trim() !== '';
+    }
+
+    return typeof value === 'number' || typeof value === 'boolean';
+  };
+
+  const normalizeItemCount = (value: string | number | undefined, fallback = 1): number => {
+    const parsed = typeof value === 'number' ? value : Number.parseInt(value ?? '', 10);
+    const next = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+
+    return Math.max(1, Math.min(12, Math.round(next)));
+  };
+
+  const defaultItemCountForLayout = (layout: string): number => {
+    const normalized = layout === 'cta-bar' ? 'cta-v1' : layout;
+    const defaults: Record<string, number> = {
+      slider: 2,
+      'area-coverage-v1': 4,
+      badges: 4,
+      'cta-v3': 3,
+      'faq-v1': 4,
+      'faq-v2': 4,
+      'gallery-grid': 6,
+      'portfolio-v1': 3,
+      'portfolio-v2': 3,
+      'portfolio-v3': 6,
+      'services-v1': 3,
+      'services-v2': 3,
+      'services-v3': 3,
+      'testimonials-v1': 3,
+      'testimonials-v2': 3,
+      'testimonials-v3': 3,
+      'video-v2': 2,
+      'vision-mission-v1': 2,
+      'vision-mission-v2': 3,
+    };
+
+    return defaults[normalized] ?? 1;
   };
 
   const loadAiModels = async (button: HTMLButtonElement): Promise<void> => {

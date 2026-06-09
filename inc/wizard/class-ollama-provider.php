@@ -23,7 +23,7 @@ class Ollama_Provider extends AI_Provider {
 	/**
 	 * @return array{success:bool,content:string,error?:string}
 	 */
-	public function generate( string $model, string $prompt, array $context = [] ): array {
+	public function generate( string $model, string $prompt, array $context = [], string $system = '' ): array {
 		if ( '' === $this->api_key ) {
 			return [
 				'success' => false,
@@ -40,15 +40,32 @@ class Ollama_Provider extends AI_Provider {
 			];
 		}
 
+		$messages = [
+			[
+				'role'    => 'user',
+				'content' => $prompt,
+			],
+		];
+
+		$system = \trim( $system );
+
+		if ( '' !== $system ) {
+			$messages = [
+				[
+					'role'    => 'system',
+					'content' => $system,
+				],
+				[
+					'role'    => 'user',
+					'content' => $prompt,
+				],
+			];
+		}
+
 		$body = \wp_json_encode(
 			[
 				'model'    => $model,
-				'messages' => [
-					[
-						'role'    => 'user',
-						'content' => $prompt,
-					],
-				],
+				'messages' => $messages,
 				'stream'   => false,
 			]
 		);

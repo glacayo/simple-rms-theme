@@ -85,6 +85,14 @@ class Flexible_Content_Layouts {
 		$layout_key = $this->normalize_layout_key( $layout_key );
 		$layout     = $this->get_layouts()[ $layout_key ] ?? null;
 		$section    = [ 'acf_fc_layout' => $layout_key ];
+		$harness    = new AI_Content_Harness();
+
+		// If the layout has no AI-fillable fields, do not populate any invented defaults.
+		if ( ! $harness->has_fillable_fields( $layout_key ) ) {
+			return $section;
+		}
+
+		$fillable = array_flip( $harness->get_fillable_fields( $layout_key ) );
 
 		if ( ! is_array( $layout ) ) {
 			return $section;
@@ -95,7 +103,12 @@ class Flexible_Content_Layouts {
 				continue;
 			}
 
-			$name             = (string) $field['name'];
+			$name = (string) $field['name'];
+
+			if ( ! isset( $fillable[ $name ] ) ) {
+				continue;
+			}
+
 			$section[ $name ] = $this->generic_field_value( $field, $client_data, $copy );
 		}
 
@@ -194,25 +207,18 @@ class Flexible_Content_Layouts {
 		switch ( $type ) {
 			case 'image':
 			case 'file':
-				return '';
-
 			case 'url':
-				return false !== strpos( $name, 'blog' ) ? '/blog/' : '#contact';
-
 			case 'number':
 			case 'range':
-				return 0;
+			case 'select':
+			case 'radio':
+				return '';
 
 			case 'true_false':
 				return false;
 
-			case 'select':
-			case 'radio':
-				return $this->default_choice( $field );
-
 			case 'checkbox':
-				$choice = $this->default_choice( $field );
-				return '' !== $choice ? [ $choice ] : [];
+				return [];
 
 			case 'repeater':
 				return $this->generic_repeater_rows( $field, $client_data, $copy );
@@ -284,14 +290,6 @@ class Flexible_Content_Layouts {
 			return \sanitize_text_field( (string) ( $copy['cta_text'] ?? \__( 'Get a Free Estimate', 'simple-rms-theme' ) ) );
 		}
 
-		if ( false !== strpos( $name, 'duration' ) ) {
-			return '2 min';
-		}
-
-		if ( false !== strpos( $name, 'radius' ) ) {
-			return \__( '50 Miles', 'simple-rms-theme' );
-		}
-
 		return '' !== $label ? $label : \__( 'Placeholder content', 'simple-rms-theme' );
 	}
 
@@ -335,25 +333,6 @@ class Flexible_Content_Layouts {
 		}
 
 		return \sanitize_text_field( (string) $value );
-	}
-
-	/**
-	 * @param array<string,mixed> $field
-	 */
-	private function default_choice( array $field ): string {
-		$default = $field['default_value'] ?? '';
-
-		if ( is_string( $default ) && '' !== $default ) {
-			return \sanitize_text_field( $default );
-		}
-
-		if ( is_array( $field['choices'] ?? null ) ) {
-			$keys = array_keys( $field['choices'] );
-
-			return isset( $keys[0] ) ? \sanitize_text_field( (string) $keys[0] ) : '';
-		}
-
-		return '';
 	}
 
 	private function normalize_layout_key( string $layout_key ): string {

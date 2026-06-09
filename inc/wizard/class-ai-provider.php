@@ -27,12 +27,13 @@ class AI_Provider {
 	 * Generate content from the provider.
 	 *
 	 * @param string $model   Model identifier.
-	 * @param string $prompt  Prompt text.
+	 * @param string $prompt  User prompt text.
 	 * @param array  $context Optional context.
+	 * @param string $system  Optional system prompt text.
 	 *
 	 * @return array{success:bool,content:string,error?:string}
 	 */
-	public function generate( string $model, string $prompt, array $context = [] ): array {
+	public function generate( string $model, string $prompt, array $context = [], string $system = '' ): array {
 		return [
 			'success' => false,
 			'content' => '',

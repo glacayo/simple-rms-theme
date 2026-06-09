@@ -415,10 +415,15 @@ function rms_wizard_render_home_page_builder_form(): void {
 	$section_options = array_values(
 		array_map(
 			static function ( array $section ): array {
+				$layout = (string) $section['name'];
+
 				return [
-					'layout'      => $section['name'],
-					'label'       => $section['label'],
-					'description' => $section['description'],
+					'layout'             => $layout,
+					'label'              => $section['label'],
+					'description'        => $section['description'],
+					'has_repeaters'      => rms_wizard_home_section_has_repeaters( $section ),
+					'has_fillable_fields'=> rms_wizard_home_section_has_fillable_fields( $layout ),
+					'default_item_count' => rms_wizard_home_section_default_item_count( $layout ),
 				];
 			},
 			$sections
@@ -427,10 +432,15 @@ function rms_wizard_render_home_page_builder_form(): void {
 	$common_options  = array_values(
 		array_map(
 			static function ( array $section ): array {
+				$layout = (string) $section['name'];
+
 				return [
-					'layout'      => $section['name'],
-					'label'       => $section['label'],
-					'description' => $section['description'],
+					'layout'             => $layout,
+					'label'              => $section['label'],
+					'description'        => $section['description'],
+					'has_repeaters'      => rms_wizard_home_section_has_repeaters( $section ),
+					'has_fillable_fields'=> rms_wizard_home_section_has_fillable_fields( $layout ),
+					'default_item_count' => rms_wizard_home_section_default_item_count( $layout ),
 				];
 			},
 			$common_sections
@@ -443,6 +453,10 @@ function rms_wizard_render_home_page_builder_form(): void {
 				<?php esc_html_e( 'Add Home page sections from the available ACF Flexible Content layouts. The wizard will use saved Client Data and the IA Generation configuration to draft the section copy.', 'simple-rms-theme' ); ?>
 			</p>
 
+			<div class="notice notice-warning inline rms-wizard-home-harness-warning" data-wizard-home-harness-warning hidden>
+				<p><?php esc_html_e( 'Home Page Builder requires saved Client Data before AI content can be generated.', 'simple-rms-theme' ); ?></p>
+			</div>
+
 			<script type="application/json" data-wizard-home-sections><?php echo wp_json_encode( $section_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 			<script type="application/json" data-wizard-common-home-sections><?php echo wp_json_encode( $common_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
 
@@ -451,9 +465,9 @@ function rms_wizard_render_home_page_builder_form(): void {
 					<label for="rms-wizard-home-section-layout"><?php esc_html_e( 'Section layout', 'simple-rms-theme' ); ?></label>
 					<select id="rms-wizard-home-section-layout" data-wizard-home-section-select>
 						<?php foreach ( $sections as $layout => $section ) : ?>
-							<option value="<?php echo esc_attr( $layout ); ?>" data-label="<?php echo esc_attr( $section['label'] ); ?>" data-description="<?php echo esc_attr( $section['description'] ); ?>">
-								<?php echo esc_html( sprintf( '%1$s (%2$s)', $section['label'], $layout ) ); ?>
-							</option>
+						<option value="<?php echo esc_attr( $layout ); ?>" data-label="<?php echo esc_attr( $section['label'] ); ?>" data-description="<?php echo esc_attr( $section['description'] ); ?>" data-has-repeaters="<?php echo rms_wizard_home_section_has_repeaters( $section ) ? '1' : '0'; ?>" data-has-fillable-fields="<?php echo rms_wizard_home_section_has_fillable_fields( $layout ) ? '1' : '0'; ?>" data-default-item-count="<?php echo esc_attr( (string) rms_wizard_home_section_default_item_count( (string) $layout ) ); ?>">
+							<?php echo esc_html( sprintf( '%1$s (%2$s)', $section['label'], $layout ) ); ?>
+						</option>
 						<?php endforeach; ?>
 					</select>
 				</div>
@@ -471,6 +485,7 @@ function rms_wizard_render_home_page_builder_form(): void {
 				<div class="rms-wizard-home-section-builder__header" aria-hidden="true">
 					<span><?php esc_html_e( 'Section', 'simple-rms-theme' ); ?></span>
 					<span><?php esc_html_e( 'Layout key', 'simple-rms-theme' ); ?></span>
+					<span><?php esc_html_e( 'Items', 'simple-rms-theme' ); ?></span>
 					<span><?php esc_html_e( 'Action', 'simple-rms-theme' ); ?></span>
 				</div>
 				<div class="rms-wizard-home-section-rows" role="list" data-wizard-home-section-rows></div>
@@ -479,12 +494,18 @@ function rms_wizard_render_home_page_builder_form(): void {
 
 			<template data-wizard-home-section-row-template>
 				<article class="rms-wizard-home-section-row" role="listitem" data-wizard-home-section-row>
-					<input type="hidden" name="sections[]" value="" data-wizard-home-section-value>
+					<input type="hidden" name="sections[__INDEX__][layout]" value="" data-wizard-home-section-value>
 					<div class="rms-wizard-home-section-row__label">
 						<strong data-wizard-home-section-label></strong>
 						<small data-wizard-home-section-description></small>
+						<small class="rms-wizard-home-section-row__no-ai-note" data-wizard-home-section-no-ai hidden><?php esc_html_e( 'No AI copy is generated for this layout. Add real media, testimonials, or project data later.', 'simple-rms-theme' ); ?></small>
 					</div>
 					<code data-wizard-home-section-key></code>
+					<div class="rms-wizard-field rms-wizard-home-section-row__count" data-wizard-home-section-count-wrap hidden>
+						<label for="rms-wizard-home-section-count-__INDEX__"><?php esc_html_e( 'Item count', 'simple-rms-theme' ); ?></label>
+						<input id="rms-wizard-home-section-count-__INDEX__" class="small-text" type="number" min="1" max="12" step="1" name="sections[__INDEX__][item_count]" value="1" data-wizard-home-section-item-count>
+						<p class="rms-wizard-field__instructions"><?php esc_html_e( 'Controls repeater items for this section.', 'simple-rms-theme' ); ?></p>
+					</div>
 					<button type="button" class="button-link-delete rms-wizard-home-section-row__remove" data-wizard-remove-home-section><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
 				</article>
 			</template>
@@ -570,6 +591,121 @@ function rms_wizard_home_section_choices(): array {
  */
 function rms_wizard_home_common_section_choices(): array {
 	return ( new Inc\Wizard\Flexible_Content_Layouts() )->get_common_layouts();
+}
+
+/**
+ * Determine whether a Home section layout contains repeater fields.
+ *
+ * @param array<string,mixed> $section Layout definition.
+ */
+function rms_wizard_home_section_has_repeaters( array $section ): bool {
+	$fields = is_array( $section['sub_fields'] ?? null ) ? $section['sub_fields'] : [];
+	$layout = (string) ( $section['name'] ?? '' );
+
+	return rms_wizard_home_section_layout_uses_repeaters( $layout ) || rms_wizard_fields_have_repeaters( $fields );
+}
+
+/**
+ * Determine whether a known Home section layout uses repeater-driven content.
+ */
+function rms_wizard_home_section_layout_uses_repeaters( string $layout ): bool {
+	$layout = sanitize_key( $layout );
+	$layout = 'cta-bar' === $layout ? 'cta-v1' : $layout;
+
+	return in_array(
+		$layout,
+		[
+			'slider',
+			'area-coverage-v1',
+			'badges',
+			'cta-v3',
+			'faq-v1',
+			'faq-v2',
+			'gallery-grid',
+			'portfolio-v1',
+			'portfolio-v2',
+			'portfolio-v3',
+			'services-v1',
+			'services-v2',
+			'services-v3',
+			'testimonials-v1',
+			'testimonials-v2',
+			'testimonials-v3',
+			'video-v2',
+			'vision-mission-v1',
+			'vision-mission-v2',
+		],
+		true
+	);
+}
+
+/**
+ * Recursively detect repeater fields in an ACF field list.
+ *
+ * @param array<int,array<string,mixed>> $fields ACF field definitions.
+ */
+function rms_wizard_fields_have_repeaters( array $fields ): bool {
+	foreach ( $fields as $field ) {
+		if ( ! is_array( $field ) ) {
+			continue;
+		}
+
+		if ( 'repeater' === (string) ( $field['type'] ?? '' ) ) {
+			return true;
+		}
+
+		if ( is_array( $field['sub_fields'] ?? null ) && rms_wizard_fields_have_repeaters( $field['sub_fields'] ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Determine whether a Home section layout has AI-fillable text fields.
+ */
+function rms_wizard_home_section_has_fillable_fields( string $layout ): bool {
+	$layout = sanitize_key( $layout );
+	$layout = 'cta-bar' === $layout ? 'cta-v1' : $layout;
+
+	return ( new Inc\Wizard\AI_Content_Harness() )->has_fillable_fields( $layout );
+}
+
+/**
+ * Return the default AI harness item count for a Home section layout.
+ */
+function rms_wizard_home_section_default_item_count( string $layout ): int {
+	$defaults = [
+		'slider'            => 2,
+		'area-coverage-v1'  => 4,
+		'badges'            => 4,
+		'cta-v3'            => 3,
+		'faq-v1'            => 4,
+		'faq-v2'            => 4,
+		'gallery-grid'      => 6,
+		'portfolio-v1'      => 3,
+		'portfolio-v2'      => 3,
+		'portfolio-v3'      => 6,
+		'services-v1'       => 3,
+		'services-v2'       => 3,
+		'services-v3'       => 3,
+		'testimonials-v1'   => 3,
+		'testimonials-v2'   => 3,
+		'testimonials-v3'   => 3,
+		'video-v2'          => 2,
+		'vision-mission-v1' => 2,
+		'vision-mission-v2' => 3,
+	];
+
+	$layout = sanitize_key( $layout );
+	$layout = 'cta-bar' === $layout ? 'cta-v1' : $layout;
+
+	if ( ! rms_wizard_home_section_has_fillable_fields( $layout ) ) {
+		return 0;
+	}
+
+	return max( 1, min( 12, $defaults[ $layout ] ?? 1 ) );
 }
 
 /**

@@ -19,12 +19,14 @@ class Step_Home_Page_Builder {
 	private $state_manager;
 	private $content_builder;
 	private $layout_repository;
+	private $harness;
 
-	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null ) {
+	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null, ?AI_Content_Harness $harness = null ) {
 		$this->logger            = $logger ?? new Logger();
 		$this->state_manager     = $state_manager ?? new State_Manager();
 		$this->content_builder   = $content_builder ?? new Content_Builder( $this->logger, $this->state_manager );
 		$this->layout_repository = $layout_repository ?? new Flexible_Content_Layouts();
+		$this->harness           = $harness ?? new AI_Content_Harness();
 	}
 
 	/**
@@ -35,7 +37,8 @@ class Step_Home_Page_Builder {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function run( array $payload ) {
-		$sections = $this->selected_sections( $payload );
+		$section_rows = $this->selected_section_rows( $payload );
+		$sections     = array_column( $section_rows, 'layout' );
 
 		if ( [] === $sections ) {
 			$this->state_manager->set_step_status( self::STEP, 'failed' );
@@ -60,12 +63,31 @@ class Step_Home_Page_Builder {
 			return new \WP_Error( 'rms_wizard_home_page_not_found', \__( 'Home page not found. Regenerate pages before building the Home page.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		$client_data       = is_array( $state['client_data'] ?? null ) ? $state['client_data'] : [];
+		$client_data = is_array( $state['client_data'] ?? null ) ? $state['client_data'] : [];
+		$missing     = $this->harness->validate_required_context( $client_data );
+
+		if ( [] !== $missing ) {
+			$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+			return new \WP_Error(
+				'rms_wizard_home_required_client_data_missing',
+				sprintf(
+					/* translators: %s: comma-separated missing client data keys. */
+					\__( 'Missing required client data: %s. Complete your client profile before generating.', 'simple-rms-theme' ),
+					implode( ', ', $missing )
+				),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$client_context    = $this->harness->get_harness_context( $client_data );
 		$prepared_sections = [];
 
-		foreach ( $sections as $section_key ) {
-			$overrides           = $this->generate_section_overrides( $section_key, $client_data, $ai_config );
-			$prepared_sections[] = $this->content_builder->prepare_image_fallbacks( $this->section_data( $section_key, $client_data, $overrides ) );
+		foreach ( $section_rows as $row ) {
+			$section_key         = (string) $row['layout'];
+			$item_count          = (int) $row['item_count'];
+			$overrides           = $this->generate_section_overrides( $section_key, $item_count, $client_context, $ai_config );
+			$prepared_sections[] = $this->content_builder->prepare_image_fallbacks( $this->section_data( $section_key, $client_data, $overrides, $item_count ) );
 		}
 
 		$post_id = $this->content_builder->build_page(
@@ -83,6 +105,7 @@ class Step_Home_Page_Builder {
 		}
 
 		$state['selected_home_sections'] = $sections;
+		$state['home_section_rows']      = $section_rows;
 		$state['home_sections']          = $prepared_sections;
 
 		$this->state_manager->save_state( $state );
@@ -93,12 +116,17 @@ class Step_Home_Page_Builder {
 		return [ 'post_id' => $post_id, 'sections' => $sections ];
 	}
 
-	private function selected_sections( array $payload ): array {
-		$raw       = is_array( $payload['sections'] ?? null ) ? $payload['sections'] : ( is_array( $payload['selected_sections'] ?? null ) ? $payload['selected_sections'] : [] );
-		$sections  = [];
+	private function selected_section_rows( array $payload ): array {
+		$raw  = is_array( $payload['sections'] ?? null ) ? $payload['sections'] : ( is_array( $payload['selected_sections'] ?? null ) ? $payload['selected_sections'] : [] );
+		$rows = [];
 
 		foreach ( $raw as $key => $value ) {
-			if ( is_string( $key ) && ! is_string( $value ) ) {
+			$item_count = 0;
+
+			if ( is_array( $value ) ) {
+				$section_key = $this->normalize_section_key( (string) ( $value['layout'] ?? $value['section_key'] ?? $value['key'] ?? '' ) );
+				$item_count  = \absint( $value['item_count'] ?? 0 );
+			} elseif ( is_string( $key ) && ! is_string( $value ) ) {
 				if ( ! $value ) {
 					continue;
 				}
@@ -109,11 +137,46 @@ class Step_Home_Page_Builder {
 			}
 
 			if ( $this->layout_repository->has_layout( $section_key ) ) {
-				$sections[] = $section_key;
+				$rows[] = [
+					'layout'     => $section_key,
+					'item_count' => $this->item_count( $section_key, $item_count ),
+				];
 			}
 		}
 
-		return $sections;
+		return $rows;
+	}
+
+	private function item_count( string $section_key, int $requested ): int {
+		if ( ! $this->harness->has_fillable_fields( $section_key ) ) {
+			return 0;
+		}
+
+		$defaults = [
+			'slider'            => 2,
+			'area-coverage-v1'  => 4,
+			'badges'            => 4,
+			'cta-v3'            => 3,
+			'faq-v1'            => 4,
+			'faq-v2'            => 4,
+			'gallery-grid'      => 6,
+			'portfolio-v1'      => 3,
+			'portfolio-v2'      => 3,
+			'portfolio-v3'      => 6,
+			'services-v1'       => 3,
+			'services-v2'       => 3,
+			'services-v3'       => 3,
+			'testimonials-v1'   => 3,
+			'testimonials-v2'   => 3,
+			'testimonials-v3'   => 3,
+			'video-v2'          => 2,
+			'vision-mission-v1' => 2,
+			'vision-mission-v2' => 3,
+		];
+
+		$count = $requested > 0 ? $requested : ( $defaults[ $section_key ] ?? 1 );
+
+		return max( 1, min( 12, $count ) );
 	}
 
 	private function normalize_section_key( string $section_key ): string {
@@ -156,15 +219,30 @@ class Step_Home_Page_Builder {
 		return $post ? (int) $post->ID : 0;
 	}
 
-	private function generate_section_overrides( string $section_key, array $client_data, array $ai_config ): array {
+	private function generate_section_overrides( string $section_key, int $item_count, array $client_context, array $ai_config ): array {
+		$fillable = $this->harness->get_fillable_fields( $section_key );
+
+		// Layouts with no AI-editable text fields intentionally skip the provider call.
+		if ( [] === $fillable ) {
+			$this->logger->log( 'info', 'Skipping AI generation for layout with no fillable fields.', [ 'section' => $section_key ] );
+
+			return [];
+		}
+
 		$provider = \sanitize_key( (string) $ai_config['provider'] );
 		$model    = \sanitize_text_field( (string) $ai_config['model'] );
-		$prompt   = sprintf(
-			"Return compact JSON copy for the %s section of a contractor Home page. Use keys like headline, subheadline, text, cta_text, cta_url, items. Client data JSON: %s",
-			$section_key,
-			(string) \wp_json_encode( $client_data )
+		$system   = $this->harness->get_layer1() . "\n\n" . $this->harness->get_layer2( AI_Content_Harness::PAGE_HOME );
+		$prompt   = $this->harness->get_layer3( $section_key, $item_count, $client_context );
+		$result   = AI_Provider_Registry::make_provider( $provider )->generate(
+			$model,
+			$prompt,
+			[
+				'section_key' => $section_key,
+				'client_data' => $client_context,
+				'item_count'  => $item_count,
+			],
+			$system
 		);
-		$result   = AI_Provider_Registry::make_provider( $provider )->generate( $model, $prompt, [ 'section_key' => $section_key, 'client_data' => $client_data ] );
 
 		if ( empty( $result['success'] ) || empty( $result['content'] ) ) {
 			$this->logger->log( 'warning', 'Wizard Home section AI generation failed; fallback content used.', [ 'section' => $section_key, 'error' => $result['error'] ?? '' ] );
@@ -174,7 +252,7 @@ class Step_Home_Page_Builder {
 
 		$decoded = $this->decode_json_content( (string) $result['content'] );
 
-		return [] !== $decoded ? $decoded : [ 'raw' => (string) $result['content'] ];
+		return [] !== $decoded ? $this->harness->validate_fields( $section_key, $decoded ) : [];
 	}
 
 	private function decode_json_content( string $content ): array {
@@ -184,135 +262,96 @@ class Step_Home_Page_Builder {
 		return is_array( $data ) ? $data : [];
 	}
 
-	private function section_data( string $section_key, array $client_data, array $copy ): array {
-		$company  = $this->text( $client_data['company_name'] ?? 'Your Company' );
-		$location = $this->location( $client_data );
-		$services = $this->services( $client_data );
-		$raw      = $this->text( $copy['raw'] ?? '' );
-		$text     = $this->html( $copy['text'] ?? ( '' !== $raw ? $raw : sprintf( '%s provides dependable service for homeowners and businesses%s.', $company, '' !== $location ? ' in ' . $location : '' ) ) );
+	private function section_data( string $section_key, array $client_data, array $copy, int $item_count ): array {
+		$section = array_merge( [ 'acf_fc_layout' => $section_key ], $this->placeholder_copy( $section_key, $client_data ) );
+		$allowed = array_flip( $this->harness->get_fillable_fields( $section_key ) );
 
-			switch ( $section_key ) {
-			case 'slider':
-				return [
-					'acf_fc_layout' => 'slider',
-					'slider_slides' => [
-						[
-							'slide_bg_image'     => '',
-							'slide_subheadline'  => $this->text( $copy['subheadline'] ?? 'Trusted Local Experts' ),
-							'slide_headline'     => $this->text( $copy['headline'] ?? sprintf( '%s Services You Can Trust', $company ) ),
-							'slide_text'         => $text,
-							'slide_cta_text'     => $this->text( $copy['cta_text'] ?? 'Get a Free Estimate' ),
-							'slide_cta_url'      => $this->url( $copy['cta_url'] ?? '#contact' ),
-						],
-					],
-				];
+		foreach ( $copy as $field => $value ) {
+			$field = (string) $field;
 
-			case 'about-us':
-				return [
-					'acf_fc_layout'         => 'about-us',
-					'about_headline'        => $this->text( $copy['headline'] ?? sprintf( 'About %s', $company ) ),
-					'about_subheadline'     => $this->text( $copy['subheadline'] ?? 'Built on quality, service, and trust' ),
-					'about_text'            => $text,
-					'about_image'           => '',
-					'about_badge_years'     => $this->text( $copy['badge_years'] ?? '25' ),
-					'about_badge_label'     => $this->text( $copy['badge_label'] ?? 'Years Of Experience' ),
-				];
-
-			case 'services-v1':
-				return [
-					'acf_fc_layout'              => 'services-v1',
-					'services_v1_headline'       => $this->text( $copy['headline'] ?? 'Our Professional Services' ),
-					'services_v1_subheadline'    => $this->text( $copy['subheadline'] ?? 'Quality solutions for every need' ),
-					'services_v1_bg_image'       => '',
-					'services_v1_services'       => $services,
-					'services_v1_cta_text'       => $this->text( $copy['cta_text'] ?? 'View All Services' ),
-					'services_v1_cta_url'        => $this->url( $copy['cta_url'] ?? '/services/' ),
-				];
-
-			case 'gallery-grid':
-				return [
-					'acf_fc_layout' => 'gallery-grid',
-					'gallery_items' => array_map(
-						static function ( array $service ): array {
-							return [ 'gallery_thumbnail' => '', 'gallery_full' => '', 'gallery_label' => $service['service_title'] ];
-						},
-						array_slice( $services, 0, 6 )
-					),
-				];
-
-			case 'testimonials-v1':
-				return [
-					'acf_fc_layout'                 => 'testimonials-v1',
-					'testimonials_v1_headline'      => $this->text( $copy['headline'] ?? 'What Our Clients Say' ),
-					'testimonials_v1_subheadline'   => $this->text( $copy['subheadline'] ?? 'Real reviews from real customers' ),
-					'testimonials_v1_items'         => $this->testimonials( $copy, $company ),
-				];
-
-			case 'contact-info':
-				return [
-					'acf_fc_layout'                => 'contact-info',
-					'contact_info_headline'        => $this->text( $copy['headline'] ?? 'Get in Touch' ),
-					'contact_info_intro'           => $text,
-					'contact_info_form_shortcode'  => '',
-				];
-
-			case 'cta-v1':
-				return [
-					'acf_fc_layout'       => 'cta-v1',
-					'cta_v1_headline'     => $this->text( $copy['headline'] ?? 'Ready to Start Your Project?' ),
-					'cta_v1_text'         => $this->text( $copy['text'] ?? 'Contact us today for a clear estimate and dependable service.' ),
-					'cta_v1_button_text'  => $this->text( $copy['cta_text'] ?? 'Get Your Free Estimate' ),
-					'cta_v1_button_url'   => $this->url( $copy['cta_url'] ?? '#contact' ),
-				];
-
-			default:
-				return $this->layout_repository->build_generic_section( $section_key, $client_data, $copy );
+			if ( isset( $allowed[ $field ] ) ) {
+				$section[ $field ] = $this->section_value( $value );
+			}
 		}
+
+		$service_rows = $this->service_rows( $section_key, $client_data, $copy, $item_count );
+
+		if ( [] !== $service_rows ) {
+			$section[ $service_rows['field'] ] = $service_rows['rows'];
+		}
+
+		return $section;
 	}
 
-	private function services( array $client_data ): array {
-		$services = [];
+	private function placeholder_copy( string $section_key, array $client_data ): array {
+		// Layouts with no fillable fields must not produce invented fallback copy.
+		if ( ! $this->harness->has_fillable_fields( $section_key ) ) {
+			return [];
+		}
 
-		foreach ( is_array( $client_data['company_services'] ?? null ) ? $client_data['company_services'] : [] as $service ) {
+		$company = $this->text( $client_data['company_name'] ?? \__( 'Your Company', 'simple-rms-theme' ) );
+		$copy    = [];
+
+		foreach ( $this->harness->get_fillable_fields( $section_key ) as $field ) {
+			if ( false !== strpos( $field, '_services' ) ) {
+				continue;
+			}
+
+			if ( false !== strpos( $field, 'headline' ) || false !== strpos( $field, 'title' ) ) {
+				$copy[ $field ] = sprintf( /* translators: %s: company name. */ \__( '%s Services You Can Trust', 'simple-rms-theme' ), $company );
+			} elseif ( false !== strpos( $field, 'subheadline' ) || false !== strpos( $field, 'eyebrow' ) || false !== strpos( $field, 'label' ) ) {
+				$copy[ $field ] = \__( 'Dependable service and clear communication', 'simple-rms-theme' );
+			} elseif ( false !== strpos( $field, 'cta' ) || false !== strpos( $field, 'button' ) ) {
+				$copy[ $field ] = \__( 'Get an Estimate', 'simple-rms-theme' );
+			} else {
+				$copy[ $field ] = sprintf( /* translators: %s: company name. */ \__( '%s provides reliable service with careful attention to each project.', 'simple-rms-theme' ), $company );
+			}
+		}
+
+		return $copy;
+	}
+
+	/**
+	 * @return array{field:string,rows:array<int,array<string,string>>}|array{}
+	 */
+	private function service_rows( string $section_key, array $client_data, array $copy, int $item_count ): array {
+		$contracts = [
+			'services-v1' => [ 'field' => 'services_v1_services', 'name' => 'service_title', 'description' => 'service_text' ],
+			'services-v2' => [ 'field' => 'services_v2_services', 'name' => 'service_title', 'description' => 'service_text' ],
+			'services-v3' => [ 'field' => 'services_v3_services', 'name' => 'service_name', 'description' => 'service_overlay_text' ],
+		];
+
+		if ( ! isset( $contracts[ $section_key ] ) ) {
+			return [];
+		}
+
+		$contract = $contracts[ $section_key ];
+		$ai_rows  = is_array( $copy[ $contract['field'] ] ?? null ) ? array_values( $copy[ $contract['field'] ] ) : [];
+		$rows     = [];
+
+		foreach ( array_slice( is_array( $client_data['company_services'] ?? null ) ? $client_data['company_services'] : [], 0, $item_count ) as $index => $service ) {
 			if ( ! is_array( $service ) || empty( $service['service_name'] ) ) {
 				continue;
 			}
 
-			$services[] = [
-				'service_title' => $this->text( $service['service_name'] ),
-				'service_text'  => $this->text( $service['service_short_description'] ?? 'Professional service delivered with care and attention to detail.' ),
+			$ai_row      = is_array( $ai_rows[ $index ] ?? null ) ? $ai_rows[ $index ] : [];
+			$description = $ai_row[ $contract['description'] ] ?? $service['service_short_description'] ?? '';
+
+			$rows[] = [
+				$contract['name']        => $this->text( $service['service_name'] ),
+				$contract['description'] => $this->html( $description ),
 			];
 		}
 
-		return [] !== $services ? $services : [
-			[ 'service_title' => 'Installation', 'service_text' => 'Quality installation work using dependable materials and proven methods.' ],
-			[ 'service_title' => 'Repair', 'service_text' => 'Fast repairs that address problems before they become costly issues.' ],
-			[ 'service_title' => 'Maintenance', 'service_text' => 'Preventive care that helps protect your property for the long term.' ],
-		];
+		return [ 'field' => $contract['field'], 'rows' => $rows ];
 	}
 
-	private function testimonials( array $copy, string $company ): array {
-		$items = is_array( $copy['items'] ?? null ) ? $copy['items'] : [];
-
-		if ( [] === $items ) {
-			$items = [ [ 'quote' => sprintf( '%s delivered exactly what they promised. The team was professional, responsive, and easy to work with.', $company ), 'author' => 'Happy Customer', 'role' => 'Homeowner' ] ];
+	private function section_value( $value ) {
+		if ( is_array( $value ) ) {
+			return array_map( [ $this, 'section_value' ], $value );
 		}
 
-		return array_map(
-			function ( array $item ): array {
-				return [
-					'testimonial_quote'  => $this->text( $item['quote'] ?? $item['testimonial_quote'] ?? '' ),
-					'testimonial_author' => $this->text( $item['author'] ?? $item['testimonial_author'] ?? 'Happy Customer' ),
-					'testimonial_role'   => $this->text( $item['role'] ?? $item['testimonial_role'] ?? 'Customer' ),
-					'testimonial_stars'  => max( 1, min( 5, \absint( $item['stars'] ?? $item['testimonial_stars'] ?? 5 ) ) ),
-				];
-			},
-			array_slice( $items, 0, 3 )
-		);
-	}
-
-	private function location( array $client_data ): string {
-		return implode( ', ', array_filter( array_map( [ $this, 'text' ], [ $client_data['company_city'] ?? '', $client_data['company_state'] ?? '', $client_data['company_country'] ?? '' ] ) ) );
+		return $this->html( $value );
 	}
 
 	private function text( $value ): string {
@@ -321,12 +360,6 @@ class Step_Home_Page_Builder {
 
 	private function html( $value ): string {
 		return \wp_kses_post( (string) $value );
-	}
-
-	private function url( $value ): string {
-		$value = (string) $value;
-
-		return 0 === strpos( $value, '#' ) || 0 === strpos( $value, '/' ) ? $this->text( $value ) : \esc_url_raw( $value );
 	}
 
 	private function maybe_mark_completed(): void {
