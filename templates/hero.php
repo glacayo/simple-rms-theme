@@ -31,7 +31,9 @@ $description       = !empty($hero_description) ? wp_kses_post($hero_description)
                     <span class="hero__reviews-label"><?php echo $reviews_label; ?></span>
                 </div>
                 <h1 class="hero__title"><?php echo $title; ?></h1>
-                <p class="hero__text"><?php echo $description; ?></p>
+                <div class="hero__text">
+                    <?php echo $description; ?>
+                </div>
             </div>
 
             <!-- Right Column — Free Estimate Form -->
