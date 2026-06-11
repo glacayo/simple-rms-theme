@@ -128,8 +128,9 @@ function rms_wizard_render_admin_page(): void {
 	];
 	?>
 	<div
-		class="wrap rms-setup-wizard"
+		class="wrap rms-setup-wizard is-hydrating"
 		data-rms-wizard
+		aria-busy="true"
 		data-rms-wizard-root="<?php echo esc_url( rest_url( \Inc\Wizard\Rest_Controller::NAMESPACE . '/' ) ); ?>"
 		data-rms-wizard-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 	>
@@ -152,6 +153,17 @@ function rms_wizard_render_admin_page(): void {
 					</div>
 				</div>
 
+				<div class="rms-wizard-sidebar-skeleton" aria-hidden="true">
+					<div class="rms-wizard-sidebar-skeleton__title"></div>
+					<div class="rms-wizard-sidebar-skeleton__track"></div>
+					<?php for ( $skeleton_index = 0; $skeleton_index < count( $steps ); $skeleton_index++ ) : ?>
+						<div class="rms-wizard-sidebar-skeleton__step">
+							<span></span>
+							<strong></strong>
+						</div>
+					<?php endfor; ?>
+				</div>
+
 				<ol class="rms-wizard-steps">
 					<?php $index = 1; ?>
 					<?php foreach ( $steps as $slug => $label ) : ?>
@@ -172,6 +184,17 @@ function rms_wizard_render_admin_page(): void {
 
 			<main class="rms-wizard-panel">
 				<div class="rms-wizard-notice" data-wizard-notice hidden></div>
+
+				<div class="rms-wizard-hydrating-overlay" data-wizard-hydrating-overlay aria-hidden="true">
+					<div class="rms-wizard-skeleton">
+						<div class="rms-wizard-skeleton__header"></div>
+						<div class="rms-wizard-skeleton__line"></div>
+						<div class="rms-wizard-skeleton__line rms-wizard-skeleton__line--short"></div>
+						<div class="rms-wizard-skeleton__line"></div>
+						<div class="rms-wizard-skeleton__actions"></div>
+					</div>
+					<p class="rms-wizard-hydrating-overlay__text">Loading wizard state...</p>
+				</div>
 
 				<?php foreach ( $steps as $slug => $label ) : ?>
 					<?php
@@ -196,7 +219,7 @@ function rms_wizard_render_admin_page(): void {
 							<?php rms_wizard_render_home_page_builder_form(); ?>
 						<?php endif; ?>
 
-						<div class="rms-wizard-actions">
+						<div class="rms-wizard-actions rms-wizard-step-actions">
 							<button type="button" class="button button-primary" data-wizard-run-step="<?php echo esc_attr( $slug ); ?>"><?php esc_html_e( 'Run step', 'simple-rms-theme' ); ?></button>
 							<button type="button" class="button" data-wizard-retry-step="<?php echo esc_attr( $slug ); ?>"><?php esc_html_e( 'Retry', 'simple-rms-theme' ); ?></button>
 							<?php if ( '' !== $next_step_slug ) : ?>
@@ -209,7 +232,7 @@ function rms_wizard_render_admin_page(): void {
 					</section>
 				<?php endforeach; ?>
 
-				<div class="rms-wizard-actions">
+				<div class="rms-wizard-actions rms-wizard-global-actions">
 					<button type="button" class="button" data-wizard-refresh><?php esc_html_e( 'Refresh state', 'simple-rms-theme' ); ?></button>
 					<button type="button" class="button button-primary" data-wizard-complete><?php esc_html_e( 'Complete wizard', 'simple-rms-theme' ); ?></button>
 				</div>

@@ -263,11 +263,15 @@ class Step_Home_Page_Builder {
 	}
 
 	private function section_data( string $section_key, array $client_data, array $copy, int $item_count ): array {
-		$section = array_merge( [ 'acf_fc_layout' => $section_key ], $this->placeholder_copy( $section_key, $client_data ) );
+		$section = array_merge( [ 'acf_fc_layout' => $section_key ], $this->placeholder_copy( $section_key, $client_data, $item_count ) );
 		$allowed = array_flip( $this->harness->get_fillable_fields( $section_key ) );
 
 		foreach ( $copy as $field => $value ) {
 			$field = (string) $field;
+
+			if ( false !== strpos( $field, '_services' ) ) {
+				continue;
+			}
 
 			if ( isset( $allowed[ $field ] ) ) {
 				$section[ $field ] = $this->section_value( $value );
@@ -283,32 +287,65 @@ class Step_Home_Page_Builder {
 		return $section;
 	}
 
-	private function placeholder_copy( string $section_key, array $client_data ): array {
+	private function placeholder_copy( string $section_key, array $client_data, int $item_count ): array {
 		// Layouts with no fillable fields must not produce invented fallback copy.
 		if ( ! $this->harness->has_fillable_fields( $section_key ) ) {
 			return [];
 		}
 
-		$company = $this->text( $client_data['company_name'] ?? \__( 'Your Company', 'simple-rms-theme' ) );
-		$copy    = [];
+		$company        = $this->text( $client_data['company_name'] ?? \__( 'Your Company', 'simple-rms-theme' ) );
+		$text_repeaters = $this->harness->get_text_repeater_fields( $section_key );
+		$copy           = [];
 
 		foreach ( $this->harness->get_fillable_fields( $section_key ) as $field ) {
-			if ( false !== strpos( $field, '_services' ) ) {
+			if ( false !== strpos( $field, '_services' ) || isset( $text_repeaters[ $field ] ) ) {
 				continue;
 			}
 
-			if ( false !== strpos( $field, 'headline' ) || false !== strpos( $field, 'title' ) ) {
-				$copy[ $field ] = sprintf( /* translators: %s: company name. */ \__( '%s Services You Can Trust', 'simple-rms-theme' ), $company );
-			} elseif ( false !== strpos( $field, 'subheadline' ) || false !== strpos( $field, 'eyebrow' ) || false !== strpos( $field, 'label' ) ) {
-				$copy[ $field ] = \__( 'Dependable service and clear communication', 'simple-rms-theme' );
-			} elseif ( false !== strpos( $field, 'cta' ) || false !== strpos( $field, 'button' ) ) {
-				$copy[ $field ] = \__( 'Get an Estimate', 'simple-rms-theme' );
-			} else {
-				$copy[ $field ] = sprintf( /* translators: %s: company name. */ \__( '%s provides reliable service with careful attention to each project.', 'simple-rms-theme' ), $company );
-			}
+			$copy[ $field ] = $this->placeholder_field_value( $field, $company );
+		}
+
+		foreach ( $text_repeaters as $field => $sub_fields ) {
+			$copy[ $field ] = $this->placeholder_repeater_rows( $sub_fields, $company, $item_count );
 		}
 
 		return $copy;
+	}
+
+	private function placeholder_repeater_rows( array $sub_fields, string $company, int $item_count ): array {
+		$rows  = [];
+		$count = max( 1, min( 12, $item_count ) );
+
+		for ( $index = 0; $index < $count; $index++ ) {
+			$row = [];
+
+			foreach ( $sub_fields as $sub_field ) {
+				$sub_field        = (string) $sub_field;
+				$row[ $sub_field ] = $this->placeholder_field_value( $sub_field, $company );
+			}
+
+			if ( [] !== $row ) {
+				$rows[] = $row;
+			}
+		}
+
+		return $rows;
+	}
+
+	private function placeholder_field_value( string $field, string $company ): string {
+		if ( false !== strpos( $field, 'headline' ) || false !== strpos( $field, 'title' ) || false !== strpos( $field, 'question' ) ) {
+			return sprintf( /* translators: %s: company name. */ \__( '%s Services You Can Trust', 'simple-rms-theme' ), $company );
+		}
+
+		if ( false !== strpos( $field, 'subheadline' ) || false !== strpos( $field, 'eyebrow' ) || false !== strpos( $field, 'label' ) ) {
+			return \__( 'Dependable service and clear communication', 'simple-rms-theme' );
+		}
+
+		if ( false !== strpos( $field, 'cta' ) || false !== strpos( $field, 'button' ) ) {
+			return \__( 'Get an Estimate', 'simple-rms-theme' );
+		}
+
+		return sprintf( /* translators: %s: company name. */ \__( '%s provides reliable service with careful attention to each project.', 'simple-rms-theme' ), $company );
 	}
 
 	/**

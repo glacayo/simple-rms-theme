@@ -52,6 +52,17 @@ interface WizardState {
   current_step?: string;
   step_status?: Record<string, StepStatus>;
   client_data?: Record<string, unknown>;
+  ai_config?: {
+    provider?: string;
+    provider_label?: string;
+    model?: string;
+    credential?: {
+      has_key?: boolean;
+      status?: string;
+    };
+    has_credentials?: boolean;
+    configured_at?: string;
+  };
   generated_pages?: GeneratedPage[];
   locked?: boolean;
   logs?: WizardLogEntry[];
@@ -183,6 +194,11 @@ declare global {
   let activeStep = steps[0].slug;
   let runningStep: string | null = null;
 
+  const setHydrating = (active: boolean): void => {
+    root.classList.toggle('is-hydrating', active);
+    root.setAttribute('aria-busy', active ? 'true' : 'false');
+  };
+
   const setNotice = (message: string, tone: 'info' | 'success' | 'error' = 'info'): void => {
     if (!notice) return;
 
@@ -264,14 +280,19 @@ declare global {
 
   const updateButtons = (): void => {
     const isLocked = Boolean(state.locked);
+    const isHydrating = root.classList.contains('is-hydrating');
+
+    navButtons.forEach((button) => {
+      button.disabled = isHydrating || runningStep !== null;
+    });
 
     [...runButtons, ...retryButtons].forEach((button) => {
       const step = button.dataset.wizardRunStep || button.dataset.wizardRetryStep || '';
-      button.disabled = isLocked || runningStep !== null || statusFor(step) === 'running';
+      button.disabled = isHydrating || isLocked || runningStep !== null || statusFor(step) === 'running';
     });
 
     loadModelButtons.forEach((button) => {
-      button.disabled = isLocked || runningStep !== null;
+      button.disabled = isHydrating || isLocked || runningStep !== null;
     });
 
     nextButtons.forEach((button) => {
@@ -279,17 +300,21 @@ declare global {
       const target = button.dataset.wizardNextTarget || nextStepFor(step);
       const canContinue = statusFor(step) === 'complete' && target !== '';
 
-      button.disabled = isLocked || runningStep !== null || !canContinue;
-      button.classList.toggle('is-ready', canContinue && !isLocked);
+      button.disabled = isHydrating || isLocked || runningStep !== null || !canContinue;
+      button.classList.toggle('is-ready', canContinue && !isLocked && !isHydrating);
       button.setAttribute(
         'aria-label',
         canContinue ? `Continue to ${labelFor(target)}` : `Complete ${labelFor(step)} before continuing`
       );
     });
 
+    if (refreshButton) {
+      refreshButton.disabled = isHydrating || runningStep !== null;
+    }
+
     if (completeButton) {
       const allComplete = steps.every((step) => statusFor(step.slug) === 'complete');
-      completeButton.disabled = isLocked || runningStep !== null || !allComplete;
+      completeButton.disabled = isHydrating || isLocked || runningStep !== null || !allComplete;
     }
   };
 
@@ -299,6 +324,7 @@ declare global {
       : activeStep;
 
     renderGeneratedPageControls();
+    hydrateIaGenerationForm();
     syncGuidedControlState();
     setActiveStep(nextStep);
     updateNav();
@@ -346,8 +372,16 @@ declare global {
   };
 
   const loadState = async (): Promise<void> => {
-    state = await request<WizardState>('state', { method: 'GET' }, 1);
-    render();
+    setHydrating(true);
+    try {
+      state = await request<WizardState>('state', { method: 'GET' }, 1);
+      render();
+    } catch (error) {
+      handleStateLoadError(error);
+    } finally {
+      setHydrating(false);
+      updateButtons();
+    }
   };
 
   const handleStateLoadError = (error: unknown): void => {
@@ -362,8 +396,6 @@ declare global {
     if (logList) {
       logList.innerHTML = `<li class="rms-wizard-log__item">Unable to load log entries: ${escapeHtml(message)}</li>`;
     }
-
-    updateButtons();
   };
 
   const runStep = async (step: string): Promise<void> => {
@@ -371,7 +403,6 @@ declare global {
     setActiveStep(step);
     setStepActionStatus(step, 'Running step...', 'info');
     setNotice('Running setup wizard step. Keep this page open.', 'info');
-    render();
 
     try {
       const payload = collectPayload(step);
@@ -381,6 +412,8 @@ declare global {
         setNotice('Step canceled before changes were made.', 'info');
         return;
       }
+
+      render();
 
       const response = await request<StepResponse>(`steps/${step}/run`, {
         method: 'POST',
@@ -411,7 +444,7 @@ declare global {
       setNotice(message, 'error');
     } finally {
       runningStep = null;
-      await loadState().catch(() => render());
+      await loadState();
     }
   };
 
@@ -1223,6 +1256,53 @@ declare global {
     return defaults[normalized] ?? 1;
   };
 
+  const hydrateIaGenerationForm = (): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-ia-generation-form]');
+    const aiConfig = state.ai_config;
+
+    if (!form || !aiConfig) {
+      return;
+    }
+
+    const providerSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-provider]');
+    const apiKeyInput = form.querySelector<HTMLInputElement>('input[name="api_key"]');
+    const modelSelect = form.querySelector<HTMLSelectElement>('[data-wizard-ai-model]');
+    const manualModelInput = form.querySelector<HTMLInputElement>('[data-wizard-ai-model-manual]');
+    const credentialStatus = form.querySelector<HTMLElement>('[data-wizard-ai-credential-status]');
+    const modelStatus = form.querySelector<HTMLElement>('[data-wizard-ai-model-status]');
+    const provider = aiConfig.provider ?? '';
+    const model = aiConfig.model ?? '';
+
+    if (providerSelect && provider) {
+      providerSelect.value = provider;
+    }
+
+    if (apiKeyInput && (aiConfig.has_credentials || aiConfig.credential?.has_key)) {
+      apiKeyInput.placeholder = '************';
+    }
+
+    if (credentialStatus) {
+      credentialStatus.textContent = aiConfig.credential?.status
+        ?? (aiConfig.has_credentials ? 'Saved API key configured (hidden)' : 'No key saved');
+      credentialStatus.classList.toggle('is-success', Boolean(aiConfig.has_credentials || aiConfig.credential?.has_key));
+      credentialStatus.classList.remove('is-error');
+    }
+
+    if (modelSelect && model) {
+      if (!Array.from(modelSelect.options).some((option) => option.value === model)) {
+        modelSelect.append(new Option(`Saved: ${model}`, model));
+      }
+
+      modelSelect.value = model;
+    }
+
+    if (manualModelInput && model) {
+      manualModelInput.value = model;
+    }
+
+    setInlineStatus(modelStatus, model ? `Configured model: ${model}` : 'No model configured yet.', model ? 'success' : 'info');
+  };
+
   const loadAiModels = async (button: HTMLButtonElement): Promise<void> => {
     const form = button.closest<HTMLFormElement>('form');
 
@@ -1258,7 +1338,7 @@ declare global {
       }, 1);
       const models = response.models ?? [];
 
-      populateModelSelect(modelSelect, models);
+      populateModelSelect(modelSelect, models, state.ai_config?.model ?? '');
 
       if (credentialStatus && response.credential?.status) {
         credentialStatus.textContent = response.credential.status;
@@ -1283,8 +1363,8 @@ declare global {
     }
   };
 
-  const populateModelSelect = (select: HTMLSelectElement, models: AiModelOption[]): void => {
-    const previousValue = select.value;
+  const populateModelSelect = (select: HTMLSelectElement, models: AiModelOption[], preferredValue = ''): void => {
+    const previousValue = preferredValue || select.value;
 
     select.replaceChildren();
     select.append(new Option('Select a model', ''));
@@ -1834,7 +1914,7 @@ declare global {
   });
 
   render();
-  void loadState().catch(handleStateLoadError);
+  void loadState();
 })();
 
 function getSettings(root: HTMLElement | null): WizardSettings | undefined {
