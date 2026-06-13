@@ -1,0 +1,98 @@
+# openspec/config.yaml
+# SDD configuration for simple-rms-theme
+# Auto-bootstrapped by sdd-init — 2026-06-11
+schema: spec-driven
+
+context: |
+  Stack: WordPress Classic Theme, PHP 8+, Vite 8.x, TypeScript, SASS (BEM)
+  Architecture: Decoupled sections/templates; inc/ PHP business logic; ACF Pro + Yoast SEO
+  Build: npm run build (tsc && vite build); npm run dev (Vite HMR + php live-reload)
+  Quality: tsc --noEmit (strict mode); .editorconfig (spaces 2/4, LF); php -l for syntax
+  Git: main ← develop (Geovanny direct); main ← noir-dev (Agent PRs only)
+  Testing: Manual performance audit only — no automated test runner installed
+
+strict_tdd: false
+
+session:
+  execution_mode: interactive
+  artifact_store: openspec
+  chained_pr_strategy: force-chained
+  review_budget_lines: 400
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules (inc/ PHP, src/ts/, src/scss/, vite.config.ts, acf-json/)
+    - Flag Vite entry-point additions/removals explicitly
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for PHP↔REST↔JS flows
+    - Document CSS loading strategy (critical inline vs async enqueue)
+    - Note ACF field dependencies and acf-json sync requirements
+  tasks:
+    - Group tasks by phase (PHP, TypeScript, SCSS, Vite config, ACF)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+    - PRs must stay under review_budget_lines (400 lines); use chained PRs otherwise
+  apply:
+    - Follow BEM for SCSS; escape ACF outputs (esc_html, esc_attr, wp_kses)
+    - Load core-web-vitals + accessibility skills for any visual change
+    - Run php -l on every modified PHP file before marking done
+    - Run tsc --noEmit after any TypeScript change
+    - Register new SCSS entry points in vite.config.ts
+  verify:
+    - Run tsc --noEmit; run php -l on changed PHP files
+    - Compare implementation against every spec scenario
+    - Manual audit: DOM nodes < 1500, no render-blocking resources, images have lazy/async
+  archive:
+    - Warn before merging destructive deltas (large removals)
+    - Sync delta specs to openspec/specs/ before archiving
+
+testing:
+  strict_tdd: false
+  detected: "2026-06-11"
+  note: "No automated test runner installed. Strict TDD unavailable. Manual audit applies."
+  runner:
+    available: false
+    command: null
+    framework: null
+  layers:
+    unit:
+      available: false
+      tool: null
+    integration:
+      available: false
+      tool: null
+    e2e:
+      available: false
+      tool: null
+  coverage:
+    available: false
+    command: null
+  quality_tools:
+    type_checker:
+      available: true
+      command: "tsc --noEmit"
+      note: "strict mode enabled in tsconfig.json"
+    php_syntax:
+      available: true
+      command: "php -l <file>"
+      note: "manual per-file lint; no automated runner"
+    linter:
+      available: false
+      command: null
+      note: "no ESLint or phpcs configured"
+    formatter:
+      available: false
+      command: null
+      note: ".editorconfig only (spaces 2/4, LF); no Prettier or php-cs-fixer"
+  manual_audit:
+    available: true
+    checklist:
+      - "DOM node count < 1500"
+      - "No render-blocking resources in <head> except inline critical CSS"
+      - "Images have decoding=async and loading=lazy (except Hero)"
+      - "TTFB stable — check Query Monitor for slow queries"
+      - "New ACF fields: run php scripts/generate-acf-json.php to sync acf-json/"
