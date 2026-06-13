@@ -20,13 +20,15 @@ class Step_Home_Page_Builder {
 	private $content_builder;
 	private $layout_repository;
 	private $harness;
+	private $reviewer;
 
-	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null, ?AI_Content_Harness $harness = null ) {
+	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null, ?AI_Content_Harness $harness = null, ?AI_Content_Reviewer $reviewer = null ) {
 		$this->logger            = $logger ?? new Logger();
 		$this->state_manager     = $state_manager ?? new State_Manager();
 		$this->content_builder   = $content_builder ?? new Content_Builder( $this->logger, $this->state_manager );
 		$this->layout_repository = $layout_repository ?? new Flexible_Content_Layouts();
 		$this->harness           = $harness ?? new AI_Content_Harness();
+		$this->reviewer          = $reviewer;
 	}
 
 	/**
@@ -80,14 +82,20 @@ class Step_Home_Page_Builder {
 			);
 		}
 
-		$client_context    = $this->harness->get_harness_context( $client_data );
-		$prepared_sections = [];
+		$client_context         = $this->harness->get_harness_context( $client_data );
+		$prepared_sections      = [];
+		$prior_section_payloads = [];
 
 		foreach ( $section_rows as $row ) {
 			$section_key         = (string) $row['layout'];
 			$item_count          = (int) $row['item_count'];
-			$overrides           = $this->generate_section_overrides( $section_key, $item_count, $client_context, $ai_config );
+			$overrides           = $this->generate_section_overrides( $section_key, $item_count, $client_context, $ai_config, $prior_section_payloads );
 			$prepared_sections[] = $this->content_builder->prepare_image_fallbacks( $this->section_data( $section_key, $client_data, $overrides, $item_count ) );
+			$prior_section_payloads[] = [
+				'layout'     => $section_key,
+				'item_count' => $item_count,
+				'payload'    => $overrides,
+			];
 		}
 
 		$post_id = $this->content_builder->build_page(
@@ -219,7 +227,7 @@ class Step_Home_Page_Builder {
 		return $post ? (int) $post->ID : 0;
 	}
 
-	private function generate_section_overrides( string $section_key, int $item_count, array $client_context, array $ai_config ): array {
+	private function generate_section_overrides( string $section_key, int $item_count, array $client_context, array $ai_config, array $prior_section_payloads = [] ): array {
 		$fillable = $this->harness->get_fillable_fields( $section_key );
 
 		// Layouts with no AI-editable text fields intentionally skip the provider call.
@@ -252,7 +260,108 @@ class Step_Home_Page_Builder {
 
 		$decoded = $this->decode_json_content( (string) $result['content'] );
 
-		return [] !== $decoded ? $this->harness->validate_fields( $section_key, $decoded ) : [];
+		if ( [] === $decoded ) {
+			return [];
+		}
+
+		$reviewed = $this->review_section_content( $section_key, $decoded, $prior_section_payloads, $ai_config, $client_context, $item_count );
+
+		return $this->harness->validate_fields( $section_key, $reviewed );
+	}
+
+	private function review_section_content( string $section_key, array $decoded, array $prior_section_payloads, array $ai_config, array $client_context, int $item_count ): array {
+		if ( ! $this->is_review_enabled() ) {
+			return $decoded;
+		}
+
+		$review_config                   = $ai_config;
+		$review_config['client_context'] = $client_context;
+		$review_config['item_count']     = $item_count;
+
+		try {
+			$result = $this->reviewer()->review( $section_key, $decoded, $prior_section_payloads, $review_config );
+		} catch ( \Throwable $error ) {
+			unset( $error );
+			$this->log_review_result(
+				$section_key,
+				[
+					'status'     => 'fallback',
+					'iterations' => 0,
+					'report'     => null,
+				]
+			);
+
+			return $decoded;
+		}
+
+		$this->log_review_result( $section_key, $result );
+
+		$payload = $result['payload'] ?? null;
+
+		return is_array( $payload ) ? $payload : $decoded;
+	}
+
+	private function log_review_result( string $section_key, array $result ): void {
+		$context = [
+			'section'    => $section_key,
+			'status'     => $this->review_status( $result['status'] ?? '' ),
+			'iterations' => max( 0, (int) ( $result['iterations'] ?? 0 ) ),
+		];
+
+		if ( $this->is_debug_mode() && is_array( $result['report'] ?? null ) ) {
+			$context['report'] = $result['report'];
+		}
+
+		$this->logger->log( 'info', 'Wizard Home section AI review completed.', $context );
+	}
+
+	private function review_status( $status ): string {
+		$status  = \sanitize_key( (string) $status );
+		$allowed = [ 'pass', 'rewritten', 'fallback', 'skipped', 'budget_exhausted' ];
+
+		return in_array( $status, $allowed, true ) ? $status : 'fallback';
+	}
+
+	private function is_debug_mode(): bool {
+		return \defined( 'WP_DEBUG' ) && true === \constant( 'WP_DEBUG' );
+	}
+
+	private function reviewer(): AI_Content_Reviewer {
+		if ( ! $this->reviewer instanceof AI_Content_Reviewer ) {
+			$this->reviewer = new AI_Content_Reviewer( $this->harness );
+		}
+
+		return $this->reviewer;
+	}
+
+	private function is_review_enabled(): bool {
+		if ( ! \defined( 'WIZARD_REVIEW_ENABLED' ) ) {
+			return true;
+		}
+
+		$value = \constant( 'WIZARD_REVIEW_ENABLED' );
+
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			return 0 !== $value;
+		}
+
+		if ( is_string( $value ) ) {
+			$value = strtolower( trim( $value ) );
+
+			if ( in_array( $value, [ '0', 'false', 'off', 'no' ], true ) ) {
+				return false;
+			}
+
+			if ( in_array( $value, [ '1', 'true', 'on', 'yes' ], true ) ) {
+				return true;
+			}
+		}
+
+		return (bool) $value;
 	}
 
 	private function decode_json_content( string $content ): array {
