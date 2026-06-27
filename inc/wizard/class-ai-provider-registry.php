@@ -28,6 +28,10 @@ class AI_Provider_Registry {
 					'slug'  => 'openai',
 					'label' => \__( 'OpenAI', 'simple-rms-theme' ),
 				],
+				[
+					'slug'  => 'anthropic',
+					'label' => \__( 'Anthropic', 'simple-rms-theme' ),
+				],
 			]
 		);
 	}
@@ -71,6 +75,10 @@ class AI_Provider_Registry {
 
 		if ( 'openai' === $provider ) {
 			return new OpenAI_Provider( $api_key );
+		}
+
+		if ( 'anthropic' === $provider ) {
+			return new Anthropic_Provider( $api_key );
 		}
 
 		return new AI_Provider( $api_key );

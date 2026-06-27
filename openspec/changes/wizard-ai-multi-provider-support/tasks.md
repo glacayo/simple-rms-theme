@@ -36,11 +36,11 @@ Chain strategy: feature-branch-chain
 ## Phase 2: PHP Provider Implementations
 
 - [x] 2.1 Create `inc/wizard/class-openai-provider.php` with Bearer auth, `POST /v1/chat/completions`, `GET /v1/models`, and OpenAI response parsing.
-- [ ] 2.2 Create `inc/wizard/class-anthropic-provider.php` with `GET /v1/models` validation/listing and `POST /v1/messages` using `x-api-key`, `anthropic-version`, `system`, and `max_tokens`.
+- [x] 2.2 Create `inc/wizard/class-anthropic-provider.php` with `GET /v1/models` validation/listing and `POST /v1/messages` using `x-api-key`, `anthropic-version`, `system`, and `max_tokens`.
 - [ ] 2.3 Create `inc/wizard/class-google-provider.php` with `generateContent?key=`, `systemInstruction`, `GET /models?key=`, and host-only error logging.
 - [ ] 2.4 Create `inc/wizard/class-openrouter-provider.php` with OpenAI-shaped generation, `GET /api/v1/models`, and default `HTTP-Referer`/`X-Title` headers.
 - [x] 2.5a Update `inc/wizard/class-ai-provider-registry.php` for OpenAI: add the `openai` label and `make_provider()` branch only with `OpenAI_Provider` present.
-- [ ] 2.5b Update `inc/wizard/class-ai-provider-registry.php` for Anthropic: add the `anthropic` label and `make_provider()` branch only with `Anthropic_Provider` present.
+- [x] 2.5b Update `inc/wizard/class-ai-provider-registry.php` for Anthropic: add the `anthropic` label and `make_provider()` branch only with `Anthropic_Provider` present.
 - [ ] 2.5c Update `inc/wizard/class-ai-provider-registry.php` for Google Gemini: add the `google` label and `make_provider()` branch only with `Google_Provider` present.
 - [ ] 2.5d Update `inc/wizard/class-ai-provider-registry.php` for OpenRouter: add the `openrouter` label and `make_provider()` branch only with `OpenRouter_Provider` present; keep OpenCode deferred.
 
