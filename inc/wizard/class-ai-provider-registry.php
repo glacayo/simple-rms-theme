@@ -24,6 +24,10 @@ class AI_Provider_Registry {
 					'slug'  => 'ollama-cloud',
 					'label' => \__( 'Ollama Cloud', 'simple-rms-theme' ),
 				],
+				[
+					'slug'  => 'openai',
+					'label' => \__( 'OpenAI', 'simple-rms-theme' ),
+				],
 			]
 		);
 	}
@@ -63,6 +67,10 @@ class AI_Provider_Registry {
 
 		if ( 'ollama-cloud' === $provider ) {
 			return new Ollama_Provider( $api_key );
+		}
+
+		if ( 'openai' === $provider ) {
+			return new OpenAI_Provider( $api_key );
 		}
 
 		return new AI_Provider( $api_key );
