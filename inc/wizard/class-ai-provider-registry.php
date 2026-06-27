@@ -32,6 +32,10 @@ class AI_Provider_Registry {
 					'slug'  => 'anthropic',
 					'label' => \__( 'Anthropic', 'simple-rms-theme' ),
 				],
+				[
+					'slug'  => 'google',
+					'label' => \__( 'Google Gemini', 'simple-rms-theme' ),
+				],
 			]
 		);
 	}
@@ -79,6 +83,10 @@ class AI_Provider_Registry {
 
 		if ( 'anthropic' === $provider ) {
 			return new Anthropic_Provider( $api_key );
+		}
+
+		if ( 'google' === $provider ) {
+			return new Google_Provider( $api_key );
 		}
 
 		return new AI_Provider( $api_key );
