@@ -181,6 +181,28 @@ class Step_Controller {
 		}
 
 		if ( '' !== $api_key ) {
+			/*
+			 * Validate a newly supplied key via live model listing before persisting it.
+			 * A successful list_models() response counts as explicit credential
+			 * validation per the wizard-ai-providers spec (Provider Setup Gating).
+			 * No new validate() method is added in v1 — list_models() is the contract.
+			 */
+			$validation = AI_Provider_Registry::make_provider( $provider, $api_key )->list_models();
+
+			if ( \is_wp_error( $validation ) ) {
+				$this->state_manager->set_step_status( 'ia-generation', 'failed' );
+
+				return new \WP_Error(
+					'rms_wizard_ai_key_invalid',
+					\sprintf(
+						/* translators: %s: provider validation failure message. */
+						\__( 'The API key could not be validated: %s', 'simple-rms-theme' ),
+						$validation->get_error_message()
+					),
+					[ 'status' => 400 ]
+				);
+			}
+
 			try {
 				AI_Credential_Store::save( $provider, $api_key );
 			} catch ( \Throwable $error ) {
