@@ -15,7 +15,7 @@ High-performance classic WordPress theme built with **Vite**, **SCSS**, and **Ty
 - Performance-first architecture
 - Critical CSS only for above-the-fold content
 - Deferred CSS for below-the-fold sections
-- Reusable section-based templates ready for future ACF integration
+- ACF-driven reusable section templates and setup wizard automation
 
 ## Current architecture
 
@@ -152,11 +152,11 @@ Configured in `inc/tgmpa.php`.
 
 - Advanced Custom Fields PRO (bundled in `inc/plugins/advanced-custom-fields-pro.zip`)
 - Classic Editor
+- Yoast SEO
+- Contact Form 7
 
 ### Recommended
 
-- Yoast SEO
-- Contact Form 7
 - WP Fastest Cache
 - Wordfence Security
 
@@ -171,6 +171,14 @@ Configured in `inc/tgmpa.php`.
 - `header.php` — critical/deferred asset loading + active header template
 - `footer.php` — active footer template
 - `AGENT.md` — project rules and architecture philosophy
+
+## Developer wiki
+
+Start here when onboarding or debugging the theme:
+
+- [`docs/README.md`](docs/README.md) — wiki index
+- [`docs/wizard-ai-content.md`](docs/wizard-ai-content.md) — setup wizard and AI content flow
+- [`docs/debug-and-ops.md`](docs/debug-and-ops.md) — debug flags, logs, and operational checks
 
 ## Development
 
