@@ -69,11 +69,21 @@ The system MUST block provider configuration when required credential validation
 
 #### Scenario: Live model listing validates the credential
 
-- GIVEN a supported provider that exposes a live model-listing endpoint
+- GIVEN a supported provider other than OpenRouter that exposes a live model-listing endpoint whose successful authenticated response proves the credential
 - WHEN the system requests the live model list with the supplied credential and the provider returns a successful response
 - THEN that successful response counts as explicit credential validation
 - AND the credential may be persisted
 - AND a failed model-listing response blocks the save and shows a warning
+
+#### Scenario: OpenRouter validates credentials via key metadata, then lists models
+
+- GIVEN OpenRouter is the selected provider and a credential is supplied
+- WHEN the system validates the credential
+- THEN it MUST call OpenRouter `GET /api/v1/key` with Bearer auth and treat only a successful 2xx response with the expected key-metadata JSON shape (`data` present as an array or object) as explicit credential validation
+- AND it MUST NOT treat a successful OpenRouter `GET /api/v1/models` response alone as credential validation, because the model catalog can be public
+- AND after key validation succeeds, the system MAY call `GET /api/v1/models` only to obtain the model catalog for listing
+- AND a failed key validation or failed model listing blocks the save and shows a warning
+- AND the public validation contract remains `list_models()` (no public `validate()` method in v1)
 
 #### Scenario: Provider validation fails
 

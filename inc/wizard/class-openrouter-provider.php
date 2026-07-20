@@ -19,18 +19,22 @@ defined( 'ABSPATH' ) || exit;
  *    entry followed by the user entry, `stream: false`), and the default
  *    OpenRouter attribution headers `HTTP-Referer` (site URL) and `X-Title`
  *    (site title or theme name). No fallback/auto-routing in v1.
- *  - List/validate: GET https://openrouter.ai/api/v1/models with Bearer auth
- *    and the same attribution headers; maps `data[].id` and `data[].name`
- *    (falling back to the id) to `{id,label}`.
+ *  - Validate: GET https://openrouter.ai/api/v1/key with Bearer auth.
+ *  - List: GET https://openrouter.ai/api/v1/models with Bearer auth and the
+ *    same attribution headers; maps `data[].id` and `data[].name` (falling
+ *    back to the id) to `{id,label}`.
  *
- * A successful `list_models()` response is the explicit credential validation
- * per the wizard-ai-providers spec (Provider Setup Gating). No `validate()`
- * method is added in v1. API keys and the full Authorization header are never
- * logged. Curated/manual model lists never count as successful validation.
+ * A successful key metadata response is the explicit credential validation per
+ * the wizard-ai-providers spec (Provider Setup Gating). The OpenRouter model
+ * catalog can be public, so `/models` alone must not validate credentials. No
+ * public `validate()` method is added in v1. API keys and the full Authorization
+ * header are never logged. Curated/manual model lists never count as successful
+ * validation.
  */
 class OpenRouter_Provider extends AI_Provider {
 	public const LIST_ENDPOINT     = 'https://openrouter.ai/api/v1/models';
 	public const GENERATE_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+	private const KEY_ENDPOINT     = 'https://openrouter.ai/api/v1/key';
 
 	public function __construct( string $api_key = '' ) {
 		parent::__construct( $api_key );
@@ -147,14 +151,22 @@ class OpenRouter_Provider extends AI_Provider {
 	/**
 	 * List available models via the live OpenRouter models endpoint.
 	 *
-	 * A successful response is the explicit credential validation per the
-	 * wizard-ai-providers spec. Curated/manual lists never validate.
+	 * Public validation contract used by controllers (no public `validate()` in
+	 * v1). Credential proof is GET `/api/v1/key` first; `/api/v1/models` is only
+	 * the model catalog afterward and does not by itself validate credentials.
+	 * Curated/manual lists never validate.
 	 *
 	 * @return array<int,array{id:string,label:string}>|\WP_Error
 	 */
 	public function list_models() {
 		if ( '' === $this->api_key ) {
 			return new \WP_Error( 'rms_wizard_missing_openrouter_key', \__( 'OpenRouter API key is missing.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+		}
+
+		$validation = $this->validate_key();
+
+		if ( \is_wp_error( $validation ) ) {
+			return $validation;
 		}
 
 		$response = \wp_remote_get(
@@ -219,6 +231,66 @@ class OpenRouter_Provider extends AI_Provider {
 		}
 
 		return $models;
+	}
+
+	/**
+	 * Validate the OpenRouter key with the authenticated key metadata endpoint.
+	 *
+	 * Credential validation is GET `/api/v1/key` only. `/api/v1/models` is the
+	 * model catalog/listing endpoint and must not by itself prove the credential
+	 * is valid (the catalog can be public). Expects a 2xx JSON object/array body
+	 * that contains a `data` array or object. API keys and the full Authorization
+	 * header are never logged.
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function validate_key() {
+		$response = \wp_remote_get(
+			self::KEY_ENDPOINT,
+			[
+				'timeout' => 10,
+				'headers' => $this->headers(),
+			]
+		);
+
+		if ( \is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code = (int) \wp_remote_retrieve_response_code( $response );
+
+		if ( $code < 200 || $code >= 300 ) {
+			return new \WP_Error(
+				'rms_wizard_openrouter_key_invalid',
+				\sprintf( \__( 'OpenRouter API key validation failed with HTTP %d.', 'simple-rms-theme' ), $code ),
+				[ 'status' => $code ]
+			);
+		}
+
+		$raw_body = (string) \wp_remote_retrieve_body( $response );
+		$data     = \json_decode( $raw_body, true );
+
+		// OpenRouter `/api/v1/key` returns a JSON object with a `data` payload.
+		// Reject malformed 2xx bodies so a non-key response cannot count as valid.
+		if ( ! \is_array( $data ) || ! \array_key_exists( 'data', $data ) ) {
+			return new \WP_Error(
+				'rms_wizard_openrouter_key_invalid',
+				\__( 'OpenRouter API key validation returned an unexpected response.', 'simple-rms-theme' ),
+				[ 'status' => 502 ]
+			);
+		}
+
+		$key_data = $data['data'];
+
+		if ( ! \is_array( $key_data ) ) {
+			return new \WP_Error(
+				'rms_wizard_openrouter_key_invalid',
+				\__( 'OpenRouter API key validation returned an unexpected response.', 'simple-rms-theme' ),
+				[ 'status' => 502 ]
+			);
+		}
+
+		return true;
 	}
 
 	/**

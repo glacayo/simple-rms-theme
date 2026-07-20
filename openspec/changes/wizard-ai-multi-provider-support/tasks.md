@@ -46,13 +46,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: TypeScript / Admin UX
 
-- [ ] 3.1 Inspect/update `src/ts/admin/wizard.ts` so empty `models[]` keeps the manual model fallback, and failed model loading keeps warning + focus behavior.
-- [ ] 3.2 Verify `inc/wizard/wizard-init.php` keeps admin-only `manage_options` provider configuration; no editor UI expansion in v1.
+- [x] 3.1 Inspect/update `src/ts/admin/wizard.ts` so empty `models[]` keeps the manual model fallback, and failed model loading keeps warning + focus behavior.
+- [x] 3.2 Verify `inc/wizard/wizard-init.php` keeps admin-only `manage_options` provider configuration; no editor UI expansion in v1.
 
 ## Phase 4: Verification
 
-- [ ] 4.1 Run `php -l` on every changed PHP file: provider classes, registry, and `class-step-controller.php`.
-- [ ] 4.2 Run `tsc --noEmit` if `src/ts/admin/wizard.ts` changes.
+- [x] 4.1 Run `php -l` on every changed PHP file: provider classes, registry, and `class-step-controller.php`.
+- [x] 4.2 Run `tsc --noEmit` if `src/ts/admin/wizard.ts` changes.
 - [ ] 4.3 Manual smoke via WP Admin IA Generation for OpenAI, Anthropic, Google Gemini, and OpenRouter: valid key saves, models load/manual model works, and `about-us` generates.
 - [ ] 4.4 Manual invalid-key check: REST Test/Load and final IA Generation save block persistence, show warning, and mark `ia-generation` failed.
 - [ ] 4.5 Manual failure check: selected provider error is reported through existing wizard behavior with no fallback or auto-routing.
