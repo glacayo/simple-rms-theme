@@ -36,13 +36,14 @@ Chain strategy: feature-branch-chain
 ## Phase 2: PHP Provider Implementations
 
 - [x] 2.1 Create `inc/wizard/class-openai-provider.php` with Bearer auth, `POST /v1/chat/completions`, `GET /v1/models`, and OpenAI response parsing.
-- [x] 2.2 Create `inc/wizard/class-anthropic-provider.php` with `GET /v1/models` validation/listing and `POST /v1/messages` using `x-api-key`, `anthropic-version`, `system`, and `max_tokens`.
+- [x] 2.2 Create `inc/wizard/class-anthropic-provider.php` with `GET /v1/models` validation/listing and `POST /v1/messages` using `x-api-key`, `anthropic-version`, `system`, and `max_tokens`. (Class kept; selectable availability deferred — see 2.5b.)
 - [x] 2.3 Create `inc/wizard/class-google-provider.php` with `generateContent?key=`, `systemInstruction`, `GET /models?key=`, and host-only error logging.
 - [x] 2.4 Create `inc/wizard/class-openrouter-provider.php` with OpenAI-shaped generation, `GET /api/v1/models`, and default `HTTP-Referer`/`X-Title` headers.
 - [x] 2.5a Update `inc/wizard/class-ai-provider-registry.php` for OpenAI: add the `openai` label and `make_provider()` branch only with `OpenAI_Provider` present.
-- [x] 2.5b Update `inc/wizard/class-ai-provider-registry.php` for Anthropic: add the `anthropic` label and `make_provider()` branch only with `Anthropic_Provider` present.
+- [x] 2.5b Update `inc/wizard/class-ai-provider-registry.php` for Anthropic: keep `make_provider( 'anthropic' )` branch with `Anthropic_Provider` present; **do not** add Anthropic to default `list_providers()` until real-key smoke (billing deposit/payment processor blocked). Class file must not be deleted. `provider_exists( 'anthropic' )` remains false by default.
 - [x] 2.5c Update `inc/wizard/class-ai-provider-registry.php` for Google Gemini: add the `google` label and `make_provider()` branch only with `Google_Provider` present.
 - [x] 2.5d Update `inc/wizard/class-ai-provider-registry.php` for OpenRouter: add the `openrouter` label and `make_provider()` branch only with `OpenRouter_Provider` present; keep OpenCode deferred.
+- [x] 2.5e Confirm enabled selectable providers: Ollama Cloud, OpenAI, Google Gemini, OpenRouter. Anthropic = implemented but disabled/pending real-key smoke.
 
 ## Phase 3: TypeScript / Admin UX
 
@@ -53,6 +54,7 @@ Chain strategy: feature-branch-chain
 
 - [x] 4.1 Run `php -l` on every changed PHP file: provider classes, registry, and `class-step-controller.php`.
 - [x] 4.2 Run `tsc --noEmit` if `src/ts/admin/wizard.ts` changes.
-- [ ] 4.3 Manual smoke via WP Admin IA Generation for OpenAI, Anthropic, Google Gemini, and OpenRouter: valid key saves, models load/manual model works, and `about-us` generates.
-- [ ] 4.4 Manual invalid-key check: REST Test/Load and final IA Generation save block persistence, show warning, and mark `ia-generation` failed.
+- [ ] 4.3 Manual smoke via WP Admin IA Generation for **enabled** providers (OpenAI, Google Gemini, OpenRouter; plus Ollama Cloud as existing): valid key saves, models load/manual model works, and `about-us` generates.
+- [ ] 4.3b Anthropic real-key smoke: **skipped / disabled** — external billing issue (minimum deposit + payment processor failure). Not a code failure. Re-enable selectable label in `list_providers()` only after a real key can be tested.
+- [ ] 4.4 Manual invalid-key check for enabled providers: REST Test/Load and final IA Generation save block persistence, show warning, and mark `ia-generation` failed.
 - [ ] 4.5 Manual failure check: selected provider error is reported through existing wizard behavior with no fallback or auto-routing.

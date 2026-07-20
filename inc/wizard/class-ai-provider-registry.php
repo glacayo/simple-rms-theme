@@ -14,6 +14,13 @@ defined( 'ABSPATH' ) || exit;
  */
 class AI_Provider_Registry {
 	/**
+	 * Providers available for selection in the IA Generation UI / REST config.
+	 *
+	 * Anthropic is implemented (`make_provider( 'anthropic' )` + class file) but
+	 * intentionally omitted here until a real API key can be smoke-tested.
+	 * Anthropic billing currently requires a minimum deposit and the payment
+	 * processor is failing for the maintainer — re-add the label entry when ready.
+	 *
 	 * @return array<int,array{slug:string,label:string}>
 	 */
 	public static function list_providers(): array {
@@ -27,10 +34,6 @@ class AI_Provider_Registry {
 				[
 					'slug'  => 'openai',
 					'label' => \__( 'OpenAI', 'simple-rms-theme' ),
-				],
-				[
-					'slug'  => 'anthropic',
-					'label' => \__( 'Anthropic', 'simple-rms-theme' ),
 				],
 				[
 					'slug'  => 'google',

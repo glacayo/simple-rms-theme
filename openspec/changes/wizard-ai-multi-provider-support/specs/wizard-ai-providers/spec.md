@@ -8,14 +8,23 @@ Defines the behavior for first-class hosted AI providers available to the wizard
 
 ### Requirement: First-Class Provider Availability
 
-The system MUST offer OpenAI, Anthropic, Google Gemini, and OpenRouter as first-class hosted AI providers for wizard generation.
+The system MUST offer OpenAI, Google Gemini, and OpenRouter as selectable first-class hosted AI providers for wizard generation in the current enablement set. Anthropic MUST remain implemented for future enablement (`Anthropic_Provider` class and `make_provider( 'anthropic' )`) but MUST NOT appear as a selectable provider by default until it is explicitly re-enabled after real-key smoke validation.
 
 #### Scenario: Supported providers are available
 
 - GIVEN an administrator opens the IA Generation configuration
 - WHEN the provider list is shown
-- THEN OpenAI, Anthropic, Google Gemini, and OpenRouter are available as selectable providers
+- THEN OpenAI, Google Gemini, and OpenRouter are available as selectable providers
+- AND Anthropic is not shown as a selectable provider by default
 - AND OpenCode is not shown as a v1 provider
+
+#### Scenario: Anthropic remains implemented but disabled pending real-key smoke
+
+- GIVEN the Anthropic provider class and `make_provider( 'anthropic' )` branch exist
+- WHEN `list_providers()` / `provider_exists( 'anthropic' )` are evaluated with default registration
+- THEN Anthropic is not listed as selectable
+- AND `provider_exists( 'anthropic' )` is false
+- AND REST/UI cannot configure Anthropic unless it is explicitly re-added to the selectable provider list (or via the `rms_wizard_ai_providers` filter)
 
 #### Scenario: Existing provider remains usable
 
