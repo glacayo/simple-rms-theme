@@ -510,7 +510,8 @@ class Step_Home_Page_Builder {
 
 	private function maybe_mark_completed(): void {
 		$state    = $this->state_manager->get_state();
-		$required = [ 'dependencies', 'acf-import', 'client-data', 'generate-pages', 'menu-setup', 'ia-generation', 'home-page-builder' ];
+		// Shared source of truth via Step_Controller::get_required_steps().
+		$required = Step_Controller::get_required_steps();
 
 		foreach ( $required as $step ) {
 			if ( 'complete' !== ( $state['step_status'][ $step ] ?? '' ) ) {

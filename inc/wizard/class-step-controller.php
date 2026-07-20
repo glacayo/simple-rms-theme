@@ -14,6 +14,28 @@ defined( 'ABSPATH' ) || exit;
  */
 class Step_Controller {
 	private const LOCK_NAME = 'step_execution';
+
+	/**
+	 * Pseudo-steps allowed while the wizard is completed/locked.
+	 * These must never write current_step or step_status.
+	 *
+	 * @var string[]
+	 */
+	private const COMPLETED_GATE_ALLOWLIST = [
+		'unlock',
+		'relock',
+	];
+
+	/**
+	 * Single source of truth for currently required wizard steps.
+	 * Consumed by complete() and step services (e.g. maybe_mark_completed).
+	 *
+	 * Phase 1 keeps the existing 7-step completion path valid. Append
+	 * `landing-page-builder` only when that step is registered/dispatched
+	 * (Phase 2+), never while the runtime/UI is absent.
+	 *
+	 * @var string[]
+	 */
 	private const REQUIRED_STEPS = [
 		'dependencies',
 		'acf-import',
@@ -24,12 +46,43 @@ class Step_Controller {
 		'home-page-builder',
 	];
 
+	/**
+	 * Steps that may be dispatched by execute_step() right now.
+	 * Must stay in sync with dispatch_step() cases.
+	 *
+	 * Phase 1 intentionally omits `landing-page-builder` until Phase 2
+	 * registers its runtime. Unknown/unimplemented steps must be rejected
+	 * before any current_step / step_status writes.
+	 *
+	 * @var string[]
+	 */
+	private const DISPATCHABLE_STEPS = [
+		'dependencies',
+		'acf-import',
+		'client-data',
+		'generate-pages',
+		'menu-setup',
+		'ia-generation',
+		'home-page-builder',
+		'unlock',
+		'relock',
+	];
+
 	private $state_manager;
 	private $logger;
 
 	public function __construct( ?State_Manager $state_manager = null, ?Logger $logger = null ) {
 		$this->state_manager = $state_manager ?? new State_Manager();
 		$this->logger        = $logger ?? new Logger();
+	}
+
+	/**
+	 * Shared required-step list used for completion checks.
+	 *
+	 * @return string[]
+	 */
+	public static function get_required_steps(): array {
+		return self::REQUIRED_STEPS;
 	}
 
 	/**
@@ -45,9 +98,16 @@ class Step_Controller {
 	 * @return array<string,mixed>
 	 */
 	public function get_resume_state(): array {
-		$state           = $this->state_manager->get_state();
-		$state['locked'] = $this->state_manager->is_completed();
-		$state['logs']   = $this->logger->all();
+		$state                         = $this->state_manager->get_state();
+		$state['locked']               = $this->state_manager->is_completed();
+		$state['completed_flag']       = $this->state_manager->has_completion_flag();
+		$state['force_unlocked']       = Wizard_Unlock_Controller::is_force_unlocked();
+		$state['controlled_unlock_ui'] = Wizard_Unlock_Controller::is_controlled_unlock_enabled();
+		$state['unlocked']             = Wizard_Unlock_Controller::is_unlocked();
+		$state['has_unlock_marker']    = Wizard_Unlock_Controller::has_unlock_marker();
+		$state['unlocked_at']          = (string) \get_option( Wizard_Unlock_Controller::UNLOCKED_AT_OPTION, '' );
+		$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
+		$state['logs']                 = $this->logger->all();
 
 		return $state;
 	}
@@ -67,7 +127,15 @@ class Step_Controller {
 
 		$step = $this->normalize_step( $step );
 
-		if ( $this->state_manager->is_completed() && 'state' !== $step ) {
+		// Reject unknown/unimplemented steps before lock or status writes so
+		// premature aliases (e.g. landing-page-builder before Phase 2 runtime)
+		// cannot pollute current_step / step_status.
+		if ( ! $this->is_dispatchable_step( $step ) ) {
+			return new \WP_Error( 'rms_wizard_unknown_step', \__( 'Unknown setup wizard step.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+		}
+
+		// unlock/relock are the only pseudo-steps allowed through the completed gate.
+		if ( $this->state_manager->is_completed() && ! $this->is_completed_gate_allowlisted( $step ) ) {
 			return new \WP_Error( 'rms_wizard_locked', \__( 'The setup wizard is already complete.', 'simple-rms-theme' ), [ 'status' => 423 ] );
 		}
 
@@ -75,9 +143,15 @@ class Step_Controller {
 			return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
 		}
 
+		$progress_status_written = false;
+
 		try {
-			$this->state_manager->set_current_step( $step );
-			$this->state_manager->set_step_status( $step, 'running' );
+			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
+			if ( ! $this->is_completed_gate_allowlisted( $step ) ) {
+				$this->state_manager->set_current_step( $step );
+				$this->state_manager->set_step_status( $step, 'running' );
+				$progress_status_written = true;
+			}
 
 			$result = $this->dispatch_step( $step, $payload );
 
@@ -91,6 +165,38 @@ class Step_Controller {
 				'result'  => $result,
 				'state'   => $this->get_resume_state(),
 			];
+		} catch ( \Throwable $throwable ) {
+			// Progress steps must not remain "running" after an unexpected failure.
+			// Unlock/relock never set progress status, so they skip this path.
+			if ( $progress_status_written ) {
+				$failed_saved = $this->state_manager->set_step_status( $step, 'failed' );
+
+				if ( ! $failed_saved ) {
+					$this->logger->log(
+						'error',
+						'Setup wizard could not mark step status as failed after unexpected error.',
+						[
+							'step'    => $step,
+							'message' => $throwable->getMessage(),
+						]
+					);
+				}
+			}
+
+			$this->logger->log(
+				'error',
+				'Setup wizard step threw an unexpected error.',
+				[
+					'step'    => $step,
+					'message' => $throwable->getMessage(),
+				]
+			);
+
+			return new \WP_Error(
+				'rms_wizard_step_exception',
+				\__( 'The setup wizard step failed unexpectedly.', 'simple-rms-theme' ),
+				[ 'status' => 500 ]
+			);
 		} finally {
 			$this->state_manager->release_lock( self::LOCK_NAME );
 		}
@@ -107,7 +213,7 @@ class Step_Controller {
 		}
 
 		$state    = $this->state_manager->get_state();
-		$required = self::REQUIRED_STEPS;
+		$required = self::get_required_steps();
 
 		foreach ( $required as $step ) {
 			if ( 'complete' !== ( $state['step_status'][ $step ] ?? '' ) ) {
@@ -152,8 +258,15 @@ class Step_Controller {
 			case 'home-page-builder':
 				return ( new Step_Home_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
+			case 'unlock':
+				return ( new Wizard_Unlock_Controller( $this->state_manager, $this->logger ) )->unlock();
+
+			case 'relock':
+				return ( new Wizard_Unlock_Controller( $this->state_manager, $this->logger ) )->relock();
+
 			default:
-				$this->state_manager->set_step_status( $step, 'failed' );
+				// Defense in depth: execute_step() already rejects non-dispatchable
+				// steps before status writes. Never mark unknown steps failed here.
 				return new \WP_Error( 'rms_wizard_unknown_step', \__( 'Unknown setup wizard step.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 	}
@@ -238,18 +351,35 @@ class Step_Controller {
 	private function normalize_step( string $step ): string {
 		$step = \sanitize_key( $step );
 
+		// Do not alias landing_page_builder → landing-page-builder until Phase 2
+		// registers dispatch + runtime. Premature normalization would make an
+		// unimplemented step look "real" before the dispatchability guard runs.
 		$aliases = [
-			'acf_import'       => 'acf-import',
-			'client_data'      => 'client-data',
-			'ai-generation'    => 'ia-generation',
-			'ai_generation'    => 'ia-generation',
-			'ia_generation'    => 'ia-generation',
+			'acf_import'        => 'acf-import',
+			'client_data'       => 'client-data',
+			'ai-generation'     => 'ia-generation',
+			'ai_generation'     => 'ia-generation',
+			'ia_generation'     => 'ia-generation',
 			'generate_pages'    => 'generate-pages',
 			'menu_setup'        => 'menu-setup',
 			'home_page_builder' => 'home-page-builder',
 		];
 
 		return $aliases[ $step ] ?? $step;
+	}
+
+	/**
+	 * Whether a step may bypass the completed/locked gate.
+	 */
+	private function is_completed_gate_allowlisted( string $step ): bool {
+		return in_array( $step, self::COMPLETED_GATE_ALLOWLIST, true );
+	}
+
+	/**
+	 * Whether a normalized step has a live dispatch path.
+	 */
+	private function is_dispatchable_step( string $step ): bool {
+		return in_array( $step, self::DISPATCHABLE_STEPS, true );
 	}
 
 	private function dependencies_are_active( array $status ): bool {

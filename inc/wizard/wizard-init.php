@@ -94,6 +94,89 @@ add_action(
 	}
 );
 
+// Unlock admin-post is inactive until CONTROLLED_UNLOCK_ENABLED flips (Phase 2 task 2.6).
+// Relock stays registered so stale unlock markers can still be cleared.
+if ( Inc\Wizard\Wizard_Unlock_Controller::is_controlled_unlock_enabled() ) {
+	add_action( 'admin_post_' . Inc\Wizard\Wizard_Unlock_Controller::UNLOCK_ACTION, 'rms_wizard_handle_unlock_action' );
+}
+add_action( 'admin_post_' . Inc\Wizard\Wizard_Unlock_Controller::RELOCK_ACTION, 'rms_wizard_handle_relock_action' );
+
+/**
+ * Handle controlled unlock form posts from the Setup Wizard admin notice.
+ *
+ * Registered only while controlled unlock is enabled. REST still routes unlock
+ * through Step_Controller → Wizard_Unlock_Controller::unlock(), which returns
+ * 503 while the feature is disabled.
+ *
+ * @return void
+ */
+function rms_wizard_handle_unlock_action(): void {
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::is_controlled_unlock_enabled() ) {
+		wp_die( esc_html__( 'Controlled unlock is not available until landing page protection is enabled.', 'simple-rms-theme' ) );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to unlock the setup wizard.', 'simple-rms-theme' ) );
+	}
+
+	$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['_wpnonce'] ) ) : '';
+
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::verify_admin_nonce( $nonce ) ) {
+		wp_die( esc_html__( 'Invalid unlock request. Please try again.', 'simple-rms-theme' ) );
+	}
+
+	$result = ( new Inc\Wizard\Wizard_Unlock_Controller() )->unlock();
+
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html( $result->get_error_message() ) );
+	}
+
+	wp_safe_redirect(
+		add_query_arg(
+			[
+				'page'                => 'rms-setup-wizard',
+				'rms_wizard_unlocked' => '1',
+			],
+			admin_url( 'themes.php' )
+		)
+	);
+	exit;
+}
+
+/**
+ * Handle controlled re-lock form posts from the Setup Wizard admin notice.
+ *
+ * @return void
+ */
+function rms_wizard_handle_relock_action(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to re-lock the setup wizard.', 'simple-rms-theme' ) );
+	}
+
+	$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['_wpnonce'] ) ) : '';
+
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::verify_admin_nonce( $nonce ) ) {
+		wp_die( esc_html__( 'Invalid re-lock request. Please try again.', 'simple-rms-theme' ) );
+	}
+
+	$result = ( new Inc\Wizard\Wizard_Unlock_Controller() )->relock();
+
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html( $result->get_error_message() ) );
+	}
+
+	wp_safe_redirect(
+		add_query_arg(
+			[
+				'page'              => 'rms-setup-wizard',
+				'rms_wizard_relocked' => '1',
+			],
+			admin_url( 'themes.php' )
+		)
+	);
+	exit;
+}
+
 /**
  * Render the setup wizard admin UI.
  *
@@ -104,10 +187,16 @@ function rms_wizard_render_admin_page(): void {
 		wp_die( esc_html__( 'You do not have permission to access the setup wizard.', 'simple-rms-theme' ) );
 	}
 
-	$controller = new Inc\Wizard\Step_Controller();
-	$state      = $controller->get_resume_state();
-	$locked     = ! empty( $state['locked'] );
-	$steps      = [
+	$controller         = new Inc\Wizard\Step_Controller();
+	$state              = $controller->get_resume_state();
+	// Trust resume-state flags from Step_Controller (single source of truth).
+	$locked             = ! empty( $state['locked'] );
+	$completed_flag     = ! empty( $state['completed_flag'] );
+	$is_unlocked        = ! empty( $state['unlocked'] );
+	$has_unlock_marker  = ! empty( $state['has_unlock_marker'] );
+	$force_unlocked     = ! empty( $state['force_unlocked'] );
+	$unlock_ui_enabled  = ! empty( $state['controlled_unlock_ui'] );
+	$steps              = [
 		'dependencies'      => __( 'Dependencies', 'simple-rms-theme' ),
 		'acf-import'        => __( 'ACF Import', 'simple-rms-theme' ),
 		'client-data'       => __( 'Client Data', 'simple-rms-theme' ),
@@ -135,9 +224,64 @@ function rms_wizard_render_admin_page(): void {
 		data-rms-wizard-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 	>
 		<h1><?php esc_html_e( 'Setup Wizard', 'simple-rms-theme' ); ?></h1>
-		<?php if ( $locked ) : ?>
-			<div class="notice notice-success inline">
-				<p><?php esc_html_e( 'The setup wizard has already been completed. Define RMS_WIZARD_FORCE as true to run it again in development.', 'simple-rms-theme' ); ?></p>
+		<?php if ( $unlock_ui_enabled && ! empty( $_GET['rms_wizard_unlocked'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php esc_html_e( 'Setup wizard unlocked for editing. Completion state was preserved.', 'simple-rms-theme' ); ?></p>
+			</div>
+		<?php endif; ?>
+		<?php /* Relock success can happen for stale-marker cleanup while unlock UI is still disabled. */ ?>
+		<?php if ( ! empty( $_GET['rms_wizard_relocked'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php esc_html_e( 'Setup wizard re-locked. The site is read-only again.', 'simple-rms-theme' ); ?></p>
+			</div>
+		<?php endif; ?>
+		<?php if ( $force_unlocked ) : ?>
+			<div class="notice notice-info inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="force">
+				<p>
+					<?php esc_html_e( 'The setup wizard is force-unlocked via RMS_WIZARD_FORCE. Completion state is ignored for editing in this environment.', 'simple-rms-theme' ); ?>
+				</p>
+			</div>
+		<?php elseif ( $completed_flag && $has_unlock_marker ) : ?>
+			<?php /* Relock clears markers even when controlled unlock is disabled (stale cleanup). */ ?>
+			<div class="notice notice-warning inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="relock">
+				<p>
+					<?php
+					echo esc_html(
+						$is_unlocked
+							? __( 'The setup wizard is unlocked for editing. Completion state is preserved. Re-lock when you are finished to restore read-only mode.', 'simple-rms-theme' )
+							: __( 'A leftover unlock marker was found while controlled unlock is disabled. Re-lock to clear it and keep the wizard read-only.', 'simple-rms-theme' )
+					);
+					?>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rms-wizard-controlled-unlock__form">
+					<input type="hidden" name="action" value="<?php echo esc_attr( Inc\Wizard\Wizard_Unlock_Controller::RELOCK_ACTION ); ?>">
+					<?php wp_nonce_field( Inc\Wizard\Wizard_Unlock_Controller::NONCE_ACTION ); ?>
+					<?php submit_button( __( 'Re-lock wizard', 'simple-rms-theme' ), 'secondary', 'submit', false ); ?>
+				</form>
+			</div>
+		<?php elseif ( $unlock_ui_enabled && ( $locked || ( $completed_flag && ! $is_unlocked ) ) ) : ?>
+			<?php /* Unlock form is gated; admin-post handler is registered only when enabled. */ ?>
+			<div class="notice notice-success inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="unlock">
+				<p>
+					<?php esc_html_e( 'The setup wizard has already been completed and is read-only. Unlock it to make non-destructive edits without resetting completion state.', 'simple-rms-theme' ); ?>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rms-wizard-controlled-unlock__form">
+					<input type="hidden" name="action" value="<?php echo esc_attr( Inc\Wizard\Wizard_Unlock_Controller::UNLOCK_ACTION ); ?>">
+					<?php wp_nonce_field( Inc\Wizard\Wizard_Unlock_Controller::NONCE_ACTION ); ?>
+					<?php submit_button( __( 'Unlock wizard for editing', 'simple-rms-theme' ), 'primary', 'submit', false ); ?>
+				</form>
+				<p class="description">
+					<?php esc_html_e( 'Developers may also define RMS_WIZARD_FORCE as true to bypass the lock in local environments.', 'simple-rms-theme' ); ?>
+				</p>
+			</div>
+		<?php elseif ( $locked || ( $completed_flag && ! $is_unlocked ) ) : ?>
+			<div class="notice notice-success inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="readonly">
+				<p>
+					<?php esc_html_e( 'The setup wizard has already been completed and is read-only.', 'simple-rms-theme' ); ?>
+				</p>
+				<p class="description">
+					<?php esc_html_e( 'Controlled unlock will be available after landing page protection ships. Developers may define RMS_WIZARD_FORCE as true to bypass the lock in local environments.', 'simple-rms-theme' ); ?>
+				</p>
 			</div>
 		<?php endif; ?>
 
