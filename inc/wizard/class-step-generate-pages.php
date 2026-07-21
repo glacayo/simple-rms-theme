@@ -49,6 +49,15 @@ class Step_Generate_Pages {
 			return $roles;
 		}
 
+		// Fail closed: never select/update/assign residual SEO/Ads landings via generate-pages.
+		$landing_conflict = $this->reject_selected_landing_slugs( array_keys( $pages ) );
+
+		if ( \is_wp_error( $landing_conflict ) ) {
+			$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+			return $landing_conflict;
+		}
+
 		if ( ! $this->confirmed_cleanup( $payload ) ) {
 			$this->state_manager->set_step_status( self::STEP, 'pending' );
 
@@ -65,7 +74,15 @@ class Step_Generate_Pages {
 
 		foreach ( $pages as $slug => $page ) {
 			$existing = \get_page_by_path( $slug, \OBJECT, 'page' );
-			$post_id  = $this->content_builder->build_page(
+
+			// Defense-in-depth: residual landings must never be updated/published here.
+			if ( $existing && $this->is_landing_page( (int) $existing->ID ) ) {
+				$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+				return $this->landing_slug_conflict_error( $slug, (int) $existing->ID );
+			}
+
+			$post_id = $this->content_builder->build_page(
 				[
 					'id'      => $existing ? (int) $existing->ID : 0,
 					'title'   => $page['title'],
@@ -79,6 +96,12 @@ class Step_Generate_Pages {
 				$this->state_manager->set_step_status( self::STEP, 'failed' );
 
 				return new \WP_Error( 'rms_wizard_page_create_failed', \__( 'One or more selected pages could not be created.', 'simple-rms-theme' ), [ 'status' => 500 ] );
+			}
+
+			if ( $this->is_landing_page( $post_id ) ) {
+				$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+				return $this->landing_slug_conflict_error( $slug, $post_id );
 			}
 
 			$role = '';
@@ -97,7 +120,13 @@ class Step_Generate_Pages {
 			];
 		}
 
-		$this->assign_reading_pages( $generated_pages, $roles['home_slug'], $roles['blog_slug'] );
+		$reading = $this->assign_reading_pages( $generated_pages, $roles['home_slug'], $roles['blog_slug'] );
+
+		if ( \is_wp_error( $reading ) ) {
+			$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+			return $reading;
+		}
 
 		$state['created_posts']   = $created_posts;
 		$state['generated_pages'] = $generated_pages;
@@ -198,7 +227,8 @@ class Step_Generate_Pages {
 	}
 
 	private function delete_unselected_pages( array $selected_slugs ): void {
-		$page_ids = \get_posts(
+		$protected_slugs = $this->protected_landing_slugs();
+		$page_ids        = \get_posts(
 			[
 				'post_type'      => 'page',
 				'post_status'    => 'any',
@@ -214,8 +244,109 @@ class Step_Generate_Pages {
 				continue;
 			}
 
+			// Primary guard: never hard-delete wizard landing pages on generate-pages cleanup.
+			if ( $this->is_landing_page( (int) $page_id ) ) {
+				continue;
+			}
+
+			// Defense-in-depth: protect slugs still tracked in state.landing_pages.
+			if ( in_array( $post->post_name, $protected_slugs, true ) ) {
+				continue;
+			}
+
 			\wp_delete_post( (int) $page_id, true );
 		}
+	}
+
+	/**
+	 * Reject payload slugs that already resolve to residual SEO/Ads landing pages.
+	 *
+	 * @param string[] $slugs
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function reject_selected_landing_slugs( array $slugs ) {
+		foreach ( $slugs as $slug ) {
+			$slug = \sanitize_title( (string) $slug );
+
+			if ( '' === $slug ) {
+				continue;
+			}
+
+			$existing = \get_page_by_path( $slug, \OBJECT, 'page' );
+
+			if ( $existing && $this->is_landing_page( (int) $existing->ID ) ) {
+				return $this->landing_slug_conflict_error( $slug, (int) $existing->ID );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Whether a page is a wizard SEO/Ads landing (post meta rms_landing_type).
+	 */
+	private function is_landing_page( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+
+		$landing_type = \sanitize_key( (string) \get_post_meta( $post_id, 'rms_landing_type', true ) );
+
+		return in_array( $landing_type, [ 'seo', 'ads' ], true );
+	}
+
+	/**
+	 * Operator-facing error when generate-pages collides with a landing page.
+	 */
+	private function landing_slug_conflict_error( string $slug, int $post_id ): \WP_Error {
+		$this->logger->log(
+			'error',
+			'Generate-pages rejected slug that belongs to an existing landing page.',
+			[
+				'slug'    => $slug,
+				'post_id' => $post_id,
+			]
+		);
+
+		return new \WP_Error(
+			'rms_wizard_page_slug_is_landing',
+			sprintf(
+				/* translators: %s: page slug. */
+				\__( 'Slug "%s" belongs to an existing landing page and cannot be selected, updated, or assigned as Home/Blog by generate-pages.', 'simple-rms-theme' ),
+				$slug
+			),
+			[
+				'status'  => 400,
+				'slug'    => $slug,
+				'post_id' => $post_id,
+			]
+		);
+	}
+
+	/**
+	 * Slugs from state.landing_pages that must survive generate-pages cleanup.
+	 *
+	 * @return string[]
+	 */
+	private function protected_landing_slugs(): array {
+		$state    = $this->state_manager->get_state();
+		$landings = is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [];
+		$slugs    = [];
+
+		foreach ( $landings as $landing ) {
+			if ( ! is_array( $landing ) ) {
+				continue;
+			}
+
+			$slug = \sanitize_title( (string) ( $landing['slug'] ?? '' ) );
+
+			if ( '' !== $slug ) {
+				$slugs[] = $slug;
+			}
+		}
+
+		return array_values( array_unique( $slugs ) );
 	}
 
 	private function generate_page_content( string $title, string $slug, array $client_data, array $ai_config ): string {
@@ -244,7 +375,14 @@ class Step_Generate_Pages {
 		return '<p>' . \esc_html( $company ) . ' provides reliable, professional service with clear communication from start to finish.</p><p>This ' . \esc_html( $title ) . ' page was generated by the setup wizard and can be refined after launch.</p>';
 	}
 
-	private function assign_reading_pages( array $generated_pages, string $home_slug, string $blog_slug ): void {
+	/**
+	 * Assign Reading settings. Never promote a landing page to Home/Blog.
+	 *
+	 * @param array<int,array<string,mixed>> $generated_pages
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function assign_reading_pages( array $generated_pages, string $home_slug, string $blog_slug ) {
 		$ids_by_slug = [];
 
 		foreach ( $generated_pages as $page ) {
@@ -252,11 +390,29 @@ class Step_Generate_Pages {
 		}
 
 		if ( ! empty( $ids_by_slug[ $home_slug ] ) ) {
+			$home_id = (int) $ids_by_slug[ $home_slug ];
+
+			if ( $this->is_landing_page( $home_id ) ) {
+				return $this->landing_slug_conflict_error( $home_slug, $home_id );
+			}
+
 			\update_option( 'show_on_front', 'page', false );
-			\update_option( 'page_on_front', $ids_by_slug[ $home_slug ], false );
+			\update_option( 'page_on_front', $home_id, false );
 		}
 
-		\update_option( 'page_for_posts', '' !== $blog_slug && ! empty( $ids_by_slug[ $blog_slug ] ) ? $ids_by_slug[ $blog_slug ] : 0, false );
+		if ( '' !== $blog_slug && ! empty( $ids_by_slug[ $blog_slug ] ) ) {
+			$blog_id = (int) $ids_by_slug[ $blog_slug ];
+
+			if ( $this->is_landing_page( $blog_id ) ) {
+				return $this->landing_slug_conflict_error( $blog_slug, $blog_id );
+			}
+
+			\update_option( 'page_for_posts', $blog_id, false );
+		} else {
+			\update_option( 'page_for_posts', 0, false );
+		}
+
+		return true;
 	}
 
 	private function available_pages(): array {

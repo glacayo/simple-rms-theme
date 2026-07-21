@@ -21,14 +21,16 @@ class Step_Home_Page_Builder {
 	private $layout_repository;
 	private $harness;
 	private $reviewer;
+	private $canonical_store;
 
-	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null, ?AI_Content_Harness $harness = null, ?AI_Content_Reviewer $reviewer = null ) {
+	public function __construct( ?Logger $logger = null, ?State_Manager $state_manager = null, ?Content_Builder $content_builder = null, ?Flexible_Content_Layouts $layout_repository = null, ?AI_Content_Harness $harness = null, ?AI_Content_Reviewer $reviewer = null, ?Canonical_Section_Store $canonical_store = null ) {
 		$this->logger            = $logger ?? new Logger();
 		$this->state_manager     = $state_manager ?? new State_Manager();
 		$this->content_builder   = $content_builder ?? new Content_Builder( $this->logger, $this->state_manager );
 		$this->layout_repository = $layout_repository ?? new Flexible_Content_Layouts();
 		$this->harness           = $harness ?? new AI_Content_Harness();
 		$this->reviewer          = $reviewer;
+		$this->canonical_store   = $canonical_store ?? new Canonical_Section_Store();
 	}
 
 	/**
@@ -115,6 +117,7 @@ class Step_Home_Page_Builder {
 		$state['selected_home_sections'] = $sections;
 		$state['home_section_rows']      = $section_rows;
 		$state['home_sections']          = $prepared_sections;
+		$state['canonical_sections']     = $this->first_write_canonical_sections( $prepared_sections );
 
 		$this->state_manager->save_state( $state );
 		$this->state_manager->set_step_status( self::STEP, 'complete' );
@@ -122,6 +125,33 @@ class Step_Home_Page_Builder {
 		$this->logger->log( 'info', 'Wizard Home page sections built.', [ 'post_id' => $post_id, 'sections' => $sections ] );
 
 		return [ 'post_id' => $post_id, 'sections' => $sections ];
+	}
+
+	/**
+	 * First-write reusable prepared rows into the canonical store.
+	 *
+	 * Skips keyword layouts (hero / seo-content). Never overwrites existing entries.
+	 *
+	 * @param array<int,array<string,mixed>> $prepared_sections Prepared ACF rows.
+	 *
+	 * @return array<string,array{has_payload:bool,generated_at:string}>
+	 */
+	private function first_write_canonical_sections( array $prepared_sections ): array {
+		foreach ( $prepared_sections as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$layout = \sanitize_key( (string) ( $row['acf_fc_layout'] ?? '' ) );
+
+			if ( '' === $layout || ! $this->harness->is_reusable_layout( $layout ) ) {
+				continue;
+			}
+
+			$this->canonical_store->set_if_empty( $layout, $row );
+		}
+
+		return $this->canonical_store->summary();
 	}
 
 	private function selected_section_rows( array $payload ): array {

@@ -45,12 +45,24 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Backend Landing Slice
 
-- [ ] 2.1 Modify `inc/wizard/class-ai-content-harness.php` with `PAGE_LANDING` Layer 2 and Layer 3 keywords only for `hero` / `seo-content`.
-- [ ] 2.2 Modify `inc/wizard/class-step-home-page-builder.php` to first-write reusable prepared rows to `Canonical_Section_Store`, excluding `hero` / `seo-content`.
-- [ ] 2.3 Create `inc/wizard/class-step-landing-page-builder.php` with payload validation, id/key/slug matching, duplicate/collision rejection, renames, and skip-all completion.
-- [ ] 2.4 Add lazy bootstrap in `inc/wizard/class-step-landing-page-builder.php`: `state.home_sections` → Home `page_sections` → neutral generation; block with actionable error if missing.
-- [ ] 2.5 Modify `inc/wizard/class-content-builder.php` to whitelist `meta_input` for `_wp_page_template` and `rms_landing_type` only.
-- [ ] 2.6 Modify `inc/wizard/class-step-generate-pages.php` so `delete_unselected_pages()` excludes pages with `rms_landing_type` meta.
+- [x] 2.1 Modify `inc/wizard/class-ai-content-harness.php` with `PAGE_LANDING` Layer 2 and Layer 3 keywords only for `hero` / `seo-content`.
+- [x] 2.2 Modify `inc/wizard/class-step-home-page-builder.php` to first-write reusable prepared rows to `Canonical_Section_Store`, excluding `hero` / `seo-content`.
+- [x] 2.3 Create `inc/wizard/class-step-landing-page-builder.php` with payload validation, id/key/slug matching, duplicate/collision rejection, renames, and skip-all completion.
+- [x] 2.4 Add lazy bootstrap in `inc/wizard/class-step-landing-page-builder.php`: `state.home_sections` → Home `page_sections` → neutral generation; block with actionable error if missing.
+- [x] 2.5 Modify `inc/wizard/class-content-builder.php` to whitelist `meta_input` for `_wp_page_template` and `rms_landing_type` only.
+- [x] 2.6 Modify `inc/wizard/class-step-generate-pages.php` so `delete_unselected_pages()` excludes pages with `rms_landing_type` meta.
+
+### Phase 2 compatibility notes (PR2 review follow-up)
+
+- **Backend class exists; activation deferred to Phase 3.** `Step_Landing_Page_Builder` is fully implemented (tasks 2.3–2.4), but `landing-page-builder` is **not** in active `REQUIRED_STEPS` or `DISPATCHABLE_STEPS` until Phase 3 wires admin UI + Ads noindex/menu final-state sync. Dispatch `case` + `landing_page_builder` alias remain in code for that activation; alias alone is safe (unknown-step reject before status writes).
+- Existing 7-step UI completion stays valid. Do **not** require the 8th step while UI cannot send payload/`skip_all` visibly.
+- Identity preflight: non-empty `id` + `landing_key` must refer to the same state row; reject duplicate ids/keys, non-landing and other-landing slug collisions, and stale cross-pair identity. Match order is deterministic: id → key → slug.
+- Keyword sections (`hero` / `seo-content`): AI generation/decode/review/empty-validation failures return `WP_Error` (no placeholder publish) unless a valid existing landing payload can be preserved.
+- Multi-landing partial failure: successful `landing_pages` are persisted before marking the step failed; counts/post IDs logged; status write failures logged.
+- Critical persistence (`save_state`, `set_step_status`, meta safety-net, canonical `replace`/`set_if_empty`) verified via post-state checks and logged/`WP_Error` on failure.
+- Reviewer throwables and invalid JSON-on-success are logged with landing key/slug/layout. Reusable/canonical generation/review filters out keyword-driven priors.
+- Shared section-assembly helper extraction deferred (deliberate duplication with Home builder) — extract after PR3 or before archive.
+- Controlled unlock remains enabled with the 2.6 deletion guard (unchanged by this follow-up).
 
 ## Phase 3: Menu, SEO, UI, Template Slice
 
@@ -60,6 +72,7 @@ Chain strategy: feature-branch-chain
 - [ ] 3.4 Modify `src/ts/admin/wizard.ts` for landing collection, keyword validation, skip-all, identity hydration, duplicate reset, unlock/relock, and replace modal.
 - [ ] 3.5 Modify `src/scss/admin/wizard.scss` for landing and unlock admin states only.
 - [ ] 3.6 Modify `pages/landing-page.php` to render flexible `page_sections` and inject `breadcrumb-slim` once after the first Hero.
+- [ ] 3.7 **Activate** `landing-page-builder` atomically: add to `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` (alias + dispatch case already present) together with UI + noindex/menu final-state sync. Do not activate required/dispatch without the visible skip/payload path.
 
 ## Phase 4: Verification
 
