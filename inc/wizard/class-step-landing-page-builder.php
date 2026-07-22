@@ -12,12 +12,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Builds N SEO/Ads landing pages from canonical reusable sections + keyword copy.
  *
- * Phase 2 backend scope: identity preflight, lazy canonical bootstrap, page upsert
- * with template/type meta, and state persistence. Menu/Yoast/noindex final-state
- * sync remains Phase 3.
- *
- * PR2 safety: class is implemented but NOT active in REQUIRED_STEPS / DISPATCHABLE_STEPS
- * until Phase 3 wires UI + Ads noindex/menu final-state sync.
+ * Includes identity preflight, lazy canonical bootstrap, page upsert with
+ * template/type meta, Yoast/noindex final-state sync, and menu reconciliation.
  */
 class Step_Landing_Page_Builder {
 	private const STEP     = 'landing-page-builder';
@@ -46,6 +42,8 @@ class Step_Landing_Page_Builder {
 	private $harness;
 	private $reviewer;
 	private $canonical_store;
+	private $menu_builder;
+	private $yoast_meta_writer;
 
 	public function __construct(
 		?Logger $logger = null,
@@ -54,7 +52,9 @@ class Step_Landing_Page_Builder {
 		?Flexible_Content_Layouts $layout_repository = null,
 		?AI_Content_Harness $harness = null,
 		?AI_Content_Reviewer $reviewer = null,
-		?Canonical_Section_Store $canonical_store = null
+		?Canonical_Section_Store $canonical_store = null,
+		?Menu_Builder $menu_builder = null,
+		?Yoast_Meta_Writer $yoast_meta_writer = null
 	) {
 		$this->logger            = $logger ?? new Logger();
 		$this->state_manager     = $state_manager ?? new State_Manager();
@@ -63,6 +63,8 @@ class Step_Landing_Page_Builder {
 		$this->harness           = $harness ?? new AI_Content_Harness();
 		$this->reviewer          = $reviewer;
 		$this->canonical_store   = $canonical_store ?? new Canonical_Section_Store();
+		$this->menu_builder      = $menu_builder ?? new Menu_Builder( $this->logger );
+		$this->yoast_meta_writer = $yoast_meta_writer ?? new Yoast_Meta_Writer( $this->logger );
 	}
 
 	/**
@@ -74,6 +76,69 @@ class Step_Landing_Page_Builder {
 	 */
 	public function run( array $payload ) {
 		if ( $this->truthy( $payload['skip_all'] ?? false ) ) {
+			$state             = $this->state_manager->get_state();
+			$existing_landings = $this->normalize_state_landings(
+				is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : []
+			);
+
+			// Existing landings must still receive final-state robots/menu reconciliation.
+			// No existing landings → skip-all is a pure no-op complete.
+			if ( [] !== $existing_landings ) {
+				foreach ( $existing_landings as $landing_key => $row ) {
+					if ( ! is_array( $row ) ) {
+						continue;
+					}
+
+					$post_id     = (int) ( $row['id'] ?? 0 );
+					$slug        = (string) ( $row['slug'] ?? '' );
+					$log_context = [
+						'landing_key' => (string) ( $row['landing_key'] ?? $landing_key ),
+						'slug'        => $slug,
+						'skip_all'    => true,
+					];
+
+					if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
+						$post_id = $this->recover_build_page_post_id( $post_id, $slug );
+					}
+
+					if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
+						$this->mark_step_status( 'failed' );
+
+						return new \WP_Error(
+							'rms_wizard_landing_skip_all_missing_post',
+							sprintf(
+								/* translators: %s: landing key or slug. */
+								\__( 'Skip-all could not reconcile landing "%s": page not found.', 'simple-rms-theme' ),
+								'' !== (string) ( $row['landing_key'] ?? '' )
+									? (string) $row['landing_key']
+									: ( '' !== $slug ? $slug : (string) $landing_key )
+							),
+							array_merge( [ 'status' => 500 ], $log_context )
+						);
+					}
+
+					$final_state = $this->sync_landing_final_state( $post_id, $row, $log_context );
+
+					if ( \is_wp_error( $final_state ) ) {
+						$this->mark_step_status( 'failed' );
+						$this->logger->log(
+							'error',
+							'Skip-all final-state sync failed; step not marked complete.',
+							array_merge(
+								$log_context,
+								[
+									'post_id'       => $post_id,
+									'error_code'    => $final_state->get_error_code(),
+									'error_message' => $final_state->get_error_message(),
+								]
+							)
+						);
+
+						return $final_state;
+					}
+				}
+			}
+
 			if ( ! $this->mark_step_status( 'complete' ) ) {
 				return new \WP_Error(
 					'rms_wizard_landing_status_persist_failed',
@@ -863,6 +928,11 @@ class Step_Landing_Page_Builder {
 				)
 			);
 
+			// Ads may already be published — best-effort noindex/menu cleanup before failing.
+			if ( $recovered_id > 0 ) {
+				$this->protect_ads_final_state_best_effort( $recovered_id, $row, $log_context );
+			}
+
 			$error_data = array_merge(
 				[
 					'status'          => 500,
@@ -888,13 +958,37 @@ class Step_Landing_Page_Builder {
 		}
 
 		if ( $post_id <= 0 ) {
-			return new \WP_Error( 'rms_wizard_landing_save_failed', \__( 'Landing page could not be saved.', 'simple-rms-theme' ), array_merge( [ 'status' => 500 ], $log_context ) );
+			$recovered_id = $this->recover_build_page_post_id( $existing_id, (string) $row['slug'] );
+
+			if ( $recovered_id > 0 ) {
+				$this->protect_ads_final_state_best_effort( $recovered_id, $row, $log_context );
+			}
+
+			return new \WP_Error(
+				'rms_wizard_landing_save_failed',
+				\__( 'Landing page could not be saved.', 'simple-rms-theme' ),
+				array_merge(
+					[ 'status' => 500 ],
+					$log_context,
+					$recovered_id > 0 ? [ 'post_id' => $recovered_id ] : []
+				)
+			);
 		}
 
 		$meta_ok = $this->ensure_landing_meta( $post_id, (string) $row['landing_type'], $log_context );
 
 		if ( \is_wp_error( $meta_ok ) ) {
+			// Published page without verified meta — protect Ads before surfacing failure.
+			$this->protect_ads_final_state_best_effort( $post_id, $row, $log_context );
+
 			return $meta_ok;
+		}
+
+		// Final-state Yoast + robots + menu reconciliation (every create/update).
+		$final_state = $this->sync_landing_final_state( $post_id, $row, $log_context );
+
+		if ( \is_wp_error( $final_state ) ) {
+			return $final_state;
 		}
 
 		$entry = [
@@ -918,6 +1012,247 @@ class Step_Landing_Page_Builder {
 			'landing_key'    => (string) $row['landing_key'],
 			'prior_payloads' => $local_priors,
 		];
+	}
+
+	/**
+	 * Apply final-state menu + robots + Yoast title/metadesc for one landing.
+	 *
+	 * SEO: clear noindex; append to configured menus idempotently when eligible.
+	 * Ads: write noindex + read-back (fail closed); remove from configured menus.
+	 *
+	 * @param array<string,mixed> $row
+	 * @param array<string,mixed> $log_context
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function sync_landing_final_state( int $post_id, array $row, array $log_context ) {
+		$landing_type    = \sanitize_key( (string) ( $row['landing_type'] ?? 'seo' ) );
+		$landing_type    = in_array( $landing_type, [ 'seo', 'ads' ], true ) ? $landing_type : 'seo';
+		$primary_keyword = (string) ( $row['primary_keyword'] ?? '' );
+		$title           = (string) ( $row['title'] ?? '' );
+		$menu_eligible   = array_key_exists( 'menu_eligible', $row )
+			? (bool) $row['menu_eligible']
+			: ( 'seo' === $landing_type );
+
+		// Optional Yoast title/metadesc (skip+log when Yoast absent — never fails the step).
+		$this->yoast_meta_writer->write_landing_seo( $post_id, $primary_keyword, $landing_type, $title );
+
+		// Robots final state.
+		if ( 'ads' === $landing_type ) {
+			$noindex = $this->yoast_meta_writer->set_noindex( $post_id, true );
+
+			if ( \is_wp_error( $noindex ) ) {
+				return $noindex;
+			}
+		} else {
+			$clear = $this->yoast_meta_writer->set_noindex( $post_id, false );
+
+			if ( \is_wp_error( $clear ) ) {
+				return $clear;
+			}
+		}
+
+		// Menu final state against currently configured theme menus.
+		$menu_ids = $this->configured_menu_ids();
+
+		if ( [] === $menu_ids ) {
+			$this->logger->log(
+				'info',
+				'Landing final-state menu sync skipped; no configured menus yet.',
+				array_merge( [ 'post_id' => $post_id, 'landing_type' => $landing_type ], $log_context )
+			);
+
+			return true;
+		}
+
+		$seo_append_failed = [];
+
+		if ( 'seo' === $landing_type && $menu_eligible ) {
+			// SEO menu append is best-effort: log failures with detail, do not fail-close.
+			// Ads menu removal below remains fail-closed.
+			foreach ( $menu_ids as $menu_id ) {
+				$append = $this->menu_builder->append_page_items( $menu_id, [ $post_id ] );
+
+				if ( empty( $append['verified'] ) ) {
+					$failed = is_array( $append['failed_page_ids'] ?? null )
+						? array_values( $append['failed_page_ids'] )
+						: [ $post_id ];
+					$seo_append_failed[] = [
+						'menu_id'         => $menu_id,
+						'failed_page_ids' => $failed,
+						'created'         => is_array( $append['created'] ?? null ) ? $append['created'] : [],
+						'already_present' => is_array( $append['already_present'] ?? null ) ? $append['already_present'] : [],
+					];
+
+					$this->logger->log(
+						'warning',
+						'Landing final-state SEO menu append failed (best-effort; step continues). Ads removal remains fail-closed.',
+						array_merge(
+							[
+								'post_id'          => $post_id,
+								'menu_id'          => $menu_id,
+								'landing_type'     => $landing_type,
+								'failed_page_ids'  => $failed,
+								'created'          => $append['created'] ?? [],
+								'already_present'  => $append['already_present'] ?? [],
+							],
+							$log_context
+						)
+					);
+				}
+			}
+		} else {
+			// Ads / ineligible: fail-closed if menu removal cannot be verified.
+			foreach ( $menu_ids as $menu_id ) {
+				$removal = $this->menu_builder->remove_page_items( $menu_id, [ $post_id ] );
+
+				if ( empty( $removal['verified'] ) ) {
+					$failed = is_array( $removal['failed_page_ids'] ?? null )
+						? array_values( $removal['failed_page_ids'] )
+						: [ $post_id ];
+
+					$this->logger->log(
+						'error',
+						'Landing final-state menu removal failed verification.',
+						array_merge(
+							[
+								'post_id'          => $post_id,
+								'menu_id'          => $menu_id,
+								'landing_type'     => $landing_type,
+								'failed_page_ids'  => $failed,
+							],
+							$log_context
+						)
+					);
+
+					return new \WP_Error(
+						'rms_wizard_landing_menu_remove_failed',
+						sprintf(
+							/* translators: %s: landing title or slug. */
+							\__( 'Landing "%s" could not be removed from menus. Final state was not applied.', 'simple-rms-theme' ),
+							'' !== $title ? $title : (string) ( $row['slug'] ?? $post_id )
+						),
+						array_merge(
+							[
+								'status'          => 500,
+								'post_id'         => $post_id,
+								'menu_id'         => $menu_id,
+								'failed_page_ids' => $failed,
+							],
+							$log_context
+						)
+					);
+				}
+			}
+		}
+
+		$this->logger->log(
+			'info',
+			'Landing final-state menu/robots sync applied.',
+			array_merge(
+				[
+					'post_id'            => $post_id,
+					'landing_type'       => $landing_type,
+					'menu_eligible'      => $menu_eligible,
+					'menu_ids'           => $menu_ids,
+					'seo_append_best_effort' => 'seo' === $landing_type && $menu_eligible,
+					'seo_append_failed'  => $seo_append_failed,
+				],
+				$log_context
+			)
+		);
+
+		return true;
+	}
+
+	/**
+	 * Best-effort Ads final-state protection after a post-publish failure.
+	 *
+	 * Does not change the caller's failure outcome — only attempts noindex + menu
+	 * removal when landing_type is ads and a post ID is known. Logs success/failure.
+	 *
+	 * @param array<string,mixed> $row
+	 * @param array<string,mixed> $log_context
+	 */
+	private function protect_ads_final_state_best_effort( int $post_id, array $row, array $log_context ): void {
+		$post_id      = \absint( $post_id );
+		$landing_type = \sanitize_key( (string) ( $row['landing_type'] ?? 'seo' ) );
+		$landing_type = in_array( $landing_type, [ 'seo', 'ads' ], true ) ? $landing_type : 'seo';
+		$landing_key  = (string) ( $row['landing_key'] ?? ( $log_context['landing_key'] ?? '' ) );
+		$slug         = (string) ( $row['slug'] ?? ( $log_context['slug'] ?? '' ) );
+
+		if ( $post_id <= 0 || 'ads' !== $landing_type ) {
+			return;
+		}
+
+		// Ensure Ads path in sync (menu_eligible false).
+		$protection_row                   = $row;
+		$protection_row['landing_type']   = 'ads';
+		$protection_row['menu_eligible']  = false;
+
+		$protection = $this->sync_landing_final_state( $post_id, $protection_row, $log_context );
+		$ok         = ! \is_wp_error( $protection );
+
+		$this->logger->log(
+			$ok ? 'info' : 'error',
+			$ok
+				? 'Ads best-effort final-state protection succeeded after build failure.'
+				: 'Ads best-effort final-state protection failed after build failure.',
+			array_merge(
+				[
+					'post_id'           => $post_id,
+					'landing_key'       => $landing_key,
+					'slug'              => $slug,
+					'protection_ok'     => $ok,
+					'protection_error'  => $ok ? null : $protection->get_error_code(),
+					'protection_message'=> $ok ? null : $protection->get_error_message(),
+				],
+				$log_context
+			)
+		);
+	}
+
+	/**
+	 * Menu term IDs currently assigned to theme locations / stored menu_config.
+	 *
+	 * @return array<int,int>
+	 */
+	private function configured_menu_ids(): array {
+		$ids   = [];
+		$state = $this->state_manager->get_state();
+		$config = is_array( $state['menu_config'] ?? null ) ? $state['menu_config'] : [];
+
+		foreach ( [ 'primary_menu_id', 'mobile_menu_id' ] as $key ) {
+			$id = \absint( $config[ $key ] ?? 0 );
+
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+
+		if ( is_array( $config['locations'] ?? null ) ) {
+			foreach ( $config['locations'] as $menu_id ) {
+				$id = \absint( $menu_id );
+
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+
+		$locations = \get_theme_mod( 'nav_menu_locations', [] );
+
+		if ( is_array( $locations ) ) {
+			foreach ( $locations as $menu_id ) {
+				$id = \absint( $menu_id );
+
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+
+		return array_values( array_unique( array_filter( $ids ) ) );
 	}
 
 	/**
@@ -1857,6 +2192,9 @@ class Step_Landing_Page_Builder {
 				)
 			);
 
+			// Best-effort Ads protection before returning the original preserve failure.
+			$this->protect_ads_final_state_best_effort( $existing_id, $row, $log_context );
+
 			return new \WP_Error(
 				'rms_wizard_landing_preserve_failed',
 				\__( 'Keyword generation failed and the existing landing page could not be preserved.', 'simple-rms-theme' ),
@@ -1884,6 +2222,9 @@ class Step_Landing_Page_Builder {
 					]
 				)
 			);
+
+			// Best-effort Ads protection before returning the original preserve failure.
+			$this->protect_ads_final_state_best_effort( $existing_id, $row, $log_context );
 
 			return new \WP_Error(
 				'rms_wizard_landing_preserve_failed',
@@ -1915,7 +2256,17 @@ class Step_Landing_Page_Builder {
 				)
 			);
 
+			// Best-effort Ads protection before returning the original meta failure.
+			$this->protect_ads_final_state_best_effort( $existing_id, $row, $log_context );
+
 			return $meta_ok;
+		}
+
+		// Type flips / robots / menu still reconcile even when sections are preserved.
+		$final_state = $this->sync_landing_final_state( $existing_id, $row, $log_context );
+
+		if ( \is_wp_error( $final_state ) ) {
+			return $final_state;
 		}
 
 		$entry = [

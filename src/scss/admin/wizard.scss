@@ -846,6 +846,196 @@
   background: var(--rms-wizard-success);
 }
 
+/* Landing Page Builder + unlock admin states */
+.rms-setup-wizard.is-locked .rms-wizard-step-panel {
+  opacity: 0.92;
+}
+
+.rms-setup-wizard.is-unlocked .rms-wizard-step-nav.is-complete {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rms-wizard-warning), #fff 40%);
+}
+
+.rms-wizard-controlled-unlock__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.rms-wizard-landing-skip-all {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  font-weight: 600;
+  background: #f0f6fc;
+  border: 1px solid #c3d9ed;
+  border-radius: 10px;
+}
+
+.rms-wizard-landing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.rms-wizard-landing-toolbar .rms-wizard-field__instructions {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.rms-wizard-landing-builder {
+  display: grid;
+  gap: 12px;
+}
+
+.rms-wizard-landing-rows {
+  display: grid;
+  gap: 14px;
+}
+
+.rms-wizard-landing-row {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--rms-wizard-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.03);
+}
+
+.rms-wizard-landing-row.is-ads {
+  border-color: color-mix(in srgb, var(--rms-wizard-warning), #fff 35%);
+  background: #fffdf8;
+}
+
+.rms-wizard-landing-row__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rms-wizard-landing-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.rms-wizard-landing-row__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rms-wizard-landing-row__subkeywords {
+  grid-column: 1 / -1;
+}
+
+.rms-wizard-landing-sections {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--rms-wizard-border);
+}
+
+.rms-wizard-landing-sections__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rms-wizard-landing-section-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.rms-wizard-landing-section-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #edf0f2;
+  border-radius: 10px;
+}
+
+.rms-wizard-landing-section-override {
+  display: inline-flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rms-wizard-muted);
+}
+
+.rms-wizard-landing-section-override[hidden] {
+  display: none;
+}
+
+.rms-wizard-landing-builder__empty {
+  padding: 16px;
+  margin: 0;
+  color: var(--rms-wizard-muted);
+  text-align: center;
+  background: #fff;
+  border: 1px dashed var(--rms-wizard-border);
+  border-radius: 12px;
+}
+
+.rms-wizard-landing-replace-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px;
+  background: #fff8e5;
+  border: 1px solid color-mix(in srgb, var(--rms-wizard-warning), #fff 55%);
+  border-left: 4px solid var(--rms-wizard-warning);
+  border-radius: 10px;
+}
+
+.rms-wizard-landing-replace-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.rms-wizard-landing-replace-option {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #f0e2b8;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.rms-wizard-fields.is-skip-all .rms-wizard-landing-builder,
+.rms-wizard-fields.is-skip-all .rms-wizard-landing-toolbar,
+.rms-wizard-fields.is-skip-all .rms-wizard-landing-replace-panel {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+@media (max-width: 782px) {
+  .rms-wizard-landing-row__grid,
+  .rms-wizard-landing-section-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .rms-wizard-next-step.is-ready:hover,
 .rms-wizard-next-step.is-ready:focus-visible {
   filter: brightness(0.95);
