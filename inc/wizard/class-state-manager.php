@@ -36,6 +36,8 @@ class State_Manager {
             'menu_config'            => [],
             'selected_home_sections' => [],
             'home_sections'          => [],
+            'landing_pages'          => [],
+            'canonical_sections'     => [],
             'logs'                   => self::LOG_OPTION,
             'locks'                  => [],
             'updated_at'             => '',
@@ -114,6 +116,10 @@ class State_Manager {
     /**
      * Determine whether the wizard is complete and locked.
      *
+     * Effective unlock overrides make the wizard editable without clearing
+     * the durable `rms_wizard_completed` option. Stale unlock markers are
+     * ignored while controlled unlock is disabled.
+     *
      * @return bool
      */
     public function is_completed(): bool {
@@ -121,6 +127,22 @@ class State_Manager {
             return false;
         }
 
+        if ( ! (bool) \get_option( self::COMPLETED_OPTION, false ) ) {
+            return false;
+        }
+
+        // Only an effective unlock (controlled unlock enabled + marker) bypasses lock.
+        if ( class_exists( __NAMESPACE__ . '\\Wizard_Unlock_Controller' ) && Wizard_Unlock_Controller::is_unlocked() ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the durable completion flag is set (ignores unlock override).
+     */
+    public function has_completion_flag(): bool {
         return (bool) \get_option( self::COMPLETED_OPTION, false );
     }
 

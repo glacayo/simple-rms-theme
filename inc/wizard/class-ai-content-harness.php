@@ -325,7 +325,39 @@ PROMPT;
 		return strtr( $template, self::get_editorial_rule_replacements() );
 	}
 
+	/**
+	 * Layouts that may receive landing keyword context.
+	 *
+	 * @var string[]
+	 */
+	private const KEYWORD_LAYOUTS = [
+		'hero',
+		'seo-content',
+	];
+
 	public function get_layer2( string $page_type = self::PAGE_HOME ): string {
+		if ( self::PAGE_LANDING === $page_type ) {
+			return <<<'PROMPT'
+PAGE CONTEXT: Landing Page
+
+You are writing content for a dedicated landing page with a single conversion goal. Visitors arrive with a specific intent (organic search or paid campaign) and should be guided toward one clear action.
+
+Editorial purpose:
+- Focus the page on one primary offer, service, or search intent without inventing proof.
+- Keep the conversion path clear: promise, proof/trust, process or value, and call to action.
+- Align section roles with a typical landing order: hero, SEO content, trust/value sections (vision/mission, badges, portfolio), social proof, and closing SEO content.
+- Give each section a distinct job so the page does not repeat the same headline pattern or praise language.
+
+Ads vs SEO intent:
+- SEO landings support organic discovery, trust, and long-form helpful copy around a search intent.
+- Ads landings support paid traffic with a tighter offer focus and stronger conversion urgency, still without inventing guarantees or proof.
+
+Tone: Specific, confident, local, and human. Never generic brochure copy, corporate jargon, exaggerated claims, or keyword stuffing.
+
+Write for visitors who already have intent. Content should feel purposeful and conversion-ready, not like a broad Home page overview.
+PROMPT;
+		}
+
 		if ( self::PAGE_HOME !== $page_type ) {
 			$this->log_warning( sprintf( 'Unsupported AI content harness page type "%s"; falling back to PAGE_HOME.', $page_type ) );
 		}
@@ -347,7 +379,64 @@ Write for a general audience discovering this business. Content should feel like
 PROMPT;
 	}
 
-	public function get_layer3( string $layout, int $item_count, array $client_context ): string {
+	/**
+	 * Whether a layout may consume landing keyword placeholders.
+	 */
+	public function is_keyword_layout( string $layout ): bool {
+		return in_array( $this->normalize_layout_key( $layout ), self::KEYWORD_LAYOUTS, true );
+	}
+
+	/**
+	 * Whether a layout is reusable/canonical-eligible (not keyword-driven).
+	 */
+	public function is_reusable_layout( string $layout ): bool {
+		$layout = $this->normalize_layout_key( $layout );
+
+		return '' !== $layout && ! $this->is_keyword_layout( $layout );
+	}
+
+	/**
+	 * Normalize landing keyword context: drop empties and clamp subkeywords to 0–10.
+	 *
+	 * @param array<string,mixed> $keywords Raw keyword payload.
+	 *
+	 * @return array{primary_keyword:string,subkeywords:string[]}
+	 */
+	public function normalize_keywords( array $keywords ): array {
+		$primary = trim( \sanitize_text_field( (string) ( $keywords['primary_keyword'] ?? $keywords['keyword'] ?? '' ) ) );
+		$raw     = $keywords['subkeywords'] ?? $keywords['sub_keywords'] ?? [];
+
+		if ( is_string( $raw ) ) {
+			$raw = preg_split( '/[\n,]+/', $raw ) ?: [];
+		}
+
+		$subkeywords = [];
+
+		foreach ( is_array( $raw ) ? $raw : [] as $item ) {
+			$item = trim( \sanitize_text_field( (string) $item ) );
+
+			if ( '' === $item ) {
+				continue;
+			}
+
+			$subkeywords[] = $item;
+
+			if ( count( $subkeywords ) >= 10 ) {
+				break;
+			}
+		}
+
+		return [
+			'primary_keyword' => $primary,
+			'subkeywords'     => $subkeywords,
+		];
+	}
+
+	/**
+	 * @param array<string,mixed> $client_context Approved client context.
+	 * @param array<string,mixed> $keywords       Optional landing keywords (PAGE_LANDING only).
+	 */
+	public function get_layer3( string $layout, int $item_count, array $client_context, string $page_type = self::PAGE_HOME, array $keywords = [] ): string {
 		$layout        = $this->normalize_layout_key( $layout );
 		$fillable      = $this->get_fillable_fields( $layout );
 		$blocked       = $this->get_blocked_fields( $layout );
@@ -355,19 +444,36 @@ PROMPT;
 		$client_json   = false === $client_json ? '{}' : $client_json;
 		$service_rules = isset( self::SERVICE_DESCRIPTION_FIELDS[ $layout ] ) ? sprintf( ' For service repeaters, preserve the order of client_json.company_services. Service names/titles and service-specific benefits must come only from company_services[].service_name and service_short_description; return descriptions only in %s.', (string) self::SERVICE_DESCRIPTION_FIELDS[ $layout ]['description'] ) : '';
 		$layout_rules  = $this->layout_rules( $layout, $item_count );
+		$normalized    = $this->normalize_keywords( $keywords );
+		$inject_kw     = self::PAGE_LANDING === $page_type && $this->is_keyword_layout( $layout );
+		$primary       = $inject_kw ? $normalized['primary_keyword'] : '';
+		$subkeywords   = $inject_kw ? implode( ', ', $normalized['subkeywords'] ) : '';
+		$keyword_block = '';
 
-		$template = "Layout: {{layout}}\nRequested item count: {{item_count}}\nAllowed JSON keys: {{fillable_fields}}\nBlocked JSON keys: {{blocked_fields}}\nClient JSON: {{client_json}}\nReturn one compact JSON object using only allowed keys. Do not include blocked or unknown keys.{{service_rules}}\n\n{{layout_rules}}";
+		if ( $inject_kw ) {
+			$keyword_block = "\n\nKEYWORD CONTEXT (mandatory for this section only):\n"
+				. '- Primary keyword: {{primary_keyword}}' . "\n"
+				. '- Subkeywords: {{subkeywords}}' . "\n"
+				. "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n"
+				. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
+				. "- Do not invent services, locations, or proof to force keyword usage.";
+		}
+
+		$template = "Layout: {{layout}}\nRequested item count: {{item_count}}\nAllowed JSON keys: {{fillable_fields}}\nBlocked JSON keys: {{blocked_fields}}\nClient JSON: {{client_json}}\nReturn one compact JSON object using only allowed keys. Do not include blocked or unknown keys.{{service_rules}}\n\n{{layout_rules}}{{keyword_block}}";
 
 		return strtr(
 			$template,
 			[
-				'{{layout}}'          => $layout,
-				'{{item_count}}'      => (string) max( 0, $item_count ),
-				'{{fillable_fields}}' => implode( ', ', $fillable ),
-				'{{blocked_fields}}'  => implode( ', ', $blocked ),
-				'{{client_json}}'     => $client_json,
-				'{{service_rules}}'   => $service_rules,
-				'{{layout_rules}}'    => $layout_rules,
+				'{{layout}}'           => $layout,
+				'{{item_count}}'       => (string) max( 0, $item_count ),
+				'{{fillable_fields}}'  => implode( ', ', $fillable ),
+				'{{blocked_fields}}'   => implode( ', ', $blocked ),
+				'{{client_json}}'      => $client_json,
+				'{{service_rules}}'    => $service_rules,
+				'{{layout_rules}}'     => $layout_rules,
+				'{{keyword_block}}'    => $keyword_block,
+				'{{primary_keyword}}'  => '' !== $primary ? $primary : '(none provided)',
+				'{{subkeywords}}'      => '' !== $subkeywords ? $subkeywords : '(none)',
 			]
 		);
 	}

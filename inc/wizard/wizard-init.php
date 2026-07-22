@@ -94,6 +94,244 @@ add_action(
 	}
 );
 
+// Unlock admin-post is inactive until CONTROLLED_UNLOCK_ENABLED flips (Phase 2 task 2.6).
+// Relock stays registered so stale unlock markers can still be cleared.
+if ( Inc\Wizard\Wizard_Unlock_Controller::is_controlled_unlock_enabled() ) {
+	add_action( 'admin_post_' . Inc\Wizard\Wizard_Unlock_Controller::UNLOCK_ACTION, 'rms_wizard_handle_unlock_action' );
+}
+add_action( 'admin_post_' . Inc\Wizard\Wizard_Unlock_Controller::RELOCK_ACTION, 'rms_wizard_handle_relock_action' );
+
+// Always-loaded Ads landing robots + sitemap protections (front-end + sitemaps).
+add_filter( 'wp_robots', 'rms_wizard_ads_landing_wp_robots' );
+add_filter( 'wp_sitemaps_posts_query_args', 'rms_wizard_exclude_ads_landings_from_wp_sitemap', 10, 2 );
+add_filter( 'wpseo_exclude_from_sitemap_by_post_ids', 'rms_wizard_exclude_ads_landings_from_yoast_sitemap' );
+add_filter( 'wpseo_sitemap_entry', 'rms_wizard_filter_yoast_sitemap_entry', 10, 3 );
+
+/**
+ * Force noindex for Ads landings on the landing template (second protection layer).
+ *
+ * Requires ALL of: is_page(), valid queried ID, template pages/landing-page.php,
+ * and rms_landing_type === ads. SEO landings on the same template are untouched.
+ *
+ * @param array<string,bool|string> $robots Robots directives.
+ *
+ * @return array<string,bool|string>
+ */
+function rms_wizard_ads_landing_wp_robots( array $robots ): array {
+	if ( ! is_page() ) {
+		return $robots;
+	}
+
+	$post_id = (int) get_queried_object_id();
+
+	if ( $post_id <= 0 ) {
+		return $robots;
+	}
+
+	$template = (string) get_page_template_slug( $post_id );
+
+	if ( 'pages/landing-page.php' !== $template ) {
+		return $robots;
+	}
+
+	$landing_type = sanitize_key( (string) get_post_meta( $post_id, 'rms_landing_type', true ) );
+
+	if ( 'ads' !== $landing_type ) {
+		return $robots;
+	}
+
+	$robots['noindex']  = true;
+	$robots['nofollow'] = true;
+
+	return $robots;
+}
+
+/**
+ * Exclude Ads landings from the core WordPress XML sitemap query.
+ *
+ * @param array<string,mixed> $args      Query args.
+ * @param string              $post_type Post type.
+ *
+ * @return array<string,mixed>
+ */
+function rms_wizard_exclude_ads_landings_from_wp_sitemap( array $args, string $post_type ): array {
+	if ( 'page' !== $post_type ) {
+		return $args;
+	}
+
+	$meta_query = isset( $args['meta_query'] ) && is_array( $args['meta_query'] ) ? $args['meta_query'] : [];
+
+	$meta_query[] = [
+		'relation' => 'OR',
+		[
+			'key'     => 'rms_landing_type',
+			'compare' => 'NOT EXISTS',
+		],
+		[
+			'key'     => 'rms_landing_type',
+			'value'   => 'ads',
+			'compare' => '!=',
+		],
+	];
+
+	$args['meta_query'] = $meta_query;
+
+	return $args;
+}
+
+/**
+ * Collect Ads landing page IDs for Yoast sitemap exclusion.
+ *
+ * @return array<int,int>
+ */
+function rms_wizard_ads_landing_page_ids(): array {
+	static $ids = null;
+
+	if ( null !== $ids ) {
+		return $ids;
+	}
+
+	$query = new WP_Query(
+		[
+			'post_type'              => 'page',
+			'post_status'            => 'publish',
+			'posts_per_page'         => -1,
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'meta_key'               => 'rms_landing_type',
+			'meta_value'             => 'ads',
+		]
+	);
+
+	$ids = array_map( 'absint', is_array( $query->posts ) ? $query->posts : [] );
+
+	return $ids;
+}
+
+/**
+ * Exclude Ads landings from Yoast sitemaps when the API is available.
+ *
+ * @param array<int,int> $excluded_ids Existing excluded post IDs.
+ *
+ * @return array<int,int>
+ */
+function rms_wizard_exclude_ads_landings_from_yoast_sitemap( $excluded_ids ): array {
+	$excluded_ids = is_array( $excluded_ids ) ? $excluded_ids : [];
+	$ads_ids      = rms_wizard_ads_landing_page_ids();
+
+	if ( [] === $ads_ids ) {
+		return $excluded_ids;
+	}
+
+	return array_values( array_unique( array_merge( array_map( 'absint', $excluded_ids ), $ads_ids ) ) );
+}
+
+/**
+ * Defense-in-depth: drop Ads landings from Yoast sitemap entries.
+ *
+ * @param array<string,mixed>|false $url    Sitemap entry.
+ * @param string                    $type   Object type.
+ * @param object|null               $object Post-like object.
+ *
+ * @return array<string,mixed>|false
+ */
+function rms_wizard_filter_yoast_sitemap_entry( $url, $type, $object ) {
+	if ( false === $url || ! is_object( $object ) || empty( $object->ID ) ) {
+		return $url;
+	}
+
+	if ( 'post' !== $type && 'page' !== $type ) {
+		// Yoast uses 'post' for pages in some versions; also check post_type.
+		if ( empty( $object->post_type ) || 'page' !== $object->post_type ) {
+			return $url;
+		}
+	}
+
+	if ( 'ads' === sanitize_key( (string) get_post_meta( (int) $object->ID, 'rms_landing_type', true ) ) ) {
+		return false;
+	}
+
+	return $url;
+}
+
+/**
+ * Handle controlled unlock form posts from the Setup Wizard admin notice.
+ *
+ * Registered only while controlled unlock is enabled. REST still routes unlock
+ * through Step_Controller → Wizard_Unlock_Controller::unlock(), which returns
+ * 503 while the feature is disabled.
+ *
+ * @return void
+ */
+function rms_wizard_handle_unlock_action(): void {
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::is_controlled_unlock_enabled() ) {
+		wp_die( esc_html__( 'Controlled unlock is not available until landing page protection is enabled.', 'simple-rms-theme' ) );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to unlock the setup wizard.', 'simple-rms-theme' ) );
+	}
+
+	$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['_wpnonce'] ) ) : '';
+
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::verify_admin_nonce( $nonce ) ) {
+		wp_die( esc_html__( 'Invalid unlock request. Please try again.', 'simple-rms-theme' ) );
+	}
+
+	$result = ( new Inc\Wizard\Wizard_Unlock_Controller() )->unlock();
+
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html( $result->get_error_message() ) );
+	}
+
+	wp_safe_redirect(
+		add_query_arg(
+			[
+				'page'                => 'rms-setup-wizard',
+				'rms_wizard_unlocked' => '1',
+			],
+			admin_url( 'themes.php' )
+		)
+	);
+	exit;
+}
+
+/**
+ * Handle controlled re-lock form posts from the Setup Wizard admin notice.
+ *
+ * @return void
+ */
+function rms_wizard_handle_relock_action(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to re-lock the setup wizard.', 'simple-rms-theme' ) );
+	}
+
+	$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['_wpnonce'] ) ) : '';
+
+	if ( ! Inc\Wizard\Wizard_Unlock_Controller::verify_admin_nonce( $nonce ) ) {
+		wp_die( esc_html__( 'Invalid re-lock request. Please try again.', 'simple-rms-theme' ) );
+	}
+
+	$result = ( new Inc\Wizard\Wizard_Unlock_Controller() )->relock();
+
+	if ( is_wp_error( $result ) ) {
+		wp_die( esc_html( $result->get_error_message() ) );
+	}
+
+	wp_safe_redirect(
+		add_query_arg(
+			[
+				'page'              => 'rms-setup-wizard',
+				'rms_wizard_relocked' => '1',
+			],
+			admin_url( 'themes.php' )
+		)
+	);
+	exit;
+}
+
 /**
  * Render the setup wizard admin UI.
  *
@@ -104,27 +342,35 @@ function rms_wizard_render_admin_page(): void {
 		wp_die( esc_html__( 'You do not have permission to access the setup wizard.', 'simple-rms-theme' ) );
 	}
 
-	$controller = new Inc\Wizard\Step_Controller();
-	$state      = $controller->get_resume_state();
-	$locked     = ! empty( $state['locked'] );
-	$steps      = [
-		'dependencies'      => __( 'Dependencies', 'simple-rms-theme' ),
-		'acf-import'        => __( 'ACF Import', 'simple-rms-theme' ),
-		'client-data'       => __( 'Client Data', 'simple-rms-theme' ),
-		'generate-pages'    => __( 'Generate Pages', 'simple-rms-theme' ),
-		'menu-setup'        => __( 'Menu Setup', 'simple-rms-theme' ),
-		'ia-generation'     => __( 'IA Generation', 'simple-rms-theme' ),
-		'home-page-builder' => __( 'Home Page Builder', 'simple-rms-theme' ),
+	$controller         = new Inc\Wizard\Step_Controller();
+	$state              = $controller->get_resume_state();
+	// Trust resume-state flags from Step_Controller (single source of truth).
+	$locked             = ! empty( $state['locked'] );
+	$completed_flag     = ! empty( $state['completed_flag'] );
+	$is_unlocked        = ! empty( $state['unlocked'] );
+	$has_unlock_marker  = ! empty( $state['has_unlock_marker'] );
+	$force_unlocked     = ! empty( $state['force_unlocked'] );
+	$unlock_ui_enabled  = ! empty( $state['controlled_unlock_ui'] );
+	$steps              = [
+		'dependencies'         => __( 'Dependencies', 'simple-rms-theme' ),
+		'acf-import'           => __( 'ACF Import', 'simple-rms-theme' ),
+		'client-data'          => __( 'Client Data', 'simple-rms-theme' ),
+		'generate-pages'       => __( 'Generate Pages', 'simple-rms-theme' ),
+		'menu-setup'           => __( 'Menu Setup', 'simple-rms-theme' ),
+		'ia-generation'        => __( 'IA Generation', 'simple-rms-theme' ),
+		'home-page-builder'    => __( 'Home Page Builder', 'simple-rms-theme' ),
+		'landing-page-builder' => __( 'Landing Page Builder', 'simple-rms-theme' ),
 	];
 	$step_slugs = array_keys( $steps );
 	$descriptions = [
-		'dependencies'      => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
-		'acf-import'        => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
-		'client-data'       => __( 'Save contractor business information into the theme options.', 'simple-rms-theme' ),
-		'generate-pages'    => __( 'Add the site pages to create, then assign the Home and optional Blog roles.', 'simple-rms-theme' ),
-		'menu-setup'        => __( 'Choose generated pages for the primary and mobile menus.', 'simple-rms-theme' ),
-		'ia-generation'     => __( 'Configure the AI provider, model, and encrypted credentials for later content generation.', 'simple-rms-theme' ),
-		'home-page-builder' => __( 'Choose Home page sections and build them from the saved client data.', 'simple-rms-theme' ),
+		'dependencies'         => __( 'Check and install the required WordPress plugins before continuing.', 'simple-rms-theme' ),
+		'acf-import'           => __( 'Import ACF JSON field groups from the theme acf-json directory.', 'simple-rms-theme' ),
+		'client-data'          => __( 'Save contractor business information into the theme options.', 'simple-rms-theme' ),
+		'generate-pages'       => __( 'Add the site pages to create, then assign the Home and optional Blog roles.', 'simple-rms-theme' ),
+		'menu-setup'           => __( 'Choose generated pages for the primary and mobile menus.', 'simple-rms-theme' ),
+		'ia-generation'        => __( 'Configure the AI provider, model, and encrypted credentials for later content generation.', 'simple-rms-theme' ),
+		'home-page-builder'    => __( 'Choose Home page sections and build them from the saved client data.', 'simple-rms-theme' ),
+		'landing-page-builder' => __( 'Create SEO and Ads landing pages with keywords, reusable sections, and noindex controls.', 'simple-rms-theme' ),
 	];
 	?>
 	<div
@@ -135,9 +381,64 @@ function rms_wizard_render_admin_page(): void {
 		data-rms-wizard-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 	>
 		<h1><?php esc_html_e( 'Setup Wizard', 'simple-rms-theme' ); ?></h1>
-		<?php if ( $locked ) : ?>
-			<div class="notice notice-success inline">
-				<p><?php esc_html_e( 'The setup wizard has already been completed. Define RMS_WIZARD_FORCE as true to run it again in development.', 'simple-rms-theme' ); ?></p>
+		<?php if ( $unlock_ui_enabled && ! empty( $_GET['rms_wizard_unlocked'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php esc_html_e( 'Setup wizard unlocked for editing. Completion state was preserved.', 'simple-rms-theme' ); ?></p>
+			</div>
+		<?php endif; ?>
+		<?php /* Relock success can happen for stale-marker cleanup while unlock UI is still disabled. */ ?>
+		<?php if ( ! empty( $_GET['rms_wizard_relocked'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible">
+				<p><?php esc_html_e( 'Setup wizard re-locked. The site is read-only again.', 'simple-rms-theme' ); ?></p>
+			</div>
+		<?php endif; ?>
+		<?php if ( $force_unlocked ) : ?>
+			<div class="notice notice-info inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="force">
+				<p>
+					<?php esc_html_e( 'The setup wizard is force-unlocked via RMS_WIZARD_FORCE. Completion state is ignored for editing in this environment.', 'simple-rms-theme' ); ?>
+				</p>
+			</div>
+		<?php elseif ( $completed_flag && $has_unlock_marker ) : ?>
+			<?php /* Relock clears markers even when controlled unlock is disabled (stale cleanup). */ ?>
+			<div class="notice notice-warning inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="relock">
+				<p>
+					<?php
+					echo esc_html(
+						$is_unlocked
+							? __( 'The setup wizard is unlocked for editing. Completion state is preserved. Re-lock when you are finished to restore read-only mode.', 'simple-rms-theme' )
+							: __( 'A leftover unlock marker was found while controlled unlock is disabled. Re-lock to clear it and keep the wizard read-only.', 'simple-rms-theme' )
+					);
+					?>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rms-wizard-controlled-unlock__form">
+					<input type="hidden" name="action" value="<?php echo esc_attr( Inc\Wizard\Wizard_Unlock_Controller::RELOCK_ACTION ); ?>">
+					<?php wp_nonce_field( Inc\Wizard\Wizard_Unlock_Controller::NONCE_ACTION ); ?>
+					<?php submit_button( __( 'Re-lock wizard', 'simple-rms-theme' ), 'secondary', 'submit', false ); ?>
+				</form>
+			</div>
+		<?php elseif ( $unlock_ui_enabled && ( $locked || ( $completed_flag && ! $is_unlocked ) ) ) : ?>
+			<?php /* Unlock form is gated; admin-post handler is registered only when enabled. */ ?>
+			<div class="notice notice-success inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="unlock">
+				<p>
+					<?php esc_html_e( 'The setup wizard has already been completed and is read-only. Unlock it to make non-destructive edits without resetting completion state.', 'simple-rms-theme' ); ?>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="rms-wizard-controlled-unlock__form">
+					<input type="hidden" name="action" value="<?php echo esc_attr( Inc\Wizard\Wizard_Unlock_Controller::UNLOCK_ACTION ); ?>">
+					<?php wp_nonce_field( Inc\Wizard\Wizard_Unlock_Controller::NONCE_ACTION ); ?>
+					<?php submit_button( __( 'Unlock wizard for editing', 'simple-rms-theme' ), 'primary', 'submit', false ); ?>
+				</form>
+				<p class="description">
+					<?php esc_html_e( 'Developers may also define RMS_WIZARD_FORCE as true to bypass the lock in local environments.', 'simple-rms-theme' ); ?>
+				</p>
+			</div>
+		<?php elseif ( $locked || ( $completed_flag && ! $is_unlocked ) ) : ?>
+			<div class="notice notice-success inline rms-wizard-controlled-unlock" data-wizard-controlled-unlock="readonly">
+				<p>
+					<?php esc_html_e( 'The setup wizard has already been completed and is read-only.', 'simple-rms-theme' ); ?>
+				</p>
+				<p class="description">
+					<?php esc_html_e( 'Developers may define RMS_WIZARD_FORCE as true to bypass the lock in local environments.', 'simple-rms-theme' ); ?>
+				</p>
 			</div>
 		<?php endif; ?>
 
@@ -217,6 +518,8 @@ function rms_wizard_render_admin_page(): void {
 							<?php rms_wizard_render_ia_generation_form(); ?>
 						<?php elseif ( 'home-page-builder' === $slug ) : ?>
 							<?php rms_wizard_render_home_page_builder_form(); ?>
+						<?php elseif ( 'landing-page-builder' === $slug ) : ?>
+							<?php rms_wizard_render_landing_page_builder_form(); ?>
 						<?php endif; ?>
 
 						<div class="rms-wizard-actions rms-wizard-step-actions">
@@ -345,7 +648,7 @@ function rms_wizard_render_menu_setup_form(): void {
 	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-menu-form>
 		<div class="rms-wizard-guided-panel">
 			<p class="rms-wizard-fields__intro">
-				<?php esc_html_e( 'Menus are built only from pages created by the Generate Pages step. Refresh the state after generating pages if this list is empty.', 'simple-rms-theme' ); ?>
+				<?php esc_html_e( 'Menus are built from Generate Pages results plus menu-eligible SEO landings. Ads landings are excluded automatically. Refresh the state after generating pages or landings if this list is empty.', 'simple-rms-theme' ); ?>
 			</p>
 
 			<div class="notice notice-warning inline rms-wizard-menu-empty" data-wizard-menu-empty hidden>
@@ -531,6 +834,133 @@ function rms_wizard_render_home_page_builder_form(): void {
 					</div>
 					<button type="button" class="button-link-delete rms-wizard-home-section-row__remove" data-wizard-remove-home-section><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
 				</article>
+			</template>
+		</div>
+	</form>
+	<?php
+}
+
+/**
+ * Render the guided Landing Page Builder form.
+ *
+ * @return void
+ */
+function rms_wizard_render_landing_page_builder_form(): void {
+	$sections        = rms_wizard_home_section_choices();
+	$default_layouts = [
+		'hero',
+		'seo-content',
+		'vision-mission-v1',
+		'badges',
+		'portfolio-v1',
+		'seo-content',
+		'testimonials-v1',
+		'seo-content',
+	];
+	$section_options = array_values(
+		array_map(
+			static function ( array $section ) use ( $default_layouts ): array {
+				$layout = (string) $section['name'];
+
+				return [
+					'layout'              => $layout,
+					'label'               => $section['label'],
+					'description'         => $section['description'],
+					'is_keyword_layout'   => in_array( $layout, [ 'hero', 'seo-content' ], true ),
+					'is_default'          => in_array( $layout, $default_layouts, true ),
+					'default_item_count'  => rms_wizard_home_section_default_item_count( $layout ),
+					'has_fillable_fields' => rms_wizard_home_section_has_fillable_fields( $layout ),
+				];
+			},
+			$sections
+		)
+	);
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-landing-page-builder-form>
+		<div class="rms-wizard-guided-panel">
+			<p class="rms-wizard-fields__intro">
+				<?php esc_html_e( 'Create one or more SEO or Ads landing pages. Only Hero and SEO Content receive keywords; reusable sections stay neutral and pull from the canonical store. Ads landings are noindex and never auto-added to menus.', 'simple-rms-theme' ); ?>
+			</p>
+
+			<label class="rms-wizard-landing-skip-all">
+				<input type="checkbox" name="skip_all" value="1" data-wizard-landing-skip-all>
+				<span><?php esc_html_e( 'Skip landing pages for now (complete this step with zero landings)', 'simple-rms-theme' ); ?></span>
+			</label>
+
+			<script type="application/json" data-wizard-landing-sections><?php echo wp_json_encode( $section_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+			<script type="application/json" data-wizard-landing-default-layouts><?php echo wp_json_encode( $default_layouts, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+
+			<div class="rms-wizard-landing-toolbar">
+				<button type="button" class="button button-secondary" data-wizard-add-landing><?php esc_html_e( 'Add landing', 'simple-rms-theme' ); ?></button>
+				<p class="rms-wizard-field__instructions"><?php esc_html_e( 'Duplicate a row to start a new landing with a fresh identity. Existing landings hydrate from wizard state on load.', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<div class="rms-wizard-landing-builder" data-wizard-landing-builder>
+				<div class="rms-wizard-landing-rows" role="list" data-wizard-landing-rows></div>
+				<p class="rms-wizard-landing-builder__empty" data-wizard-landing-empty><?php esc_html_e( 'No landings added yet. Add a landing or skip this step.', 'simple-rms-theme' ); ?></p>
+			</div>
+
+			<div class="rms-wizard-landing-replace-panel" data-wizard-landing-replace-panel>
+				<strong><?php esc_html_e( 'Replace canonical reusable sections', 'simple-rms-theme' ); ?></strong>
+				<p class="rms-wizard-field__instructions"><?php esc_html_e( 'Optional. Mark reusable layouts to regenerate and overwrite the shared canonical store. Requires confirmation when running the step.', 'simple-rms-theme' ); ?></p>
+				<div class="rms-wizard-landing-replace-list" data-wizard-landing-replace-list></div>
+			</div>
+
+			<template data-wizard-landing-row-template>
+				<article class="rms-wizard-landing-row" role="listitem" data-wizard-landing-row>
+					<input type="hidden" name="landings[__INDEX__][id]" value="" data-wizard-landing-id>
+					<input type="hidden" name="landings[__INDEX__][landing_key]" value="" data-wizard-landing-key>
+					<header class="rms-wizard-landing-row__header">
+						<strong data-wizard-landing-heading><?php esc_html_e( 'Landing', 'simple-rms-theme' ); ?></strong>
+						<div class="rms-wizard-landing-row__actions">
+							<button type="button" class="button-link" data-wizard-duplicate-landing><?php esc_html_e( 'Duplicate', 'simple-rms-theme' ); ?></button>
+							<button type="button" class="button-link-delete" data-wizard-remove-landing><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
+						</div>
+					</header>
+					<div class="rms-wizard-landing-row__grid">
+						<div class="rms-wizard-field">
+							<label for="rms-wizard-landing-title-__INDEX__"><?php esc_html_e( 'Title', 'simple-rms-theme' ); ?></label>
+							<input id="rms-wizard-landing-title-__INDEX__" type="text" name="landings[__INDEX__][title]" data-wizard-landing-title placeholder="<?php esc_attr_e( 'Kitchen Remodel Landing', 'simple-rms-theme' ); ?>">
+						</div>
+						<div class="rms-wizard-field">
+							<label for="rms-wizard-landing-slug-__INDEX__"><?php esc_html_e( 'Slug', 'simple-rms-theme' ); ?></label>
+							<input id="rms-wizard-landing-slug-__INDEX__" type="text" name="landings[__INDEX__][slug]" data-wizard-landing-slug data-wizard-slug-auto="1" placeholder="<?php esc_attr_e( 'kitchen-remodel', 'simple-rms-theme' ); ?>">
+						</div>
+						<div class="rms-wizard-field">
+							<label for="rms-wizard-landing-type-__INDEX__"><?php esc_html_e( 'Landing type', 'simple-rms-theme' ); ?></label>
+							<select id="rms-wizard-landing-type-__INDEX__" name="landings[__INDEX__][landing_type]" data-wizard-landing-type>
+								<option value="seo"><?php esc_html_e( 'SEO (indexable, menu-eligible)', 'simple-rms-theme' ); ?></option>
+								<option value="ads"><?php esc_html_e( 'Ads (noindex, orphan)', 'simple-rms-theme' ); ?></option>
+							</select>
+						</div>
+						<div class="rms-wizard-field">
+							<label for="rms-wizard-landing-keyword-__INDEX__"><?php esc_html_e( 'Primary keyword', 'simple-rms-theme' ); ?></label>
+							<input id="rms-wizard-landing-keyword-__INDEX__" type="text" name="landings[__INDEX__][primary_keyword]" data-wizard-landing-primary-keyword placeholder="<?php esc_attr_e( 'kitchen remodel near me', 'simple-rms-theme' ); ?>">
+						</div>
+						<div class="rms-wizard-field rms-wizard-landing-row__subkeywords">
+							<label for="rms-wizard-landing-subkeywords-__INDEX__"><?php esc_html_e( 'Subkeywords (comma-separated, max 10)', 'simple-rms-theme' ); ?></label>
+							<input id="rms-wizard-landing-subkeywords-__INDEX__" type="text" name="landings[__INDEX__][subkeywords]" data-wizard-landing-subkeywords placeholder="<?php esc_attr_e( 'cabinet refinishing, countertop install', 'simple-rms-theme' ); ?>">
+						</div>
+					</div>
+					<div class="rms-wizard-landing-sections" data-wizard-landing-sections-list>
+						<div class="rms-wizard-landing-sections__header">
+							<strong><?php esc_html_e( 'Sections', 'simple-rms-theme' ); ?></strong>
+							<button type="button" class="button-link" data-wizard-add-landing-section><?php esc_html_e( 'Add section', 'simple-rms-theme' ); ?></button>
+						</div>
+						<div class="rms-wizard-landing-section-rows" data-wizard-landing-section-rows></div>
+					</div>
+				</article>
+			</template>
+
+			<template data-wizard-landing-section-row-template>
+				<div class="rms-wizard-landing-section-row" data-wizard-landing-section-row>
+					<select name="landings[__LINDEX__][sections][__SINDEX__][layout]" data-wizard-landing-section-layout></select>
+					<label class="rms-wizard-landing-section-override">
+						<input type="checkbox" name="landings[__LINDEX__][sections][__SINDEX__][override_canonical]" value="1" data-wizard-landing-section-override>
+						<span><?php esc_html_e( 'Override canonical (neutral regen, does not write store)', 'simple-rms-theme' ); ?></span>
+					</label>
+					<button type="button" class="button-link-delete" data-wizard-remove-landing-section><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
+				</div>
 			</template>
 		</div>
 	</form>
