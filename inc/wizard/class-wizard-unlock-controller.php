@@ -22,9 +22,9 @@ class Wizard_Unlock_Controller {
 	/**
 	 * Whether user-facing controlled unlock is enabled.
 	 *
-	 * TODO(Phase 2 task 2.6): set true when the generate-pages landing deletion guard ships.
+	 * Enabled together with the generate-pages landing deletion guard (Phase 2 task 2.6).
 	 */
-	public const CONTROLLED_UNLOCK_ENABLED = false;
+	public const CONTROLLED_UNLOCK_ENABLED = true;
 
 	private $state_manager;
 	private $logger;

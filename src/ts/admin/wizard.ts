@@ -20,6 +20,21 @@ interface GeneratedPage {
   role?: string;
 }
 
+interface LandingPageState {
+  id?: number | string;
+  landing_key?: string;
+  title?: string;
+  slug?: string;
+  landing_type?: 'seo' | 'ads' | string;
+  menu_eligible?: boolean;
+  primary_keyword?: string;
+  subkeywords?: string[];
+  keywords?: {
+    primary_keyword?: string;
+    subkeywords?: string[];
+  };
+}
+
 interface WizardPageTemplate {
   title?: string;
   slug?: string;
@@ -36,9 +51,35 @@ interface HomeSectionTemplate {
   default_item_count?: number;
 }
 
+interface LandingSectionOption {
+  layout?: string;
+  label?: string;
+  description?: string;
+  is_keyword_layout?: boolean;
+  is_default?: boolean;
+  default_item_count?: number;
+  has_fillable_fields?: boolean;
+}
+
 interface HomeSectionPayload {
   layout: string;
   item_count: number;
+}
+
+interface LandingSectionPayload {
+  layout: string;
+  override_canonical: boolean;
+}
+
+interface LandingPayloadItem {
+  id: number | null;
+  landing_key: string;
+  title: string;
+  slug: string;
+  landing_type: 'seo' | 'ads';
+  primary_keyword: string;
+  subkeywords: string[];
+  sections: LandingSectionPayload[];
 }
 
 interface PagePayloadItem {
@@ -64,7 +105,13 @@ interface WizardState {
     configured_at?: string;
   };
   generated_pages?: GeneratedPage[];
+  landing_pages?: LandingPageState[];
   locked?: boolean;
+  unlocked?: boolean;
+  completed_flag?: boolean;
+  force_unlocked?: boolean;
+  controlled_unlock_ui?: boolean;
+  has_unlock_marker?: boolean;
   logs?: WizardLogEntry[];
 }
 
@@ -164,6 +211,7 @@ declare global {
     { slug: 'menu-setup', label: 'Menu Setup' },
     { slug: 'ia-generation', label: 'IA Generation' },
     { slug: 'home-page-builder', label: 'Home Page Builder' },
+    { slug: 'landing-page-builder', label: 'Landing Page Builder' },
   ];
 
   const destructiveWarnings: Record<string, { message: string; checkboxMessage: string }> = {
@@ -174,6 +222,10 @@ declare global {
     'menu-setup': {
       message: 'Existing menus and location assignments will be removed and replaced. This cannot be undone.',
       checkboxMessage: 'Confirm that existing menus and location assignments can be replaced before continuing.',
+    },
+    'landing-page-builder': {
+      message: 'Replacing canonical reusable sections overwrites shared copy used by future landings. This cannot be undone.',
+      checkboxMessage: 'Confirm replace canonical before overwriting shared reusable sections.',
     },
   };
 
@@ -278,9 +330,15 @@ declare global {
     }).join('');
   };
 
+  const isWizardLocked = (): boolean => Boolean(state.locked) && !state.unlocked && !state.force_unlocked;
+
   const updateButtons = (): void => {
-    const isLocked = Boolean(state.locked);
+    const isLocked = isWizardLocked();
     const isHydrating = root.classList.contains('is-hydrating');
+
+    root.classList.toggle('is-unlocked', Boolean(state.unlocked) && !state.force_unlocked);
+    root.classList.toggle('is-force-unlocked', Boolean(state.force_unlocked));
+    root.classList.toggle('is-locked', isLocked);
 
     navButtons.forEach((button) => {
       button.disabled = isHydrating || runningStep !== null;
@@ -316,6 +374,8 @@ declare global {
       const allComplete = steps.every((step) => statusFor(step.slug) === 'complete');
       completeButton.disabled = isHydrating || isLocked || runningStep !== null || !allComplete;
     }
+
+    syncLandingSkipAllUi();
   };
 
   const render = (): void => {
@@ -325,6 +385,8 @@ declare global {
 
     renderGeneratedPageControls();
     hydrateIaGenerationForm();
+    hydrateLandingRowsFromState();
+    renderLandingReplaceOptions();
     syncGuidedControlState();
     setActiveStep(nextStep);
     updateNav();
@@ -332,8 +394,10 @@ declare global {
     updateLogs();
     updateButtons();
 
-    if (state.locked) {
-      setNotice('The setup wizard is complete and locked. Define RMS_WIZARD_FORCE as true for development reruns.', 'success');
+    if (isWizardLocked()) {
+      setNotice('The setup wizard is complete and locked. Unlock it for editing or define RMS_WIZARD_FORCE as true for development reruns.', 'success');
+    } else if (state.unlocked && !state.force_unlocked) {
+      setNotice('The setup wizard is unlocked for editing. Completion state is preserved.', 'info');
     }
   };
 
@@ -501,6 +565,10 @@ declare global {
       return collectHomePageBuilderPayload(form);
     }
 
+    if (step === 'landing-page-builder') {
+      return collectLandingPageBuilderPayload(form);
+    }
+
     return collectFormPayload(form);
   };
 
@@ -645,6 +713,24 @@ declare global {
   };
 
   const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
+    if (step === 'landing-page-builder') {
+      const replaceMap = (payload.replace_canonical ?? {}) as Record<string, boolean>;
+      const needsReplaceConfirm = Object.values(replaceMap).some(Boolean);
+
+      if (!needsReplaceConfirm) {
+        return true;
+      }
+
+      const warning = destructiveWarnings[step];
+      const confirmed = await openConfirmationModal(warning.message);
+
+      if (confirmed) {
+        payload.confirm_replace_canonical = true;
+      }
+
+      return confirmed;
+    }
+
     const warning = destructiveWarnings[step];
 
     if (!warning) {
@@ -665,6 +751,121 @@ declare global {
     }
 
     return confirmed;
+  };
+
+  const collectLandingPageBuilderPayload = (form: HTMLFormElement): StepPayload => {
+    const skipAll = Boolean(form.querySelector<HTMLInputElement>('[data-wizard-landing-skip-all]')?.checked);
+
+    if (skipAll) {
+      return { skip_all: true, landings: [] };
+    }
+
+    const landings: LandingPayloadItem[] = [];
+    const seenSlugs = new Set<string>();
+    const seenKeys = new Set<string>();
+    const seenIds = new Set<number>();
+
+    form.querySelectorAll<HTMLElement>('[data-wizard-landing-row]').forEach((row, index) => {
+      const title = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value.trim() ?? '';
+      const slugInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-slug]')?.value.trim() ?? '';
+      const slug = sanitizeSlug(slugInput || title);
+      const landingTypeRaw = row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value ?? 'seo';
+      const landingType: 'seo' | 'ads' = landingTypeRaw === 'ads' ? 'ads' : 'seo';
+      const primaryKeyword = row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]')?.value.trim() ?? '';
+      const subkeywordsRaw = row.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]')?.value ?? '';
+      const idRaw = row.querySelector<HTMLInputElement>('[data-wizard-landing-id]')?.value.trim() ?? '';
+      const landingKey = row.querySelector<HTMLInputElement>('[data-wizard-landing-key]')?.value.trim() || mintLandingKey();
+      const id = idRaw ? Number.parseInt(idRaw, 10) : null;
+
+      if (!title && !slug && !primaryKeyword) {
+        return;
+      }
+
+      if (!title) {
+        throw new Error(`Landing ${index + 1} needs a title.`);
+      }
+
+      if (!slug) {
+        throw new Error(`Landing "${title}" needs a valid slug.`);
+      }
+
+      if (!primaryKeyword) {
+        throw new Error(`Landing "${title}" requires a primary keyword.`);
+      }
+
+      if (seenSlugs.has(slug)) {
+        throw new Error(`Landing slugs must be unique. "${slug}" is already used.`);
+      }
+
+      if (landingKey && seenKeys.has(landingKey)) {
+        throw new Error('Duplicate landing keys are not allowed in one run.');
+      }
+
+      if (id && Number.isFinite(id) && id > 0) {
+        if (seenIds.has(id)) {
+          throw new Error('Duplicate landing ids are not allowed in one run.');
+        }
+
+        seenIds.add(id);
+      }
+
+      seenSlugs.add(slug);
+      seenKeys.add(landingKey);
+
+      const subkeywords = subkeywordsRaw
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .slice(0, 10);
+
+      const sections: LandingSectionPayload[] = [];
+
+      row.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]').forEach((sectionRow) => {
+        const layout = sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value.trim() ?? '';
+        const override = Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked);
+
+        if (!layout) {
+          return;
+        }
+
+        sections.push({ layout, override_canonical: override });
+      });
+
+      if (sections.length === 0) {
+        throw new Error(`Landing "${title}" needs at least one section.`);
+      }
+
+      landings.push({
+        id: id && Number.isFinite(id) && id > 0 ? id : null,
+        landing_key: landingKey,
+        title,
+        slug,
+        landing_type: landingType,
+        primary_keyword: primaryKeyword,
+        subkeywords,
+        sections,
+      });
+    });
+
+    if (landings.length === 0) {
+      throw new Error('Add at least one landing page or enable skip-all to complete without landings.');
+    }
+
+    const replaceCanonical: Record<string, boolean> = {};
+
+    form.querySelectorAll<HTMLInputElement>('[data-wizard-landing-replace-layout]:checked').forEach((input) => {
+      const layout = input.value.trim();
+
+      if (layout) {
+        replaceCanonical[layout] = true;
+      }
+    });
+
+    return {
+      landings,
+      replace_canonical: replaceCanonical,
+      skip_all: false,
+    };
   };
 
   const openConfirmationModal = (message: string): Promise<boolean> => {
@@ -783,14 +984,449 @@ declare global {
     });
   };
 
-  const getGeneratedPages = (): GeneratedPage[] => (
-    Array.isArray(state.generated_pages) ? state.generated_pages.filter((page) => Boolean(generatedPageValue(page))) : []
-  );
+  /**
+   * Pages available to the Menu Setup UI.
+   *
+   * Merges standard `state.generated_pages` with menu-eligible SEO landings
+   * from `state.landing_pages`. Ads and `menu_eligible=false` landings are
+   * excluded via `getMenuEligibleLandings()` so they never appear as menu options.
+   */
+  const getGeneratedPages = (): GeneratedPage[] => {
+    const standard = Array.isArray(state.generated_pages)
+      ? state.generated_pages.filter((page) => Boolean(generatedPageValue(page)))
+      : [];
+    const landings = getMenuEligibleLandings().map((landing) => ({
+      id: landing.id,
+      title: landing.title,
+      slug: landing.slug,
+      role: landing.landing_type === 'seo' ? 'landing-seo' : 'landing',
+    }));
 
-  const generatedPageValue = (page: GeneratedPage): string => {
+    const seen = new Set<string>();
+    const merged: GeneratedPage[] = [];
+
+    [...standard, ...landings].forEach((page) => {
+      const value = generatedPageValue(page);
+
+      if (!value || seen.has(value)) {
+        return;
+      }
+
+      seen.add(value);
+      merged.push(page);
+    });
+
+    return merged;
+  };
+
+  /**
+   * SEO landings that may appear in Menu Setup.
+   *
+   * Filters `state.landing_pages` to `landing_type=seo` with `menu_eligible`
+   * true (default true for SEO when the flag is absent). Ads and ineligible
+   * rows are always excluded. Requires a resolvable id/slug via
+   * `generatedPageValue()`.
+   */
+  const getMenuEligibleLandings = (): LandingPageState[] => {
+    if (!Array.isArray(state.landing_pages)) {
+      return [];
+    }
+
+    return state.landing_pages.filter((landing) => {
+      const type = landing.landing_type === 'ads' ? 'ads' : 'seo';
+      const eligible = typeof landing.menu_eligible === 'boolean' ? landing.menu_eligible : type === 'seo';
+
+      return type === 'seo' && eligible && Boolean(generatedPageValue(landing));
+    });
+  };
+
+  const generatedPageValue = (page: GeneratedPage | LandingPageState): string => {
     const id = typeof page.id === 'number' || typeof page.id === 'string' ? String(page.id) : '';
 
     return id || sanitizeSlug(page.slug ?? '');
+  };
+
+  const mintLandingKey = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `lp_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    }
+
+    return `lp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  };
+
+  const readLandingSectionOptions = (): LandingSectionOption[] => {
+    const source = root.querySelector<HTMLScriptElement>('script[data-wizard-landing-sections]');
+
+    if (!source?.textContent) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(source.textContent) as unknown;
+
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is LandingSectionOption => typeof item === 'object' && item !== null)
+        : [];
+    } catch (_error) {
+      return [];
+    }
+  };
+
+  const readLandingDefaultLayouts = (): string[] => {
+    const source = root.querySelector<HTMLScriptElement>('script[data-wizard-landing-default-layouts]');
+
+    if (!source?.textContent) {
+      return ['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'seo-content', 'testimonials-v1', 'seo-content'];
+    }
+
+    try {
+      const parsed = JSON.parse(source.textContent) as unknown;
+
+      return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+    } catch (_error) {
+      return ['hero', 'seo-content'];
+    }
+  };
+
+  const getLandingRowsContainer = (): HTMLElement | null => root.querySelector<HTMLElement>('[data-wizard-landing-rows]');
+
+  const getLandingRowTemplate = (): HTMLTemplateElement | null => root.querySelector<HTMLTemplateElement>('template[data-wizard-landing-row-template]');
+
+  const getLandingSectionRowTemplate = (): HTMLTemplateElement | null => root.querySelector<HTMLTemplateElement>('template[data-wizard-landing-section-row-template]');
+
+  const hydrateLandingRowsFromState = (): void => {
+    const rows = getLandingRowsContainer();
+
+    if (!rows) {
+      return;
+    }
+
+    // Never clobber in-progress edits; only seed when the builder is empty.
+    if (rows.querySelector('[data-wizard-landing-row]')) {
+      syncLandingBuilderEmptyState();
+      return;
+    }
+
+    const landings = Array.isArray(state.landing_pages) ? state.landing_pages : [];
+
+    if (landings.length === 0) {
+      syncLandingBuilderEmptyState();
+      return;
+    }
+
+    landings.forEach((landing) => {
+      const rawId = landing.id;
+      const parsedId = typeof rawId === 'number'
+        ? rawId
+        : (typeof rawId === 'string' ? Number.parseInt(rawId, 10) : NaN);
+
+      addLandingRow({
+        id: Number.isFinite(parsedId) && parsedId > 0 ? parsedId : null,
+        landing_key: landing.landing_key || mintLandingKey(),
+        title: landing.title || '',
+        slug: landing.slug || '',
+        landing_type: landing.landing_type === 'ads' ? 'ads' : 'seo',
+        primary_keyword: landing.primary_keyword || landing.keywords?.primary_keyword || '',
+        subkeywords: landing.subkeywords || landing.keywords?.subkeywords || [],
+      });
+    });
+  };
+
+  const addLandingRow = (data: Partial<LandingPayloadItem> = {}): HTMLElement | null => {
+    const rows = getLandingRowsContainer();
+    const template = getLandingRowTemplate();
+
+    if (!rows || !template) {
+      return null;
+    }
+
+    const index = rows.querySelectorAll('[data-wizard-landing-row]').length;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template.innerHTML.replaceAll('__INDEX__', String(index)).trim();
+    const row = wrapper.firstElementChild instanceof HTMLElement ? wrapper.firstElementChild : null;
+
+    if (!row) {
+      return null;
+    }
+
+    const idInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-id]');
+    const keyInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-key]');
+    const titleInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]');
+    const slugInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-slug]');
+    const typeSelect = row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]');
+    const keywordInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]');
+    const subkeywordsInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]');
+    const heading = row.querySelector<HTMLElement>('[data-wizard-landing-heading]');
+
+    if (idInput) {
+      idInput.value = data.id && Number(data.id) > 0 ? String(data.id) : '';
+    }
+
+    if (keyInput) {
+      keyInput.value = data.landing_key || mintLandingKey();
+    }
+
+    if (titleInput) {
+      titleInput.value = data.title || '';
+    }
+
+    if (slugInput) {
+      slugInput.value = sanitizeSlug(data.slug || data.title || '');
+      slugInput.dataset.wizardSlugAuto = data.slug ? '0' : '1';
+    }
+
+    if (typeSelect) {
+      typeSelect.value = data.landing_type === 'ads' ? 'ads' : 'seo';
+    }
+
+    if (keywordInput) {
+      keywordInput.value = data.primary_keyword || '';
+    }
+
+    if (subkeywordsInput) {
+      subkeywordsInput.value = (data.subkeywords || []).join(', ');
+    }
+
+    if (heading) {
+      heading.textContent = data.title || `Landing ${index + 1}`;
+    }
+
+    rows.append(row);
+    row.classList.toggle('is-ads', typeSelect?.value === 'ads');
+
+    const sectionLayouts = (data.sections && data.sections.length > 0)
+      ? data.sections.map((section) => section.layout)
+      : readLandingDefaultLayouts();
+
+    sectionLayouts.forEach((layout, sectionIndex) => {
+      const override = Boolean(data.sections?.[sectionIndex]?.override_canonical);
+      addLandingSectionRow(row, layout, override);
+    });
+
+    reindexLandingRows();
+    syncLandingBuilderEmptyState();
+    syncLandingSkipAllUi();
+    titleInput?.focus();
+
+    return row;
+  };
+
+  const addLandingSectionRow = (landingRow: HTMLElement, layout = '', override = false): void => {
+    const container = landingRow.querySelector<HTMLElement>('[data-wizard-landing-section-rows]');
+    const template = getLandingSectionRowTemplate();
+
+    if (!container || !template) {
+      return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = template.innerHTML
+      .replaceAll('__LINDEX__', '0')
+      .replaceAll('__SINDEX__', String(container.querySelectorAll('[data-wizard-landing-section-row]').length))
+      .trim();
+    const sectionRow = wrapper.firstElementChild instanceof HTMLElement ? wrapper.firstElementChild : null;
+
+    if (!sectionRow) {
+      return;
+    }
+
+    const select = sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]');
+    const overrideInput = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]');
+    const options = readLandingSectionOptions();
+
+    if (select) {
+      select.replaceChildren();
+      options.forEach((option) => {
+        if (!option.layout) {
+          return;
+        }
+
+        const opt = new Option(
+          option.label ? `${option.label} (${option.layout})` : option.layout,
+          option.layout
+        );
+        select.append(opt);
+      });
+
+      if (layout) {
+        select.value = layout;
+      } else if (options[0]?.layout) {
+        select.value = options[0].layout;
+      }
+
+      syncLandingSectionOverrideVisibility(sectionRow);
+    }
+
+    if (overrideInput) {
+      overrideInput.checked = override;
+    }
+
+    container.append(sectionRow);
+    reindexLandingRows();
+  };
+
+  const syncLandingSectionOverrideVisibility = (sectionRow: HTMLElement): void => {
+    const layout = sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value ?? '';
+    const overrideLabel = sectionRow.querySelector<HTMLElement>('.rms-wizard-landing-section-override');
+    const isKeyword = layout === 'hero' || layout === 'seo-content';
+
+    if (overrideLabel) {
+      overrideLabel.hidden = isKeyword;
+    }
+
+    if (isKeyword) {
+      const overrideInput = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]');
+
+      if (overrideInput) {
+        overrideInput.checked = false;
+      }
+    }
+  };
+
+  const duplicateLandingRow = (button: HTMLButtonElement): void => {
+    const source = button.closest<HTMLElement>('[data-wizard-landing-row]');
+
+    if (!source) {
+      return;
+    }
+
+    const title = source.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value.trim() ?? '';
+    const slug = source.querySelector<HTMLInputElement>('[data-wizard-landing-slug]')?.value.trim() ?? '';
+    const landingType = source.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value === 'ads' ? 'ads' : 'seo';
+    const primaryKeyword = source.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]')?.value.trim() ?? '';
+    const subkeywords = (source.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]')?.value ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const sections: LandingSectionPayload[] = Array.from(source.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')).map((sectionRow) => ({
+      layout: sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value.trim() ?? '',
+      override_canonical: Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked),
+    })).filter((section) => section.layout);
+
+    // Duplicate must clear id and mint a new landing_key.
+    addLandingRow({
+      id: null,
+      landing_key: mintLandingKey(),
+      title: title ? `${title} copy` : '',
+      slug: slug ? `${slug}-copy` : '',
+      landing_type: landingType,
+      primary_keyword: primaryKeyword,
+      subkeywords,
+      sections,
+    });
+  };
+
+  const removeLandingRow = (button: HTMLButtonElement): void => {
+    button.closest<HTMLElement>('[data-wizard-landing-row]')?.remove();
+    reindexLandingRows();
+    syncLandingBuilderEmptyState();
+  };
+
+  const reindexLandingRows = (): void => {
+    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-wizard-landing-row]'));
+
+    rows.forEach((row, index) => {
+      row.dataset.wizardLandingIndex = String(index);
+
+      const heading = row.querySelector<HTMLElement>('[data-wizard-landing-heading]');
+      const title = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value.trim() ?? '';
+
+      if (heading) {
+        heading.textContent = title || `Landing ${index + 1}`;
+      }
+
+      row.classList.toggle('is-ads', row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value === 'ads');
+
+      row.querySelectorAll<FieldElement>('[name]').forEach((field) => {
+        field.name = field.name
+          .replace(/landings\[\d+\]/g, `landings[${index}]`)
+          .replace(/landings\[__INDEX__\]/g, `landings[${index}]`);
+      });
+
+      row.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
+        element.id = element.id.replace(/rms-wizard-landing-([a-z-]+)-\d+/g, `rms-wizard-landing-$1-${index}`);
+      });
+
+      row.querySelectorAll<HTMLLabelElement>('label[for]').forEach((label) => {
+        label.htmlFor = label.htmlFor.replace(/rms-wizard-landing-([a-z-]+)-\d+/g, `rms-wizard-landing-$1-${index}`);
+      });
+
+      Array.from(row.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')).forEach((sectionRow, sectionIndex) => {
+        sectionRow.querySelectorAll<FieldElement>('[name]').forEach((field) => {
+          field.name = field.name
+            .replace(/landings\[\d+\]/g, `landings[${index}]`)
+            .replace(/sections\[\d+\]/g, `sections[${sectionIndex}]`)
+            .replace(/__LINDEX__/g, String(index))
+            .replace(/__SINDEX__/g, String(sectionIndex));
+        });
+      });
+    });
+  };
+
+  const syncLandingBuilderEmptyState = (): void => {
+    const hasRows = Boolean(root.querySelector('[data-wizard-landing-row]'));
+    const emptyMessage = root.querySelector<HTMLElement>('[data-wizard-landing-empty]');
+
+    if (emptyMessage) {
+      emptyMessage.hidden = hasRows;
+    }
+  };
+
+  const syncLandingSkipAllUi = (): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-landing-page-builder-form]');
+    const skip = form?.querySelector<HTMLInputElement>('[data-wizard-landing-skip-all]');
+    const builder = form?.querySelector<HTMLElement>('[data-wizard-landing-builder]');
+    const toolbar = form?.querySelector<HTMLElement>('.rms-wizard-landing-toolbar');
+    const replacePanel = form?.querySelector<HTMLElement>('[data-wizard-landing-replace-panel]');
+    const skipped = Boolean(skip?.checked);
+
+    if (builder) {
+      builder.hidden = skipped;
+    }
+
+    if (toolbar) {
+      toolbar.hidden = skipped;
+    }
+
+    if (replacePanel) {
+      replacePanel.hidden = skipped;
+    }
+
+    form?.classList.toggle('is-skip-all', skipped);
+  };
+
+  const renderLandingReplaceOptions = (): void => {
+    const list = root.querySelector<HTMLElement>('[data-wizard-landing-replace-list]');
+
+    if (!list || list.dataset.wizardRendered === '1') {
+      return;
+    }
+
+    const options = readLandingSectionOptions().filter((option) => option.layout && !option.is_keyword_layout);
+    list.replaceChildren();
+
+    options.forEach((option) => {
+      if (!option.layout) {
+        return;
+      }
+
+      const label = document.createElement('label');
+      label.className = 'rms-wizard-landing-replace-option';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = option.layout;
+      input.dataset.wizardLandingReplaceLayout = '1';
+      input.name = `replace_canonical[${option.layout}]`;
+
+      const text = document.createElement('span');
+      text.textContent = option.label ? `${option.label} (${option.layout})` : option.layout;
+
+      label.append(input, text);
+      list.append(label);
+    });
+
+    list.dataset.wizardRendered = '1';
   };
 
   const syncGuidedControlState = (): void => {
@@ -1669,6 +2305,52 @@ declare global {
       if (removePageButton) {
         event.preventDefault();
         removePageRow(removePageButton);
+        return;
+      }
+
+      const addLandingButton = target.closest<HTMLButtonElement>('[data-wizard-add-landing]');
+
+      if (addLandingButton) {
+        event.preventDefault();
+        addLandingRow();
+        return;
+      }
+
+      const duplicateLandingButton = target.closest<HTMLButtonElement>('[data-wizard-duplicate-landing]');
+
+      if (duplicateLandingButton) {
+        event.preventDefault();
+        duplicateLandingRow(duplicateLandingButton);
+        return;
+      }
+
+      const removeLandingButton = target.closest<HTMLButtonElement>('[data-wizard-remove-landing]');
+
+      if (removeLandingButton) {
+        event.preventDefault();
+        removeLandingRow(removeLandingButton);
+        return;
+      }
+
+      const addLandingSectionButton = target.closest<HTMLButtonElement>('[data-wizard-add-landing-section]');
+
+      if (addLandingSectionButton) {
+        event.preventDefault();
+        const landingRow = addLandingSectionButton.closest<HTMLElement>('[data-wizard-landing-row]');
+
+        if (landingRow) {
+          addLandingSectionRow(landingRow);
+        }
+
+        return;
+      }
+
+      const removeLandingSectionButton = target.closest<HTMLButtonElement>('[data-wizard-remove-landing-section]');
+
+      if (removeLandingSectionButton) {
+        event.preventDefault();
+        removeLandingSectionButton.closest<HTMLElement>('[data-wizard-landing-section-row]')?.remove();
+        reindexLandingRows();
       }
     });
 
@@ -1682,6 +2364,24 @@ declare global {
       if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-slug]')) {
         updatePageRowFromSlug(target);
       }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-title]')) {
+        const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
+        const slugInput = row?.querySelector<HTMLInputElement>('[data-wizard-landing-slug]');
+        const heading = row?.querySelector<HTMLElement>('[data-wizard-landing-heading]');
+
+        if (slugInput && slugInput.dataset.wizardSlugAuto !== '0') {
+          slugInput.value = sanitizeSlug(target.value);
+        }
+
+        if (heading) {
+          heading.textContent = target.value.trim() || 'Landing';
+        }
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-slug]')) {
+        target.dataset.wizardSlugAuto = '0';
+      }
     });
 
     root.addEventListener('blur', (event) => {
@@ -1689,6 +2389,11 @@ declare global {
 
       if (target instanceof HTMLInputElement && target.matches('[data-wizard-page-slug]')) {
         updatePageRowFromSlug(target, true);
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-slug]')) {
+        target.value = sanitizeSlug(target.value);
+        target.dataset.wizardSlugAuto = '0';
       }
     }, true);
 
@@ -1711,6 +2416,26 @@ declare global {
 
       if (target instanceof HTMLSelectElement && target.matches('[data-wizard-home-section-select]')) {
         syncGuidedControlState();
+        return;
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-skip-all]')) {
+        syncLandingSkipAllUi();
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-wizard-landing-type]')) {
+        const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
+        row?.classList.toggle('is-ads', target.value === 'ads');
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-wizard-landing-section-layout]')) {
+        const sectionRow = target.closest<HTMLElement>('[data-wizard-landing-section-row]');
+
+        if (sectionRow) {
+          syncLandingSectionOverrideVisibility(sectionRow);
+        }
       }
     });
 

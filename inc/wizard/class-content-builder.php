@@ -50,6 +50,16 @@ class Content_Builder {
 	}
 
 	/**
+	 * Post meta keys allowed through build_page() meta_input.
+	 *
+	 * @var string[]
+	 */
+	private const META_INPUT_WHITELIST = [
+		'_wp_page_template',
+		'rms_landing_type',
+	];
+
+	/**
 	 * Build one page from a definition array.
 	 *
 	 * @param array<string,mixed> $page Page definition.
@@ -79,6 +89,12 @@ class Content_Builder {
 			'post_name'    => $slug,
 			'post_content' => $content,
 		];
+
+		$meta_input = $this->whitelisted_meta_input( is_array( $page['meta_input'] ?? null ) ? $page['meta_input'] : [] );
+
+		if ( [] !== $meta_input ) {
+			$post_data['meta_input'] = $meta_input;
+		}
 
 		if ( $post_id > 0 ) {
 			$post_data['ID'] = $post_id;
@@ -111,6 +127,45 @@ class Content_Builder {
 	 */
 	public function fallback_image_url(): string {
 		return \trailingslashit( \get_template_directory_uri() ) . 'assets/images/wizard-placeholder.svg';
+	}
+
+	/**
+	 * Sanitize and whitelist meta_input for insert/update.
+	 *
+	 * Only `_wp_page_template` and `rms_landing_type` are accepted.
+	 *
+	 * @param array<string,mixed> $meta Raw meta_input map.
+	 *
+	 * @return array<string,string>
+	 */
+	private function whitelisted_meta_input( array $meta ): array {
+		$clean = [];
+
+		foreach ( self::META_INPUT_WHITELIST as $key ) {
+			if ( ! array_key_exists( $key, $meta ) ) {
+				continue;
+			}
+
+			if ( '_wp_page_template' === $key ) {
+				$value = \sanitize_text_field( (string) $meta[ $key ] );
+
+				if ( '' !== $value ) {
+					$clean[ $key ] = $value;
+				}
+
+				continue;
+			}
+
+			if ( 'rms_landing_type' === $key ) {
+				$value = \sanitize_key( (string) $meta[ $key ] );
+
+				if ( in_array( $value, [ 'seo', 'ads' ], true ) ) {
+					$clean[ $key ] = $value;
+				}
+			}
+		}
+
+		return $clean;
 	}
 
 	private function save_page_sections( int $post_id, array $sections ): void {

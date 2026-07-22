@@ -30,9 +30,8 @@ class Step_Controller {
 	 * Single source of truth for currently required wizard steps.
 	 * Consumed by complete() and step services (e.g. maybe_mark_completed).
 	 *
-	 * Phase 1 keeps the existing 7-step completion path valid. Append
-	 * `landing-page-builder` only when that step is registered/dispatched
-	 * (Phase 2+), never while the runtime/UI is absent.
+	 * Phase 3 activates `landing-page-builder` atomically with admin UI +
+	 * Ads noindex/menu final-state sync (tasks 3.1–3.7).
 	 *
 	 * @var string[]
 	 */
@@ -44,15 +43,12 @@ class Step_Controller {
 		'menu-setup',
 		'ia-generation',
 		'home-page-builder',
+		'landing-page-builder',
 	];
 
 	/**
 	 * Steps that may be dispatched by execute_step() right now.
 	 * Must stay in sync with dispatch_step() cases.
-	 *
-	 * Phase 1 intentionally omits `landing-page-builder` until Phase 2
-	 * registers its runtime. Unknown/unimplemented steps must be rejected
-	 * before any current_step / step_status writes.
 	 *
 	 * @var string[]
 	 */
@@ -64,6 +60,7 @@ class Step_Controller {
 		'menu-setup',
 		'ia-generation',
 		'home-page-builder',
+		'landing-page-builder',
 		'unlock',
 		'relock',
 	];
@@ -258,6 +255,9 @@ class Step_Controller {
 			case 'home-page-builder':
 				return ( new Step_Home_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
+			case 'landing-page-builder':
+				return ( new Step_Landing_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
+
 			case 'unlock':
 				return ( new Wizard_Unlock_Controller( $this->state_manager, $this->logger ) )->unlock();
 
@@ -351,9 +351,6 @@ class Step_Controller {
 	private function normalize_step( string $step ): string {
 		$step = \sanitize_key( $step );
 
-		// Do not alias landing_page_builder → landing-page-builder until Phase 2
-		// registers dispatch + runtime. Premature normalization would make an
-		// unimplemented step look "real" before the dispatchability guard runs.
 		$aliases = [
 			'acf_import'        => 'acf-import',
 			'client_data'       => 'client-data',
@@ -363,6 +360,7 @@ class Step_Controller {
 			'generate_pages'    => 'generate-pages',
 			'menu_setup'        => 'menu-setup',
 			'home_page_builder' => 'home-page-builder',
+			'landing_page_builder' => 'landing-page-builder',
 		];
 
 		return $aliases[ $step ] ?? $step;
