@@ -30,11 +30,8 @@ class Step_Controller {
 	 * Single source of truth for currently required wizard steps.
 	 * Consumed by complete() and step services (e.g. maybe_mark_completed).
 	 *
-	 * PR2 keeps the existing 7-step completion surface. `landing-page-builder`
-	 * backend class exists, but required/dispatch/UI activation is deferred to
-	 * Phase 3 (menu/SEO/noindex + admin UI) so Ads landings cannot go live
-	 * without final-state controls and the UI cannot show 7/7 while an 8th
-	 * invisible step is required.
+	 * Phase 3 activates `landing-page-builder` atomically with admin UI +
+	 * Ads noindex/menu final-state sync (tasks 3.1–3.7).
 	 *
 	 * @var string[]
 	 */
@@ -46,15 +43,12 @@ class Step_Controller {
 		'menu-setup',
 		'ia-generation',
 		'home-page-builder',
+		'landing-page-builder',
 	];
 
 	/**
 	 * Steps that may be dispatched by execute_step() right now.
 	 * Must stay in sync with dispatch_step() cases.
-	 *
-	 * PR2: `landing-page-builder` is intentionally NOT dispatchable until
-	 * Phase 3 wires UI + noindex/menu final-state sync. The dispatch case and
-	 * `Step_Landing_Page_Builder` class remain for that activation.
 	 *
 	 * @var string[]
 	 */
@@ -66,6 +60,7 @@ class Step_Controller {
 		'menu-setup',
 		'ia-generation',
 		'home-page-builder',
+		'landing-page-builder',
 		'unlock',
 		'relock',
 	];
@@ -260,8 +255,6 @@ class Step_Controller {
 			case 'home-page-builder':
 				return ( new Step_Home_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
-			// Kept for Phase 3 activation. Not reachable until REQUIRED_STEPS +
-			// DISPATCHABLE_STEPS + UI re-include `landing-page-builder` together.
 			case 'landing-page-builder':
 				return ( new Step_Landing_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
@@ -367,10 +360,6 @@ class Step_Controller {
 			'generate_pages'    => 'generate-pages',
 			'menu_setup'        => 'menu-setup',
 			'home_page_builder' => 'home-page-builder',
-			// Phase 3 activation: re-enable `landing_page_builder` alias together
-			// with DISPATCHABLE_STEPS, REQUIRED_STEPS, dispatch case, and admin UI.
-			// Alias alone is safe (unknown-step reject runs before status writes)
-			// but must not be treated as "live" until that full activation set lands.
 			'landing_page_builder' => 'landing-page-builder',
 		];
 

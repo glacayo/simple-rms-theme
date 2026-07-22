@@ -66,13 +66,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Menu, SEO, UI, Template Slice
 
-- [ ] 3.1 Modify `inc/wizard/class-menu-builder.php` with idempotent `append_page_items()`, `remove_page_items()`, and shared landing reconciliation.
-- [ ] 3.2 Modify `inc/wizard/class-step-menu-setup.php` to merge eligible SEO landings, exclude Ads, and reconcile after destructive menu replacement.
-- [ ] 3.3 Modify `inc/wizard/class-yoast-meta-writer.php` and `inc/wizard/wizard-init.php` for Yoast meta, noindex read-back, `wp_robots`, and Ads sitemap exclusion.
-- [ ] 3.4 Modify `src/ts/admin/wizard.ts` for landing collection, keyword validation, skip-all, identity hydration, duplicate reset, unlock/relock, and replace modal.
-- [ ] 3.5 Modify `src/scss/admin/wizard.scss` for landing and unlock admin states only.
-- [ ] 3.6 Modify `pages/landing-page.php` to render flexible `page_sections` and inject `breadcrumb-slim` once after the first Hero.
-- [ ] 3.7 **Activate** `landing-page-builder` atomically: add to `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` (alias + dispatch case already present) together with UI + noindex/menu final-state sync. Do not activate required/dispatch without the visible skip/payload path.
+- [x] 3.1 Modify `inc/wizard/class-menu-builder.php` with idempotent `append_page_items()`, `remove_page_items()`, and shared landing reconciliation.
+- [x] 3.2 Modify `inc/wizard/class-step-menu-setup.php` to merge eligible SEO landings, exclude Ads, and reconcile after destructive menu replacement.
+- [x] 3.3 Modify `inc/wizard/class-yoast-meta-writer.php` and `inc/wizard/wizard-init.php` for Yoast meta, noindex read-back, `wp_robots`, and Ads sitemap exclusion.
+- [x] 3.4 Modify `src/ts/admin/wizard.ts` for landing collection, keyword validation, skip-all, identity hydration, duplicate reset, unlock/relock, and replace modal.
+- [x] 3.5 Modify `src/scss/admin/wizard.scss` for landing and unlock admin states only.
+- [x] 3.6 Modify `pages/landing-page.php` to render flexible `page_sections` and inject `breadcrumb-slim` once after the first Hero.
+- [x] 3.7 **Activate** `landing-page-builder` atomically: add to `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` (alias + dispatch case already present) together with UI + noindex/menu final-state sync. Do not activate required/dispatch without the visible skip/payload path.
 
 ## Phase 4: Verification
 
