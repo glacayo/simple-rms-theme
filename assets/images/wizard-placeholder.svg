@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Wizard placeholder image</title>
+  <desc id="desc">A neutral local fallback image for generated wizard content.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f7fb"/>
+      <stop offset="1" stop-color="#e5edf7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="92" y="92" width="1016" height="616" rx="36" fill="none" stroke="#c8d4e3" stroke-width="8" stroke-dasharray="24 22"/>
+  <circle cx="435" cy="320" r="72" fill="#d8e2ee"/>
+  <path d="M220 614l235-236 132 132 86-86 307 190H220z" fill="#cbd8e7"/>
+  <path d="M220 614l235-236 132 132 86-86 307 190" fill="none" stroke="#9eb0c4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="600" y="706" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="#60758f">Wizard Placeholder</text>
+</svg>

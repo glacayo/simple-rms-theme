@@ -46,3 +46,7 @@ wp-content/backup-db/
 .atl/
 .claude/
 .windsurf/
+
+# Local untracked docs (do not commit)
+Wizard ai harness prompt guide.md
+wizard-prd.html
