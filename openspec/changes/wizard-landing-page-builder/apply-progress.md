@@ -1,9 +1,9 @@
 # Apply Progress: wizard-landing-page-builder
 
 **Mode**: Standard  
-**Batch**: PR3 remaining risk blockers + SEO append feedback  
-**Date**: 2026-07-22  
-**Branch**: `feat/wizard-landing-ui` (feature-branch-chain, base = PR2 `feat/wizard-landing-backend`)
+**Batch**: Phase 3.8 landing-card accordion (manual UX observation)  
+**Date**: 2026-08-19  
+**Branch**: `feature/wizard-setup` (after merged PR chain)
 
 ## Completed Tasks (cumulative)
 
@@ -42,6 +42,7 @@
 - [x] 3.5 Admin SCSS: landing + unlock states
 - [x] 3.6 `pages/landing-page.php`: flexible `page_sections` + breadcrumb once after first Hero
 - [x] 3.7 Atomic activation: `landing-page-builder` in `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` with visible UI + final-state sync
+- [x] 3.8 Landing seed-data cards are accessible collapsed-by-default accordions (header summary, native toggle, isolated Duplicate/Remove, live summary, preserved form values)
 
 ### PR3 review-blocker / high-value warning fixes (prior batch)
 - [x] BLOCKER: `skip_all` reconciles final-state (noindex/menu) for existing landings before complete; fails closed on sync error; no-op when none exist
@@ -51,11 +52,15 @@
 - [x] WARNING: `landing-page.php` guards ACF helpers with `function_exists` before flexible loop
 - [x] Docs: JSDoc on `getGeneratedPages()`; breadcrumb behavior documented; blank lines cleaned; no-runner limitation kept
 
-### PR3 remaining risk blockers (this batch)
+### PR3 remaining risk blockers (prior batch)
 - [x] BLOCKER: `landing-page.php` ACF-missing path no longer loads template parts that call `get_sub_field()`; minimal title/content fallback when ACF absent; hardcoded section order preserved when ACF present but `page_sections` empty; flexible path unchanged when rows exist
 - [x] BLOCKER: `try_preserve_existing_landing()` early failures (`wp_update_post` error, invalid update result, `ensure_landing_meta` failure) call `protect_ads_final_state_best_effort()` before returning original error (logs post_id/landing_key/slug via protection helper)
 - [x] WARNING: SEO menu append returns structured result + read-back; failures logged as warning (best-effort). Ads menu removal remains fail-closed. Reconcile exposes `append_failed_page_ids` without flipping removal `verified`
 - [x] Minor: JSDoc on `getMenuEligibleLandings()`; Yoast title/description max lengths as named constants
+
+### Manual verification notes
+- [x] User smoke: landing creation succeeded after the merged PR chain.
+- [ ] Phase 4 verification tasks remain incomplete (accordion UX still needs a WP Admin pass).
 
 Phase 4 verification tasks remain incomplete (manual WP Admin scenarios).
 
@@ -63,43 +68,49 @@ Phase 4 verification tasks remain incomplete (manual WP Admin scenarios).
 
 | File | Action | What Was Done |
 |------|--------|---------------|
-| `pages/landing-page.php` | Modified | Split ACF-missing vs ACF-empty fallbacks; safe markup without `get_sub_field` |
-| `inc/wizard/class-step-landing-page-builder.php` | Modified | Ads protect on preserve early fails; SEO append feedback logs |
-| `inc/wizard/class-menu-builder.php` | Modified | Structured `append_page_items` + verify; reconcile reports append failures |
-| `inc/wizard/class-step-menu-setup.php` | Modified | Warning log when SEO append incomplete after Ads removal OK |
-| `inc/wizard/class-yoast-meta-writer.php` | Modified | `TITLE_MAX_LENGTH` / `DESCRIPTION_MAX_LENGTH` constants |
-| `src/ts/admin/wizard.ts` | Modified | JSDoc for `getMenuEligibleLandings` |
+| `inc/wizard/wizard-init.php` | Modified | Landing row template is now an accordion: native toggle, summary slots, hidden panel with stable ids |
+| `src/ts/admin/wizard.ts` | Modified | Collapse-by-default for add/duplicate/hydrate; live summary sync; isolated Duplicate/Remove; remapped aria ids |
+| `src/scss/admin/wizard.scss` | Modified | Accordion header, chevron state, summary chips, focus-visible, reduced-motion |
+| `openspec/changes/wizard-landing-page-builder/tasks.md` | Modified | Added and completed Phase 3 task 3.8 |
 | `openspec/changes/wizard-landing-page-builder/apply-progress.md` | Modified | This cumulative progress note |
 
 ## Design notes
 
-- **Breadcrumb (flexible path)**: injected **once after the first Hero row only**. If flexible `page_sections` has no Hero layout, **no breadcrumb** is rendered in that path.
-- **Breadcrumb (fallback path, ACF present)**: hardcoded order still includes Hero then `breadcrumb-slim`.
-- **ACF missing**: minimal `the_title` / `the_content` fallback only — never load section template parts.
-- **Menu policy asymmetry**: SEO append = **best-effort** (warn + continue). Ads removal / noindex = **fail-closed**.
-- **No automated behavioral tests**: Mode Standard (`strict_tdd: false`, no test runner). Verification is `php -l`, `tsc --noEmit`, and `npm run build` only.
+- Accordion state is CSS/`hidden` only. Fields stay in the DOM so collapse/expand does not drop values or payload collection.
+- Header summary: title (`Landing N` fallback), type (`SEO`/`Ads`), primary keyword (`No primary keyword` fallback). Updates live from title/type/keyword fields.
+- Duplicate and Remove remain sibling actions outside the toggle, so their clicks never flip accordion state.
+- Newly added, duplicated, and hydrated cards start collapsed. User-initiated add/duplicate focuses the toggle, not a hidden field.
+- Payload, identity, skip-all, sections, and canonical replace behavior are unchanged.
+
+## Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `npx tsc --noEmit` — exit 0, no output. Local PHP 8.2.29 `php -l inc/wizard/wizard-init.php` — `No syntax errors detected`. |
+| Runtime harness command/scenario and exact result | N/A — no automated runtime harness. Accordion is WP Admin UI. User already smoked successful landing creation. Remaining manual check: default collapsed, isolated Duplicate/Remove, live summary, form persistence. |
+| Rollback boundary | Revert `inc/wizard/wizard-init.php`, `src/ts/admin/wizard.ts`, `src/scss/admin/wizard.scss`, plus the 3.8 task/progress notes. Does not touch landing payload or backend. |
 
 ## Verification
 
 ```
-php -l pages/landing-page.php
-php -l inc/wizard/class-step-landing-page-builder.php
-php -l inc/wizard/class-menu-builder.php
-php -l inc/wizard/class-step-menu-setup.php
-php -l inc/wizard/class-yoast-meta-writer.php
+php -l inc/wizard/wizard-init.php
 npx tsc --noEmit
 npm run build
 ```
 
-Mode: **Standard** (`strict_tdd: false`, no test runner). Manual WP Admin scenarios remain for Phase 4.
+- `php -l` (Local PHP 8.2.29 win64): No syntax errors detected in `inc/wizard/wizard-init.php`
+- `npx tsc --noEmit`: pass (exit 0)
+- `npm run build`: pass (`tsc && vite build`, wizard CSS/JS rebuilt)
+
+Mode: **Standard** (`strict_tdd: false`, no test runner). Phase 4 tasks 4.1–4.4 remain unchecked.
 
 ## Workload / PR Boundary
 
-- Mode: chained PR slice (feature-branch-chain)
-- Current work unit: PR3 remaining risk blockers only
-- Boundary: no archive, no commit/push
-- Estimated review budget impact: small focused delta
+- Mode: chained PR slice follow-up on merged `feature/wizard-setup`
+- Current work unit: Phase 3.8 landing-card accordion only
+- Boundary: template + admin TS/SCSS + OpenSpec task/progress; no archive, no commit/push
+- Estimated review budget impact: small focused UX delta
 
 ## Status
 
-17/19 tasks complete (Phase 1–3) + PR3 remaining risk blockers addressed. Ready for re-review / Phase 4 verification. No commit performed.
+18/20 tasks complete (Phase 1–3 including 3.8). Phase 4 verification still pending. Ready for verify after a WP Admin accordion pass. No commit performed.

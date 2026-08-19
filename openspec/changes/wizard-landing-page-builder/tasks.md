@@ -73,6 +73,7 @@ Chain strategy: feature-branch-chain
 - [x] 3.5 Modify `src/scss/admin/wizard.scss` for landing and unlock admin states only.
 - [x] 3.6 Modify `pages/landing-page.php` to render flexible `page_sections` and inject `breadcrumb-slim` once after the first Hero.
 - [x] 3.7 **Activate** `landing-page-builder` atomically: add to `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` (alias + dispatch case already present) together with UI + noindex/menu final-state sync. Do not activate required/dispatch without the visible skip/payload path.
+- [x] 3.8 Convert landing seed-data cards into accessible collapsed-by-default accordions: visible header summary (title/type/keyword), native toggle button with `aria-expanded`/`aria-controls`, isolated Duplicate/Remove, live summary updates, and preserved form values.
 
 ## Phase 4: Verification
 

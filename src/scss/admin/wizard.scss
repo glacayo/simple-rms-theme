@@ -908,6 +908,10 @@
   box-shadow: 0 1px 1px rgb(0 0 0 / 0.03);
 }
 
+.rms-wizard-landing-row.is-collapsed {
+  gap: 0;
+}
+
 .rms-wizard-landing-row.is-ads {
   border-color: color-mix(in srgb, var(--rms-wizard-warning), #fff 35%);
   background: #fffdf8;
@@ -921,11 +925,97 @@
   justify-content: space-between;
 }
 
+.rms-wizard-landing-row__toggle {
+  display: flex;
+  flex: 1 1 220px;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  margin: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.rms-wizard-landing-row__toggle:hover {
+  background: #f6f7f7;
+}
+
+.rms-wizard-landing-row__toggle:focus {
+  outline: none;
+}
+
+.rms-wizard-landing-row__toggle:focus-visible {
+  outline: 2px solid #2271b1;
+  outline-offset: 2px;
+}
+
+.rms-wizard-landing-row__chevron {
+  flex: 0 0 auto;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.rms-wizard-landing-row__toggle[aria-expanded='true'] .rms-wizard-landing-row__chevron {
+  transform: rotate(45deg);
+}
+
+.rms-wizard-landing-row__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.rms-wizard-landing-row__title {
+  font-weight: 700;
+}
+
+.rms-wizard-landing-row__type {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.rms-wizard-landing-row__keyword {
+  color: var(--rms-wizard-muted);
+  font-size: 13px;
+}
+
+.rms-wizard-landing-row__panel[hidden] {
+  display: none;
+}
+
+.rms-wizard-landing-row__panel {
+  display: grid;
+  gap: 14px;
+}
+
 .rms-wizard-landing-row__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rms-wizard-landing-row__chevron {
+    transition: none;
+  }
 }
 
 .rms-wizard-landing-row__grid {

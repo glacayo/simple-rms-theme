@@ -1128,11 +1128,64 @@ declare global {
         landing_type: landing.landing_type === 'ads' ? 'ads' : 'seo',
         primary_keyword: landing.primary_keyword || landing.keywords?.primary_keyword || '',
         subkeywords: landing.subkeywords || landing.keywords?.subkeywords || [],
-      });
+      }, { focus: false });
     });
   };
 
-  const addLandingRow = (data: Partial<LandingPayloadItem> = {}): HTMLElement | null => {
+  const setLandingRowExpanded = (row: HTMLElement, expanded: boolean): void => {
+    const toggle = row.querySelector<HTMLButtonElement>('[data-wizard-landing-toggle]');
+    const panel = row.querySelector<HTMLElement>('[data-wizard-landing-panel]');
+
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    if (panel) {
+      panel.hidden = !expanded;
+    }
+
+    row.classList.toggle('is-collapsed', !expanded);
+  };
+
+  const toggleLandingRow = (button: HTMLButtonElement): void => {
+    const row = button.closest<HTMLElement>('[data-wizard-landing-row]');
+
+    if (!row) {
+      return;
+    }
+
+    setLandingRowExpanded(row, button.getAttribute('aria-expanded') !== 'true');
+  };
+
+  const syncLandingRowSummary = (row: HTMLElement, index = Number.parseInt(row.dataset.wizardLandingIndex ?? '', 10)): void => {
+    const resolvedIndex = Number.isFinite(index) ? index : 0;
+    const title = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value.trim() ?? '';
+    const landingType = row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value === 'ads' ? 'ads' : 'seo';
+    const keyword = row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]')?.value.trim() ?? '';
+    const heading = row.querySelector<HTMLElement>('[data-wizard-landing-heading]');
+    const typeSummary = row.querySelector<HTMLElement>('[data-wizard-landing-type-summary]');
+    const keywordSummary = row.querySelector<HTMLElement>('[data-wizard-landing-keyword-summary]');
+
+    if (heading) {
+      heading.textContent = title || `Landing ${resolvedIndex + 1}`;
+    }
+
+    if (typeSummary) {
+      typeSummary.textContent = landingType === 'ads' ? 'Ads' : 'SEO';
+    }
+
+    if (keywordSummary) {
+      keywordSummary.textContent = keyword || 'No primary keyword';
+    }
+
+    row.classList.toggle('is-ads', landingType === 'ads');
+  };
+
+  const remapLandingIndexedAttribute = (value: string, index: number): string => (
+    value.replace(/rms-wizard-landing-([a-z-]+)-\d+/g, `rms-wizard-landing-$1-${index}`)
+  );
+
+  const addLandingRow = (data: Partial<LandingPayloadItem> = {}, options: { focus?: boolean } = {}): HTMLElement | null => {
     const rows = getLandingRowsContainer();
     const template = getLandingRowTemplate();
 
@@ -1156,7 +1209,6 @@ declare global {
     const typeSelect = row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]');
     const keywordInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]');
     const subkeywordsInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]');
-    const heading = row.querySelector<HTMLElement>('[data-wizard-landing-heading]');
 
     if (idInput) {
       idInput.value = data.id && Number(data.id) > 0 ? String(data.id) : '';
@@ -1187,12 +1239,9 @@ declare global {
       subkeywordsInput.value = (data.subkeywords || []).join(', ');
     }
 
-    if (heading) {
-      heading.textContent = data.title || `Landing ${index + 1}`;
-    }
-
     rows.append(row);
-    row.classList.toggle('is-ads', typeSelect?.value === 'ads');
+    setLandingRowExpanded(row, false);
+    syncLandingRowSummary(row, index);
 
     const sectionLayouts = (data.sections && data.sections.length > 0)
       ? data.sections.map((section) => section.layout)
@@ -1206,7 +1255,10 @@ declare global {
     reindexLandingRows();
     syncLandingBuilderEmptyState();
     syncLandingSkipAllUi();
-    titleInput?.focus();
+
+    if (options.focus !== false) {
+      row.querySelector<HTMLButtonElement>('[data-wizard-landing-toggle]')?.focus();
+    }
 
     return row;
   };
@@ -1328,14 +1380,7 @@ declare global {
     rows.forEach((row, index) => {
       row.dataset.wizardLandingIndex = String(index);
 
-      const heading = row.querySelector<HTMLElement>('[data-wizard-landing-heading]');
-      const title = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value.trim() ?? '';
-
-      if (heading) {
-        heading.textContent = title || `Landing ${index + 1}`;
-      }
-
-      row.classList.toggle('is-ads', row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value === 'ads');
+      syncLandingRowSummary(row, index);
 
       row.querySelectorAll<FieldElement>('[name]').forEach((field) => {
         field.name = field.name
@@ -1344,11 +1389,27 @@ declare global {
       });
 
       row.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
-        element.id = element.id.replace(/rms-wizard-landing-([a-z-]+)-\d+/g, `rms-wizard-landing-$1-${index}`);
+        element.id = remapLandingIndexedAttribute(element.id, index);
       });
 
       row.querySelectorAll<HTMLLabelElement>('label[for]').forEach((label) => {
-        label.htmlFor = label.htmlFor.replace(/rms-wizard-landing-([a-z-]+)-\d+/g, `rms-wizard-landing-$1-${index}`);
+        label.htmlFor = remapLandingIndexedAttribute(label.htmlFor, index);
+      });
+
+      row.querySelectorAll<HTMLElement>('[aria-controls]').forEach((element) => {
+        const controls = element.getAttribute('aria-controls');
+
+        if (controls) {
+          element.setAttribute('aria-controls', remapLandingIndexedAttribute(controls, index));
+        }
+      });
+
+      row.querySelectorAll<HTMLElement>('[aria-labelledby]').forEach((element) => {
+        const labelledBy = element.getAttribute('aria-labelledby');
+
+        if (labelledBy) {
+          element.setAttribute('aria-labelledby', remapLandingIndexedAttribute(labelledBy, index));
+        }
       });
 
       Array.from(row.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')).forEach((sectionRow, sectionIndex) => {
@@ -2332,6 +2393,14 @@ declare global {
         return;
       }
 
+      const toggleLandingButton = target.closest<HTMLButtonElement>('[data-wizard-landing-toggle]');
+
+      if (toggleLandingButton) {
+        event.preventDefault();
+        toggleLandingRow(toggleLandingButton);
+        return;
+      }
+
       const addLandingSectionButton = target.closest<HTMLButtonElement>('[data-wizard-add-landing-section]');
 
       if (addLandingSectionButton) {
@@ -2368,14 +2437,21 @@ declare global {
       if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-title]')) {
         const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
         const slugInput = row?.querySelector<HTMLInputElement>('[data-wizard-landing-slug]');
-        const heading = row?.querySelector<HTMLElement>('[data-wizard-landing-heading]');
 
         if (slugInput && slugInput.dataset.wizardSlugAuto !== '0') {
           slugInput.value = sanitizeSlug(target.value);
         }
 
-        if (heading) {
-          heading.textContent = target.value.trim() || 'Landing';
+        if (row) {
+          syncLandingRowSummary(row);
+        }
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-primary-keyword]')) {
+        const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
+
+        if (row) {
+          syncLandingRowSummary(row);
         }
       }
 
@@ -2426,7 +2502,11 @@ declare global {
 
       if (target instanceof HTMLSelectElement && target.matches('[data-wizard-landing-type]')) {
         const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
-        row?.classList.toggle('is-ads', target.value === 'ads');
+
+        if (row) {
+          syncLandingRowSummary(row);
+        }
+
         return;
       }
 

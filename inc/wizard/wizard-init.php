@@ -907,47 +907,56 @@ function rms_wizard_render_landing_page_builder_form(): void {
 			</div>
 
 			<template data-wizard-landing-row-template>
-				<article class="rms-wizard-landing-row" role="listitem" data-wizard-landing-row>
+				<article class="rms-wizard-landing-row is-collapsed" role="listitem" data-wizard-landing-row>
 					<input type="hidden" name="landings[__INDEX__][id]" value="" data-wizard-landing-id>
 					<input type="hidden" name="landings[__INDEX__][landing_key]" value="" data-wizard-landing-key>
 					<header class="rms-wizard-landing-row__header">
-						<strong data-wizard-landing-heading><?php esc_html_e( 'Landing', 'simple-rms-theme' ); ?></strong>
+						<button type="button" class="rms-wizard-landing-row__toggle" id="rms-wizard-landing-toggle-__INDEX__" data-wizard-landing-toggle aria-expanded="false" aria-controls="rms-wizard-landing-panel-__INDEX__">
+							<span class="rms-wizard-landing-row__chevron" aria-hidden="true"></span>
+							<span class="rms-wizard-landing-row__summary">
+								<span class="rms-wizard-landing-row__title" data-wizard-landing-heading><?php esc_html_e( 'Landing 1', 'simple-rms-theme' ); ?></span>
+								<span class="rms-wizard-landing-row__type" data-wizard-landing-type-summary><?php esc_html_e( 'SEO', 'simple-rms-theme' ); ?></span>
+								<span class="rms-wizard-landing-row__keyword" data-wizard-landing-keyword-summary><?php esc_html_e( 'No primary keyword', 'simple-rms-theme' ); ?></span>
+							</span>
+						</button>
 						<div class="rms-wizard-landing-row__actions">
 							<button type="button" class="button-link" data-wizard-duplicate-landing><?php esc_html_e( 'Duplicate', 'simple-rms-theme' ); ?></button>
 							<button type="button" class="button-link-delete" data-wizard-remove-landing><?php esc_html_e( 'Remove', 'simple-rms-theme' ); ?></button>
 						</div>
 					</header>
-					<div class="rms-wizard-landing-row__grid">
-						<div class="rms-wizard-field">
-							<label for="rms-wizard-landing-title-__INDEX__"><?php esc_html_e( 'Title', 'simple-rms-theme' ); ?></label>
-							<input id="rms-wizard-landing-title-__INDEX__" type="text" name="landings[__INDEX__][title]" data-wizard-landing-title placeholder="<?php esc_attr_e( 'Kitchen Remodel Landing', 'simple-rms-theme' ); ?>">
+					<div id="rms-wizard-landing-panel-__INDEX__" class="rms-wizard-landing-row__panel" data-wizard-landing-panel hidden role="region" aria-labelledby="rms-wizard-landing-toggle-__INDEX__">
+						<div class="rms-wizard-landing-row__grid">
+							<div class="rms-wizard-field">
+								<label for="rms-wizard-landing-title-__INDEX__"><?php esc_html_e( 'Title', 'simple-rms-theme' ); ?></label>
+								<input id="rms-wizard-landing-title-__INDEX__" type="text" name="landings[__INDEX__][title]" data-wizard-landing-title placeholder="<?php esc_attr_e( 'Kitchen Remodel Landing', 'simple-rms-theme' ); ?>">
+							</div>
+							<div class="rms-wizard-field">
+								<label for="rms-wizard-landing-slug-__INDEX__"><?php esc_html_e( 'Slug', 'simple-rms-theme' ); ?></label>
+								<input id="rms-wizard-landing-slug-__INDEX__" type="text" name="landings[__INDEX__][slug]" data-wizard-landing-slug data-wizard-slug-auto="1" placeholder="<?php esc_attr_e( 'kitchen-remodel', 'simple-rms-theme' ); ?>">
+							</div>
+							<div class="rms-wizard-field">
+								<label for="rms-wizard-landing-type-__INDEX__"><?php esc_html_e( 'Landing type', 'simple-rms-theme' ); ?></label>
+								<select id="rms-wizard-landing-type-__INDEX__" name="landings[__INDEX__][landing_type]" data-wizard-landing-type>
+									<option value="seo"><?php esc_html_e( 'SEO (indexable, menu-eligible)', 'simple-rms-theme' ); ?></option>
+									<option value="ads"><?php esc_html_e( 'Ads (noindex, orphan)', 'simple-rms-theme' ); ?></option>
+								</select>
+							</div>
+							<div class="rms-wizard-field">
+								<label for="rms-wizard-landing-keyword-__INDEX__"><?php esc_html_e( 'Primary keyword', 'simple-rms-theme' ); ?></label>
+								<input id="rms-wizard-landing-keyword-__INDEX__" type="text" name="landings[__INDEX__][primary_keyword]" data-wizard-landing-primary-keyword placeholder="<?php esc_attr_e( 'kitchen remodel near me', 'simple-rms-theme' ); ?>">
+							</div>
+							<div class="rms-wizard-field rms-wizard-landing-row__subkeywords">
+								<label for="rms-wizard-landing-subkeywords-__INDEX__"><?php esc_html_e( 'Subkeywords (comma-separated, max 10)', 'simple-rms-theme' ); ?></label>
+								<input id="rms-wizard-landing-subkeywords-__INDEX__" type="text" name="landings[__INDEX__][subkeywords]" data-wizard-landing-subkeywords placeholder="<?php esc_attr_e( 'cabinet refinishing, countertop install', 'simple-rms-theme' ); ?>">
+							</div>
 						</div>
-						<div class="rms-wizard-field">
-							<label for="rms-wizard-landing-slug-__INDEX__"><?php esc_html_e( 'Slug', 'simple-rms-theme' ); ?></label>
-							<input id="rms-wizard-landing-slug-__INDEX__" type="text" name="landings[__INDEX__][slug]" data-wizard-landing-slug data-wizard-slug-auto="1" placeholder="<?php esc_attr_e( 'kitchen-remodel', 'simple-rms-theme' ); ?>">
+						<div class="rms-wizard-landing-sections" data-wizard-landing-sections-list>
+							<div class="rms-wizard-landing-sections__header">
+								<strong><?php esc_html_e( 'Sections', 'simple-rms-theme' ); ?></strong>
+								<button type="button" class="button-link" data-wizard-add-landing-section><?php esc_html_e( 'Add section', 'simple-rms-theme' ); ?></button>
+							</div>
+							<div class="rms-wizard-landing-section-rows" data-wizard-landing-section-rows></div>
 						</div>
-						<div class="rms-wizard-field">
-							<label for="rms-wizard-landing-type-__INDEX__"><?php esc_html_e( 'Landing type', 'simple-rms-theme' ); ?></label>
-							<select id="rms-wizard-landing-type-__INDEX__" name="landings[__INDEX__][landing_type]" data-wizard-landing-type>
-								<option value="seo"><?php esc_html_e( 'SEO (indexable, menu-eligible)', 'simple-rms-theme' ); ?></option>
-								<option value="ads"><?php esc_html_e( 'Ads (noindex, orphan)', 'simple-rms-theme' ); ?></option>
-							</select>
-						</div>
-						<div class="rms-wizard-field">
-							<label for="rms-wizard-landing-keyword-__INDEX__"><?php esc_html_e( 'Primary keyword', 'simple-rms-theme' ); ?></label>
-							<input id="rms-wizard-landing-keyword-__INDEX__" type="text" name="landings[__INDEX__][primary_keyword]" data-wizard-landing-primary-keyword placeholder="<?php esc_attr_e( 'kitchen remodel near me', 'simple-rms-theme' ); ?>">
-						</div>
-						<div class="rms-wizard-field rms-wizard-landing-row__subkeywords">
-							<label for="rms-wizard-landing-subkeywords-__INDEX__"><?php esc_html_e( 'Subkeywords (comma-separated, max 10)', 'simple-rms-theme' ); ?></label>
-							<input id="rms-wizard-landing-subkeywords-__INDEX__" type="text" name="landings[__INDEX__][subkeywords]" data-wizard-landing-subkeywords placeholder="<?php esc_attr_e( 'cabinet refinishing, countertop install', 'simple-rms-theme' ); ?>">
-						</div>
-					</div>
-					<div class="rms-wizard-landing-sections" data-wizard-landing-sections-list>
-						<div class="rms-wizard-landing-sections__header">
-							<strong><?php esc_html_e( 'Sections', 'simple-rms-theme' ); ?></strong>
-							<button type="button" class="button-link" data-wizard-add-landing-section><?php esc_html_e( 'Add section', 'simple-rms-theme' ); ?></button>
-						</div>
-						<div class="rms-wizard-landing-section-rows" data-wizard-landing-section-rows></div>
 					</div>
 				</article>
 			</template>
