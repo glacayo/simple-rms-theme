@@ -145,8 +145,10 @@
      }
 
     // Footer — deferred
-    $footer_version = sanitize_key(rms_get_option('company_footer_version') ?: 'footer-v2');
-    $vite->get_deferred_style("layout-{$footer_version}", "src/scss/layout/{$footer_version}.scss");
+    $footer_version = rms_get_footer_version();
+    if ($footer_version !== '') {
+        $vite->get_deferred_style("layout-{$footer_version}", "src/scss/layout/{$footer_version}.scss");
+    }
     ?>
     <?php wp_head(); ?>
 </head>
