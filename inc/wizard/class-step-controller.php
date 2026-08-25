@@ -129,6 +129,18 @@ class Step_Controller {
 		$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
 		$state['logs']                 = $this->logger->all();
 
+		// Recover stale landing run lease and expose the public run view only.
+		if ( class_exists( __NAMESPACE__ . '\\Landing_Run_Orchestrator' ) ) {
+			$orchestrator = new Landing_Run_Orchestrator( $this->state_manager, $this->logger );
+			$orchestrator->recover_stale_lease();
+
+			$run = $orchestrator->get_public_run();
+
+			if ( null !== $run ) {
+				$state['landing_run'] = $run;
+			}
+		}
+
 		return $state;
 	}
 
@@ -163,11 +175,27 @@ class Step_Controller {
 			return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
 		}
 
+		// Orchestrated landing actions manage their own per-landing mutex lease.
+		// Release the global step lock immediately so it does not expire
+		// during a 5-6 minute per-landing build. The orchestrator's atomic
+		// mutex option (scoped to run id + owner token) is the concurrency boundary.
+		$is_landing_orchestrated = false;
+
+		if ( 'landing-page-builder' === $step ) {
+			$landing_action = \sanitize_key( (string) ( $payload['landing_action'] ?? '' ) );
+
+			if ( in_array( $landing_action, [ 'start', 'process' ], true ) ) {
+				$is_landing_orchestrated = true;
+				$this->state_manager->release_lock( self::LOCK_NAME );
+			}
+		}
+
 		$progress_status_written = false;
 
 		try {
 			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
-			if ( ! $this->is_completed_gate_allowlisted( $step ) ) {
+			// Landing start/process keep step_status under the orchestrator, not this lock.
+			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated ) {
 				$this->state_manager->set_current_step( $step );
 				$this->state_manager->set_step_status( $step, 'running' );
 				$progress_status_written = true;
@@ -235,7 +263,9 @@ class Step_Controller {
 				[ 'status' => 500 ]
 			);
 		} finally {
-			$this->state_manager->release_lock( self::LOCK_NAME );
+			if ( ! $is_landing_orchestrated ) {
+				$this->state_manager->release_lock( self::LOCK_NAME );
+			}
 		}
 	}
 
