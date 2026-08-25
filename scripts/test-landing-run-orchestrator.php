@@ -35,6 +35,14 @@ namespace {
 		if ( isset( $GLOBALS['_options'][$name] ) && ( func_get_arg(2) ?? null ) === false && ! isset( $GLOBALS['_options_added'][$name] ) ) {
 			// This is a raw update, not add_option.
 		}
+		if ( empty( $GLOBALS['_update_option_reentering'] ) && is_callable( $GLOBALS['_update_option_hook'] ?? null ) ) {
+			$GLOBALS['_update_option_reentering'] = true;
+			try {
+				$GLOBALS['_update_option_hook']( $name, $value, $autoload );
+			} finally {
+				$GLOBALS['_update_option_reentering'] = false;
+			}
+		}
 		$GLOBALS['_options'][$name] = $value;
 		return true;
 	}
@@ -191,6 +199,9 @@ namespace {
 	$GLOBALS['_insert_post_calls'] = 0;
 	$GLOBALS['_fail_landing_meta'] = false;
 	$GLOBALS['_ai_fail'] = false;
+	$GLOBALS['_update_option_hook'] = null;
+	$GLOBALS['_wpdb_delete_hook'] = null;
+	$GLOBALS['_update_option_reentering'] = false;
 
 	class Fake_WPDB {
 		public $options = 'wp_options';
@@ -231,6 +242,9 @@ namespace {
 				}
 
 				unset( $GLOBALS['_options'][ $name ] );
+				if ( is_callable( $GLOBALS['_wpdb_delete_hook'] ?? null ) ) {
+					$GLOBALS['_wpdb_delete_hook']( $name );
+				}
 				return 1;
 			}
 
@@ -271,9 +285,33 @@ namespace {
 	}
 
 	class WP_REST_Server { const READABLE = 'GET'; const CREATABLE = 'POST'; }
-	class WP_REST_Request { public $step; }
+	class WP_REST_Request implements \ArrayAccess {
+		private $data = [];
+		public $json = [];
+		public function __construct( $data = [] ) {
+			$this->data = is_array( $data ) ? $data : [];
+			$this->json = $this->data;
+		}
+		public function get_json_params() { return $this->json; }
+		public function get_params() { return $this->data; }
+		public function offsetExists( mixed $offset ): bool { return array_key_exists( $offset, $this->data ); }
+		public function offsetGet( mixed $offset ): mixed { return $this->data[ $offset ] ?? null; }
+		public function offsetSet( mixed $offset, mixed $value ): void {
+			if ( null === $offset ) {
+				$this->data[] = $value;
+				return;
+			}
+			$this->data[ $offset ] = $value;
+		}
+		public function offsetUnset( mixed $offset ): void { unset( $this->data[ $offset ] ); }
+	}
 	class WP_REST_Response {
-		public function __construct( $data, $code = 200 ) {}
+		public $data;
+		public $status;
+		public function __construct( $data, $code = 200 ) {
+			$this->data   = $data;
+			$this->status = (int) $code;
+		}
 	}
 	class WP_Query {
 		public $posts = [];
@@ -297,7 +335,7 @@ namespace {
 	}
 
 	function reset_state(): void {
-		global $_options, $_options_added, $_posts, $_updated_posts, $_post_meta, $_pages_by_slug, $_acf_fields, $_post_counter, $_insert_post_calls, $_fail_landing_meta, $_ai_fail;
+		global $_options, $_options_added, $_posts, $_updated_posts, $_post_meta, $_pages_by_slug, $_acf_fields, $_post_counter, $_insert_post_calls, $_fail_landing_meta, $_ai_fail, $_update_option_hook, $_wpdb_delete_hook, $_update_option_reentering;
 		$_options = [];
 		$_options_added = [];
 		$_posts = [];
@@ -309,6 +347,20 @@ namespace {
 		$_insert_post_calls = 0;
 		$_fail_landing_meta = false;
 		$_ai_fail = false;
+		$_update_option_hook = null;
+		$_wpdb_delete_hook = null;
+		$_update_option_reentering = false;
+	}
+
+	function is_legacy_lock_clear_save( $name, $value ): bool {
+		if ( 'rms_wizard_state' !== $name || ! is_array( $value ) ) {
+			return false;
+		}
+
+		$previous = $GLOBALS['_options']['rms_wizard_state'] ?? [];
+		$had_lock = is_array( $previous ) && ! empty( $previous['locks']['step_execution'] );
+
+		return $had_lock && empty( $value['locks']['step_execution'] );
 	}
 
 	function make_landing_payload_item( string $key, string $title, int $id = 0 ): array {
@@ -347,9 +399,154 @@ namespace {
 		return make_existing_entry( $key, $title, $id );
 	}
 
+	function landing_skip_snapshot( $sm ): array {
+		$state = $sm->get_state();
+
+		return [
+			'run'  => $state['landing_run'] ?? null,
+			'step' => (string) ( $state['step_status']['landing-page-builder'] ?? '' ),
+		];
+	}
+
+	function wizard_identity_snapshot( $sm ): array {
+		$state = $sm->get_state();
+
+		return [
+			'current_step'  => (string) ( $state['current_step'] ?? '' ),
+			'step_status'   => is_array( $state['step_status'] ?? null ) ? $state['step_status'] : [],
+			'landing_run'   => $state['landing_run'] ?? null,
+			'landing_pages' => is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [],
+		];
+	}
+
+	function error_exposes_owner( $error ): bool {
+		if ( ! is_wp_error( $error ) ) {
+			return false;
+		}
+
+		$data    = $error->get_error_data();
+		$encoded = strtolower( $error->get_error_code() . ' ' . $error->get_error_message() . ' ' . wp_json_encode( $data ) );
+
+		if ( is_array( $data ) && ( isset( $data['owner'] ) || isset( $data['lease_owner'] ) ) ) {
+			return true;
+		}
+
+		return false !== strpos( $encoded, 'owner_' ) || false !== strpos( $encoded, 'lease_owner' );
+	}
+
+	function payload_exposes_owner( $payload ): bool {
+		if ( is_wp_error( $payload ) ) {
+			return error_exposes_owner( $payload );
+		}
+
+		if ( $payload instanceof \WP_REST_Response ) {
+			$payload = $payload->data;
+		}
+
+		$encoded = strtolower( (string) wp_json_encode( $payload ) );
+
+		return false !== strpos( $encoded, '"owner"' )
+			|| false !== strpos( $encoded, 'lease_owner' )
+			|| false !== strpos( $encoded, 'owner_' );
+	}
+
+	function seed_required_steps_complete( $sm ): void {
+		$status = [];
+
+		foreach ( \Inc\Wizard\Step_Controller::get_required_steps() as $step ) {
+			$status[ $step ] = 'complete';
+		}
+
+		$sm->save_state( [ 'step_status' => $status ] );
+	}
+
+	function seed_stale_running_item( $sm ): array {
+		$sm->save_state( [
+			'ai_config'   => [ 'provider' => 'test', 'model' => 'test-model', 'has_credentials' => true ],
+			'client_data' => [ 'company_name' => 'Test Company' ],
+		] );
+		$builder = new \Inc\Wizard\Step_Landing_Page_Builder( new \Inc\Wizard\Logger(), $sm );
+		$start   = $builder->run( [
+			'landing_action'    => 'start',
+			'landings'          => [
+				make_landing_payload_item( 'lk_stale_a', 'Stale One' ),
+				make_landing_payload_item( 'lk_stale_b', 'Stale Two' ),
+			],
+			'replace_canonical' => [],
+		] );
+
+		if ( is_wp_error( $start ) ) {
+			return [ 'error' => $start ];
+		}
+
+		$orch = new \Inc\Wizard\Landing_Run_Orchestrator( $sm, new \Inc\Wizard\Logger() );
+		$next = $orch->get_next_item();
+
+		if ( ! is_array( $next ) ) {
+			return [ 'error' => 'no-next-item' ];
+		}
+
+		$orch->mark_item_running( (string) $next['key'] );
+		$state       = $sm->get_state();
+		$option_name = 'rms_landing_lease_' . sanitize_key( (string) ( $state['landing_run']['run_id'] ?? '' ) );
+		$lease       = get_option( $option_name, false );
+
+		if ( is_array( $lease ) ) {
+			$lease['expires_at'] = time() - 100;
+			update_option( $option_name, $lease );
+		}
+
+		return [
+			'item_key'    => (string) $next['key'],
+			'option_name' => $option_name,
+			'run'         => $sm->get_state()['landing_run'] ?? null,
+		];
+	}
+
+	function wp_error_http_status( $error ): int {
+		if ( ! is_wp_error( $error ) ) {
+			return 0;
+		}
+		$data = $error->get_error_data();
+
+		return is_array( $data ) ? (int) ( $data['status'] ?? 0 ) : 0;
+	}
+
+	function seed_incomplete_landing_run( $sm, string $status = 'pending' ) {
+		$sm->save_state( [
+			'ai_config'    => [ 'provider' => 'test', 'model' => 'test', 'has_credentials' => true ],
+			'client_data'  => [ 'company_name' => 'Test' ],
+			'step_status'  => [ 'landing-page-builder' => 'running' ],
+		] );
+		$orch = new \Inc\Wizard\Landing_Run_Orchestrator( $sm, new \Inc\Wizard\Logger() );
+		$orch->start_run(
+			[ [ 'landing_key' => 'lk_skip_race', 'id' => 0, 'title' => 'Skip Race', 'slug' => 'skip-race', 'landing_type' => 'seo', 'menu_eligible' => true, 'primary_keyword' => 'kw', 'subkeywords' => [], 'sections' => [ [ 'layout' => 'badges' ] ] ] ],
+			[],
+			[]
+		);
+		$state = $sm->get_state();
+		$state['landing_run']['status'] = $status;
+		$state['step_status']['landing-page-builder'] = 'running';
+		$sm->save_state( $state );
+
+		return $orch;
+	}
+
+	function rest_skip_all( $sm ) {
+		$rest    = new \Inc\Wizard\Rest_Controller( new \Inc\Wizard\Step_Controller( $sm, new \Inc\Wizard\Logger() ) );
+		$request = new \WP_REST_Request( [
+			'step'     => 'landing-page-builder',
+			'skip_all' => true,
+		] );
+		$request->json = [ 'skip_all' => true ];
+
+		return $rest->run_step( $request );
+	}
+
 	// Include required classes.
 	require_once __DIR__ . '/../inc/wizard/class-logger.php';
 	require_once __DIR__ . '/../inc/wizard/class-state-manager.php';
+	require_once __DIR__ . '/../inc/wizard/class-wizard-mutation-fence.php';
 	require_once __DIR__ . '/../inc/wizard/class-landing-run-orchestrator.php';
 	require_once __DIR__ . '/../inc/wizard/class-canonical-section-store.php';
 	require_once __DIR__ . '/../inc/wizard/class-flexible-content-layouts.php';
@@ -370,7 +567,10 @@ namespace {
 		eval( 'namespace Inc\Wizard; class AI_Provider {}' );
 	}
 	if ( ! class_exists( 'Inc\Wizard\Step_Controller' ) ) {
-		eval( 'namespace Inc\Wizard; class Step_Controller { public static function get_required_steps(){return ["dependencies","acf-import","client-data","generate-pages","menu-setup","ia-generation","home-page-builder","landing-page-builder"];} }' );
+		require_once __DIR__ . '/../inc/wizard/class-step-controller.php';
+	}
+	if ( ! class_exists( 'Inc\Wizard\Rest_Controller' ) ) {
+		require_once __DIR__ . '/../inc/wizard/class-rest-controller.php';
 	}
 	if ( ! class_exists( 'Inc\Wizard\Wizard_Unlock_Controller' ) ) {
 		eval( 'namespace Inc\Wizard; class Wizard_Unlock_Controller { public static function is_force_unlocked(){return false;} public static function is_controlled_unlock_enabled(){return false;} public static function is_unlocked(){return false;} public static function has_unlock_marker(){return false;} const UNLOCKED_AT_OPTION=""; const UNLOCKED_BY_OPTION=""; const UNLOCK_ACTION=""; const RELOCK_ACTION=""; const NONCE_ACTION=""; public static function verify_admin_nonce($n){return true;} }' );
@@ -382,6 +582,9 @@ namespace {
 	use Inc\Wizard\State_Manager;
 	use Inc\Wizard\Landing_Run_Orchestrator;
 	use Inc\Wizard\Step_Landing_Page_Builder;
+	use Inc\Wizard\Step_Controller;
+	use Inc\Wizard\Rest_Controller;
+	use Inc\Wizard\Wizard_Mutation_Fence;
 	use Inc\Wizard\Canonical_Section_Store;
 	use Inc\Wizard\Flexible_Content_Layouts;
 	use Inc\Wizard\AI_Content_Harness;
@@ -485,6 +688,12 @@ namespace {
 	// Verify 9 unique landing pages.
 	$state = $sm->get_state();
 	$t->assertEqual( 9, count( $state['landing_pages'] ), '9 unique landing pages in state' );
+	$t->assertEqual( 9, count( $result['landing_pages'] ?? [] ), 'Finalize HTTP response includes all persisted landing pages' );
+	$t->assertEqual(
+		array_values( array_map( static fn( $page ) => (string) ( $page['landing_key'] ?? '' ), $state['landing_pages'] ) ),
+		array_values( array_map( static fn( $page ) => (string) ( $page['landing_key'] ?? '' ), $result['landing_pages'] ?? [] ) ),
+		'Finalize response landing_pages keys match persisted state'
+	);
 
 	// === TEST 3: Four pre-existing unchanged + five new ===
 	echo "\nTest 3: Four pre-existing unchanged skipped; five pending\n";
@@ -852,9 +1061,12 @@ namespace {
 	reset_state();
 	$sm = new State_Manager();
 	$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+	$orch = new Landing_Run_Orchestrator( $sm, new Logger() );
+	$t->assert( $orch->allows_skip_all(), 'No-run permits skip-all' );
 	$result = $builder->run( [ 'skip_all' => true ] );
 	$t->assert( ! is_wp_error( $result ), 'Skip-all does not error' );
 	$t->assert( ! empty( $result['skipped'] ), 'Skip-all returns skipped=true' );
+	$t->assertEqual( 'complete', (string) ( $sm->get_state()['step_status']['landing-page-builder'] ?? '' ), 'No-run skip-all marks the step complete' );
 
 	// === TEST 14: No landing_action without skip_all → 400 ===
 	echo "\nTest 14: No landing_action without skip_all → 400 contract error\n";
@@ -1145,6 +1357,446 @@ namespace {
 	$after_stale = $orch->acquire_start_fence();
 	$t->assert( is_wp_error( $after_stale ), 'Stale/non-owner release cannot clear replacement start-fence ownership' );
 	$orch->release_start_fence( (string) $replacement );
+
+	// === TEST 23: Skip-all refuses live/incomplete runs on service + REST paths ===
+	echo "\nTest 23: Skip-all 409 guard preserves run/step status\n";
+	foreach ( [ 'pending', 'running', 'interrupted', 'failed' ] as $blocking_status ) {
+		reset_state();
+		$sm      = new State_Manager();
+		$orch    = seed_incomplete_landing_run( $sm, $blocking_status );
+		$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+		$before  = landing_skip_snapshot( $sm );
+		$t->assert( ! $orch->allows_skip_all(), "Incomplete {$blocking_status} run does not permit skip-all" );
+
+		$service = $builder->run( [ 'skip_all' => true ] );
+		$t->assert( is_wp_error( $service ), "Service skip-all refuses {$blocking_status} run" );
+		$t->assertEqual( 'rms_wizard_landing_run_active', is_wp_error( $service ) ? $service->get_error_code() : '', "Service skip-all {$blocking_status} uses run_active" );
+		$t->assertEqual( 409, wp_error_http_status( $service ), "Service skip-all {$blocking_status} is HTTP 409" );
+		$t->assertEqual( $before, landing_skip_snapshot( $sm ), "Service skip-all {$blocking_status} preserves run/step status" );
+
+		$start_skip = $builder->run( [ 'landing_action' => 'start', 'skip_all' => true ] );
+		$t->assert( is_wp_error( $start_skip ), "start+skip_all refuses {$blocking_status} run" );
+		$t->assertEqual( 409, wp_error_http_status( $start_skip ), "start+skip_all {$blocking_status} is HTTP 409" );
+		$t->assertEqual( $before, landing_skip_snapshot( $sm ), "start+skip_all {$blocking_status} preserves run/step status" );
+
+		$rest = rest_skip_all( $sm );
+		$t->assert( is_wp_error( $rest ), "REST skip-all refuses {$blocking_status} run" );
+		$t->assertEqual( 'rms_wizard_landing_run_active', is_wp_error( $rest ) ? $rest->get_error_code() : '', "REST skip-all {$blocking_status} uses run_active" );
+		$t->assertEqual( 409, wp_error_http_status( $rest ), "REST skip-all {$blocking_status} is HTTP 409" );
+		$t->assertEqual( $before, landing_skip_snapshot( $sm ), "REST skip-all {$blocking_status} preserves run/step status" );
+	}
+
+	reset_state();
+	$sm   = new State_Manager();
+	$orch = seed_incomplete_landing_run( $sm, 'running' );
+	$owner = $orch->acquire_lease();
+	$t->assert( ! is_wp_error( $owner ), 'Active-lease fixture acquires a lease' );
+	$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+	$before  = landing_skip_snapshot( $sm );
+	$service = $builder->run( [ 'skip_all' => true ] );
+	$t->assert( is_wp_error( $service ) && 409 === wp_error_http_status( $service ), 'Service skip-all refuses an active lease' );
+	$t->assertEqual( $before, landing_skip_snapshot( $sm ), 'Active-lease skip-all preserves run/step status' );
+	$rest = rest_skip_all( $sm );
+	$t->assert( is_wp_error( $rest ) && 409 === wp_error_http_status( $rest ), 'REST skip-all refuses an active lease' );
+	$t->assertEqual( $before, landing_skip_snapshot( $sm ), 'REST active-lease skip-all preserves run/step status' );
+	$orch->release_lease( (string) $owner );
+
+	reset_state();
+	$sm   = new State_Manager();
+	$orch = seed_incomplete_landing_run( $sm, 'completed' );
+	$state = $sm->get_state();
+	$state['landing_run']['items'][0]['status'] = 'completed';
+	$state['landing_run']['status'] = 'completed';
+	$state['step_status']['landing-page-builder'] = 'complete';
+	$sm->save_state( $state );
+	$t->assert( $orch->allows_skip_all(), 'Completed run permits skip-all' );
+	$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+	$completed_skip = $builder->run( [ 'skip_all' => true ] );
+	$t->assert( ! is_wp_error( $completed_skip ), 'Skip-all succeeds against a completed run' . ( is_wp_error( $completed_skip ) ? ': ' . $completed_skip->get_error_message() : '' ) );
+	$t->assert( ! empty( $completed_skip['skipped'] ), 'Completed-run skip-all still returns skipped=true' );
+
+	reset_state();
+	$sm   = new State_Manager();
+	$orch = seed_incomplete_landing_run( $sm, 'skipped' );
+	$state = $sm->get_state();
+	$state['landing_run']['status'] = 'skipped';
+	$state['landing_run']['items'][0]['status'] = 'completed';
+	$sm->save_state( $state );
+	$t->assert( $orch->allows_skip_all(), 'Skipped run permits skip-all' );
+	$skipped_skip = ( new Step_Landing_Page_Builder( new Logger(), $sm ) )->run( [ 'skip_all' => true ] );
+	$t->assert( ! is_wp_error( $skipped_skip ), 'Skip-all succeeds against a skipped run' . ( is_wp_error( $skipped_skip ) ? ': ' . $skipped_skip->get_error_message() : '' ) );
+
+	reset_state();
+	$sm = new State_Manager();
+	$rest_ok = rest_skip_all( $sm );
+	$t->assert( ! is_wp_error( $rest_ok ), 'REST skip-all succeeds when no run exists' . ( is_wp_error( $rest_ok ) ? ': ' . $rest_ok->get_error_message() : '' ) );
+	$t->assert( ! empty( $rest_ok->data['result']['skipped'] ), 'REST no-run skip-all returns skipped in the production envelope' );
+	$t->assertEqual( 200, (int) $rest_ok->status, 'REST no-run skip-all is HTTP 200' );
+
+	// === TEST 24: Site-wide mutation fence serializes all mutating execute_step() work ===
+	echo "\nTest 24: Mutation fence serializes landing vs Home/Generate/Menu/IA and start vs skip-all\n";
+	$t->assert( Wizard_Mutation_Fence::TTL > Wizard_Mutation_Fence::EXECUTION_BUDGET + Wizard_Mutation_Fence::MARGIN, 'Fence TTL is strictly greater than max PHP budget plus margin' );
+	$t->assertEqual( 'rms_wizard_mutation_fence', Wizard_Mutation_Fence::OPTION_NAME, 'Fence option name is fixed' );
+
+	reset_state();
+	$sm    = new State_Manager();
+	$sm->save_state( [
+		'current_step' => 'menu-setup',
+		'step_status'  => [ 'menu-setup' => 'complete', 'landing-page-builder' => 'pending' ],
+		'landing_run'  => null,
+		'ai_config'    => [ 'provider' => 'test', 'model' => 'test', 'has_credentials' => true ],
+	] );
+	$fence = new Wizard_Mutation_Fence();
+	$owner = $fence->acquire();
+	$t->assert( ! is_wp_error( $owner ) && is_string( $owner ) && '' !== $owner, 'First mutation fence acquire succeeds' );
+	$t->assert( $fence->is_held(), 'Acquired mutation fence is held' );
+
+	$contender = $fence->acquire();
+	$t->assert( is_wp_error( $contender ), 'Second mutation-fence contender is rejected' );
+	$t->assertEqual( 'rms_wizard_busy', is_wp_error( $contender ) ? $contender->get_error_code() : '', 'Fence contention uses rms_wizard_busy' );
+	$t->assertEqual( 409, wp_error_http_status( $contender ), 'Fence contention is HTTP 409' );
+	$t->assert( ! error_exposes_owner( $contender ), 'Fence conflict does not expose an owner token' );
+
+	$controller = new Step_Controller( $sm, new Logger() );
+	$before     = wizard_identity_snapshot( $sm );
+	$blocked_steps = [
+		'home-page-builder'    => [],
+		'generate-pages'       => [ 'pages' => [ 'home' ] ],
+		'menu-setup'           => [ 'primary' => [ 1 ], 'confirm_cleanup' => true ],
+		'ia-generation'        => [ 'provider' => 'test', 'model' => 'test' ],
+		'landing-page-builder' => [ 'landing_action' => 'start', 'landings' => [ make_landing_payload_item( 'lk_fence', 'Fence' ) ] ],
+	];
+	foreach ( $blocked_steps as $blocked_step => $payload ) {
+		$result = $controller->execute_step( $blocked_step, $payload );
+		$t->assert( is_wp_error( $result ), "execute_step {$blocked_step} cannot run while a landing process fence is held" );
+		$t->assertEqual( 'rms_wizard_busy', is_wp_error( $result ) ? $result->get_error_code() : '', "execute_step {$blocked_step} fence conflict uses rms_wizard_busy" );
+		$t->assertEqual( 409, wp_error_http_status( $result ), "execute_step {$blocked_step} fence conflict is HTTP 409" );
+		$t->assertEqual( $before, wizard_identity_snapshot( $sm ), "execute_step {$blocked_step} fence conflict mutates no current_step/step_status/run" );
+		$t->assert( ! error_exposes_owner( $result ), "execute_step {$blocked_step} fence conflict does not expose owner" );
+	}
+
+	$landing_process = $controller->execute_step( 'landing-page-builder', [ 'landing_action' => 'process' ] );
+	$t->assert( is_wp_error( $landing_process ) && 409 === wp_error_http_status( $landing_process ), 'Landing process cannot run while a normal-step fence is held' );
+	$t->assertEqual( $before, wizard_identity_snapshot( $sm ), 'Landing process fence conflict mutates no current_step/step_status/run' );
+
+	$skip_during_fence = $controller->execute_step( 'landing-page-builder', [ 'skip_all' => true ] );
+	$t->assert( is_wp_error( $skip_during_fence ) && 409 === wp_error_http_status( $skip_during_fence ), 'Controller fence rejects skip-all during an in-flight start/process' );
+	$t->assertEqual( $before, wizard_identity_snapshot( $sm ), 'Controller skip-all fence conflict is byte-identical for run/step state' );
+	$t->assertEqual( 'pending', (string) ( $sm->get_state()['step_status']['landing-page-builder'] ?? '' ), 'Fence conflict cannot paint landing failed' );
+
+	$fence->release( 'not-the-owner' );
+	$after_wrong = $fence->acquire();
+	$t->assert( is_wp_error( $after_wrong ), 'Non-owner cannot release the mutation fence' );
+
+	$fence->release( (string) $owner );
+	$t->assert( ! $fence->is_held(), 'Exact owner releases the mutation fence' );
+
+	$replacement = $fence->acquire();
+	$t->assert( ! is_wp_error( $replacement ), 'A later caller can acquire a free mutation fence' );
+	$fence->release( (string) $owner );
+	$after_stale = $fence->acquire();
+	$t->assert( is_wp_error( $after_stale ), 'Stale owner cannot release a replacement mutation fence' );
+	$fence->release( (string) $replacement );
+
+	$expired_owner = 'expired-owner-token';
+	$GLOBALS['_options'][ Wizard_Mutation_Fence::OPTION_NAME ] = [
+		'owner'       => $expired_owner,
+		'acquired_at' => time() - 2000,
+		'expires_at'  => time() - 10,
+	];
+	$recovered = $fence->acquire();
+	$t->assert( ! is_wp_error( $recovered ), 'Expiry recovers a stale mutation fence' );
+	$fence->release( $expired_owner );
+	$after_expired_release = $fence->acquire();
+	$t->assert( is_wp_error( $after_expired_release ), 'Expired owner cannot release the recovered replacement fence' );
+	$fence->release( (string) $recovered );
+
+	reset_state();
+	$sm   = new State_Manager();
+	$orch = new Landing_Run_Orchestrator( $sm, new Logger() );
+	$sm->save_state( [
+		'current_step' => 'landing-page-builder',
+		'step_status'  => [ 'landing-page-builder' => 'pending' ],
+	] );
+	$start_owner = $orch->acquire_start_fence();
+	$t->assert( ! is_wp_error( $start_owner ), 'Start-fence fixture acquires' );
+	$t->assert( $orch->has_active_start_fence(), 'has_active_start_fence is true while the start fence is held' );
+	$t->assert( ! $orch->allows_skip_all(), 'allows_skip_all treats an active start fence as blocking' );
+	$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+	$before  = wizard_identity_snapshot( $sm );
+	$service = $builder->run( [ 'skip_all' => true ] );
+	$t->assert( is_wp_error( $service ), 'Start-fence guard rejects skip-all' );
+	$t->assertEqual( 'rms_wizard_landing_run_active', is_wp_error( $service ) ? $service->get_error_code() : '', 'Start-fence skip-all uses run_active' );
+	$t->assertEqual( 409, wp_error_http_status( $service ), 'Start-fence skip-all is HTTP 409' );
+	$t->assertEqual( $before, wizard_identity_snapshot( $sm ), 'Start-fence skip-all preserves byte-identical run/step state' );
+	$start_skip = $builder->run( [ 'landing_action' => 'start', 'skip_all' => true ] );
+	$t->assert( is_wp_error( $start_skip ) && 409 === wp_error_http_status( $start_skip ), 'start+skip_all is rejected while the start fence is held' );
+	$t->assertEqual( $before, wizard_identity_snapshot( $sm ), 'start+skip_all start-fence conflict preserves run/step state' );
+	$orch->release_start_fence( (string) $start_owner );
+	$t->assert( $orch->allows_skip_all(), 'Skip-all is permitted after the start fence is released' );
+
+	// === TEST 25: Finalize pages, /complete fence, GET stale recovery serialization ===
+	echo "\nTest 25: Finalize response pages, complete conflict, GET stale recovery, execute_step run state\n";
+
+	reset_state();
+	$sm = new State_Manager();
+	$sm->save_state( [
+		'ai_config'   => [ 'provider' => 'test', 'model' => 'test-model', 'has_credentials' => true ],
+		'client_data' => [ 'company_name' => 'Test Company' ],
+	] );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$rest       = new Rest_Controller( $controller );
+	$start_req  = new \WP_REST_Request( [
+		'step'           => 'landing-page-builder',
+		'landing_action' => 'start',
+		'landings'       => [
+			make_landing_payload_item( 'lk_final_a', 'Final One' ),
+			make_landing_payload_item( 'lk_final_b', 'Final Two' ),
+		],
+		'replace_canonical' => [],
+	] );
+	$start_req->json = [
+		'landing_action'    => 'start',
+		'landings'          => [
+			make_landing_payload_item( 'lk_final_a', 'Final One' ),
+			make_landing_payload_item( 'lk_final_b', 'Final Two' ),
+		],
+		'replace_canonical' => [],
+	];
+	$start_res = $rest->run_step( $start_req );
+	$t->assert(
+		$start_res instanceof \WP_REST_Response,
+		'execute_step start returns a REST envelope' . ( is_wp_error( $start_res ) ? ': ' . $start_res->get_error_code() . ' ' . $start_res->get_error_message() : '' )
+	);
+	$t->assert( ! empty( $start_res->data['success'] ), 'execute_step start stays success:true' );
+	$t->assertEqual( 2, (int) ( $start_res->data['state']['landing_run']['total'] ?? 0 ), 'execute_step start state includes run total' );
+	$t->assertEqual( 1, (int) ( $start_res->data['state']['landing_run']['completed'] ?? 0 ), 'execute_step start state includes completed count' );
+	$t->assert( ! payload_exposes_owner( $start_res ), 'execute_step start response keeps owner opaque' );
+
+	$process_req = new \WP_REST_Request( [
+		'step'           => 'landing-page-builder',
+		'landing_action' => 'process',
+	] );
+	$process_req->json = [ 'landing_action' => 'process' ];
+	$final_res         = $rest->run_step( $process_req );
+	$t->assert( $final_res instanceof \WP_REST_Response, 'execute_step process finalize returns a REST envelope' );
+	$persisted_pages = $sm->get_state()['landing_pages'] ?? [];
+	$t->assertEqual( 2, count( $persisted_pages ), 'Two landing pages persisted after finalize' );
+	$t->assertEqual( 2, count( $final_res->data['result']['landing_pages'] ?? [] ), 'Finalize execute_step result includes all persisted pages' );
+	$t->assertEqual( 2, count( $final_res->data['state']['landing_pages'] ?? [] ), 'Finalize execute_step state includes all persisted pages' );
+	$t->assertEqual( 'completed', (string) ( $final_res->data['state']['landing_run']['status'] ?? '' ), 'execute_step finalize state keeps completed run status' );
+	$t->assert( ! payload_exposes_owner( $final_res ), 'execute_step finalize response keeps owner opaque' );
+
+	reset_state();
+	$sm = new State_Manager();
+	seed_required_steps_complete( $sm );
+	$sm->save_state( array_merge( $sm->get_state(), [ 'current_step' => 'landing-page-builder' ] ) );
+	$t->assert( ! $sm->has_completion_flag(), 'Completion flag starts unset' );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$rest       = new Rest_Controller( $controller );
+	$incomplete = $controller->complete();
+	$t->assert( ! is_wp_error( $incomplete ), 'complete() succeeds when every required step is complete' . ( is_wp_error( $incomplete ) ? ': ' . $incomplete->get_error_message() : '' ) );
+	$t->assert( $sm->has_completion_flag(), 'Successful complete() sets the completion flag' );
+	$t->assert( ! payload_exposes_owner( $incomplete ), 'complete() success keeps owner opaque' );
+
+	reset_state();
+	$sm = new State_Manager();
+	$controller = new Step_Controller( $sm, new Logger() );
+	$blocked_incomplete = $controller->complete();
+	$t->assert( is_wp_error( $blocked_incomplete ), 'complete() still validates all required steps' );
+	$t->assertEqual( 'rms_wizard_incomplete', is_wp_error( $blocked_incomplete ) ? $blocked_incomplete->get_error_code() : '', 'Incomplete complete() uses rms_wizard_incomplete' );
+	$t->assertEqual( 400, wp_error_http_status( $blocked_incomplete ), 'Incomplete complete() is HTTP 400' );
+	$t->assert( ! $sm->has_completion_flag(), 'Incomplete complete() does not set the completion flag' );
+	$t->assert( ! payload_exposes_owner( $blocked_incomplete ), 'Incomplete complete() keeps owner opaque' );
+
+	reset_state();
+	$sm = new State_Manager();
+	seed_required_steps_complete( $sm );
+	$sm->save_state( array_merge( $sm->get_state(), [ 'current_step' => 'landing-page-builder' ] ) );
+	$before_conflict = wizard_identity_snapshot( $sm );
+	$fence           = new Wizard_Mutation_Fence();
+	$owner           = $fence->acquire();
+	$t->assert( ! is_wp_error( $owner ), 'Complete-conflict fixture acquires the mutation fence' );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$rest       = new Rest_Controller( $controller );
+	$conflict   = $rest->complete();
+	$t->assert( is_wp_error( $conflict ), '/complete is rejected while the mutation fence is held' );
+	$t->assertEqual( 'rms_wizard_busy', is_wp_error( $conflict ) ? $conflict->get_error_code() : '', '/complete fence conflict uses rms_wizard_busy' );
+	$t->assertEqual( 409, wp_error_http_status( $conflict ), '/complete fence conflict is HTTP 409' );
+	$t->assert( ! $sm->has_completion_flag(), '/complete fence conflict does not set the completion flag' );
+	$t->assertEqual( $before_conflict, wizard_identity_snapshot( $sm ), '/complete fence conflict mutates no current_step/step_status/run/pages' );
+	$t->assert( ! payload_exposes_owner( $conflict ), '/complete fence conflict keeps owner opaque' );
+	$t->assert( false === strpos( strtolower( (string) wp_json_encode( is_wp_error( $conflict ) ? $conflict->get_error_data() : $conflict ) ), strtolower( (string) $owner ) ), '/complete conflict does not leak the fence owner token' );
+	$fence->release( (string) $owner );
+
+	reset_state();
+	$sm    = new State_Manager();
+	$stale = seed_stale_running_item( $sm );
+	$t->assert( empty( $stale['error'] ), 'Stale-lease GET fixture is ready' . ( isset( $stale['error'] ) && is_wp_error( $stale['error'] ) ? ': ' . $stale['error']->get_error_message() : '' ) );
+	$before_run = $sm->get_state()['landing_run'] ?? null;
+	$t->assertEqual( 'running', (string) ( $before_run['status'] ?? '' ), 'Stale fixture run is still running before GET recovery' );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$rest       = new Rest_Controller( $controller );
+	$recovered  = $rest->get_state();
+	$after_run  = $sm->get_state()['landing_run'] ?? null;
+	$t->assert( $recovered instanceof \WP_REST_Response, 'Standalone GET returns public state' );
+	$t->assertEqual( 'interrupted', (string) ( $after_run['status'] ?? '' ), 'Standalone GET recovers a stale lease' );
+	$item_status = '';
+	foreach ( ( $after_run['items'] ?? [] ) as $item ) {
+		if ( ( $stale['item_key'] ?? '' ) === ( $item['key'] ?? '' ) ) {
+			$item_status = (string) ( $item['status'] ?? '' );
+			break;
+		}
+	}
+	$t->assertEqual( 'interrupted', $item_status, 'Standalone GET marks the stale running item interrupted' );
+	$t->assertEqual( 'interrupted', (string) ( $recovered->data['landing_run']['status'] ?? '' ), 'Standalone GET public state reflects recovered run' );
+	$t->assert( ! ( new Wizard_Mutation_Fence() )->is_held(), 'Standalone GET releases its scoped fence owner' );
+	$t->assert( ! payload_exposes_owner( $recovered ), 'Standalone GET keeps owner opaque' );
+
+	reset_state();
+	$sm    = new State_Manager();
+	$stale = seed_stale_running_item( $sm );
+	$t->assert( empty( $stale['error'] ), 'Busy GET fixture is ready' );
+	$before_busy = wizard_identity_snapshot( $sm );
+	$fence       = new Wizard_Mutation_Fence();
+	$owner       = $fence->acquire();
+	$t->assert( ! is_wp_error( $owner ), 'Busy GET fixture acquires the mutation fence' );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$busy_get   = ( new Rest_Controller( $controller ) )->get_state();
+	$t->assert( $busy_get instanceof \WP_REST_Response, 'Busy GET still returns current public state' );
+	$t->assertEqual( $before_busy, wizard_identity_snapshot( $sm ), 'Busy GET does not mutate run/step/pages' );
+	$t->assertEqual( 'running', (string) ( $sm->get_state()['landing_run']['status'] ?? '' ), 'Busy GET does not recover a stale lease' );
+	$t->assertEqual( 'running', (string) ( $busy_get->data['landing_run']['status'] ?? '' ), 'Busy GET public view stays unrecovered' );
+	$t->assert( ! payload_exposes_owner( $busy_get ), 'Busy GET keeps owner opaque' );
+	$t->assert( false === strpos( strtolower( (string) wp_json_encode( $busy_get->data ) ), strtolower( (string) $owner ) ), 'Busy GET does not leak the fence owner token' );
+	$fence->release( (string) $owner );
+
+	// === TEST 26: execute_step cleanup keeps the fence until legacy lock save finishes ===
+	echo "\nTest 26: Cleanup order keeps the mutation fence until legacy lock save finishes\n";
+
+	reset_state();
+	$sm         = new State_Manager();
+	$sm->save_state( [
+		'ai_config'   => [ 'provider' => 'test', 'model' => 'test', 'has_credentials' => true ],
+		'client_data' => [ 'company_name' => 'Test' ],
+	] );
+	$controller = new Step_Controller( $sm, new Logger() );
+	$probe      = new Step_Controller( $sm, new Logger() );
+	$events     = [];
+	$owner_during_lock_save = null;
+	$landing_during         = null;
+	$probe_during           = null;
+
+	$GLOBALS['_update_option_hook'] = static function ( $name, $value ) use ( $controller, $probe, &$events, &$owner_during_lock_save, &$landing_during, &$probe_during ) {
+		if ( ! is_legacy_lock_clear_save( $name, $value ) ) {
+			return;
+		}
+
+		$events[] = 'legacy_lock_save';
+		$owner_prop = new \ReflectionProperty( Step_Controller::class, 'mutation_fence_owner' );
+		$owner_prop->setAccessible( true );
+		$owner_during_lock_save = (string) $owner_prop->getValue( $controller );
+
+		$fence_probe = new Wizard_Mutation_Fence();
+		$probe_during = $fence_probe->acquire();
+		$events[]     = is_wp_error( $probe_during ) ? 'probe_blocked' : 'probe_acquired';
+		if ( ! is_wp_error( $probe_during ) ) {
+			$fence_probe->release( (string) $probe_during );
+		}
+
+		$landing_during = $probe->execute_step(
+			'landing-page-builder',
+			[
+				'landing_action' => 'start',
+				'landings'       => [ make_landing_payload_item( 'lk_cleanup_race', 'Cleanup Race' ) ],
+			]
+		);
+		$events[] = ( is_wp_error( $landing_during ) && 409 === wp_error_http_status( $landing_during ) )
+			? 'landing_blocked'
+			: 'landing_wrote';
+	};
+	$GLOBALS['_wpdb_delete_hook'] = static function ( $name ) use ( &$events ) {
+		if ( Wizard_Mutation_Fence::OPTION_NAME === $name ) {
+			$events[] = 'fence_release';
+		}
+	};
+
+	$ia = $controller->execute_step( 'ia-generation', [ 'provider' => 'test', 'model' => 'test' ] );
+	$t->assert( ! is_wp_error( $ia ), 'IA configure holds the legacy lock and completes' . ( is_wp_error( $ia ) ? ': ' . $ia->get_error_message() : '' ) );
+	$t->assert( in_array( 'legacy_lock_save', $events, true ), 'Cleanup performed the legacy lock save' );
+	$t->assert( in_array( 'fence_release', $events, true ), 'Cleanup released the mutation fence' );
+	$lock_event  = array_search( 'legacy_lock_save', $events, true );
+	$fence_event = array_search( 'fence_release', $events, true );
+	$t->assert( false !== $lock_event && false !== $fence_event && $lock_event < $fence_event, 'Legacy lock save happens before fence release' );
+	$t->assertEqual( [ 'legacy_lock_save', 'probe_blocked', 'landing_blocked', 'fence_release' ], $events, 'Interleaved landing write cannot acquire until the lock save finishes' );
+	$t->assert( is_string( $owner_during_lock_save ) && '' !== $owner_during_lock_save, 'Instance owner stays valid through the legacy lock save' );
+	$t->assert( is_wp_error( $probe_during ) && 'rms_wizard_busy' === $probe_during->get_error_code(), 'Fence acquire during lock save is rms_wizard_busy' );
+	$t->assert( is_wp_error( $landing_during ) && 409 === wp_error_http_status( $landing_during ), 'Landing start during lock save is HTTP 409' );
+	$t->assertEqual( null, $sm->get_state()['landing_run'] ?? null, 'Blocked landing start leaves no run for release_lock to overwrite' );
+	$t->assert( ! ( new Wizard_Mutation_Fence() )->is_held(), 'Fence is free after execute_step cleanup' );
+	$owner_after = new \ReflectionProperty( Step_Controller::class, 'mutation_fence_owner' );
+	$owner_after->setAccessible( true );
+	$t->assertEqual( '', (string) $owner_after->getValue( $controller ), 'Instance owner is cleared after the CAS release' );
+
+	$after_start = $controller->execute_step(
+		'landing-page-builder',
+		[
+			'landing_action' => 'start',
+			'landings'       => [ make_landing_payload_item( 'lk_after_cleanup', 'After Cleanup' ) ],
+		]
+	);
+	$t->assert( ! is_wp_error( $after_start ), 'Landing start can acquire after cleanup' . ( is_wp_error( $after_start ) ? ': ' . $after_start->get_error_message() : '' ) );
+	$t->assertEqual( 1, (int) ( $sm->get_state()['landing_run']['total'] ?? 0 ), 'Landing start after cleanup persists the run' );
+
+	reset_state();
+	$sm         = new State_Manager();
+	$controller = new Step_Controller( $sm, new Logger() );
+	$saw_lock   = false;
+	$GLOBALS['_update_option_hook'] = static function ( $name, $value ) use ( &$saw_lock ) {
+		if ( 'rms_wizard_state' === $name && is_array( $value ) && ! empty( $value['locks']['step_execution'] ) ) {
+			$saw_lock = true;
+		}
+	};
+	$sm->save_state( [
+		'ai_config'   => [ 'provider' => 'test', 'model' => 'test', 'has_credentials' => true ],
+		'client_data' => [ 'company_name' => 'Test' ],
+	] );
+	$start_no_lock = $controller->execute_step(
+		'landing-page-builder',
+		[
+			'landing_action' => 'start',
+			'landings'       => [
+				make_landing_payload_item( 'lk_no_legacy_a', 'Alpha Unique' ),
+				make_landing_payload_item( 'lk_no_legacy_b', 'Beta Unique' ),
+			],
+		]
+	);
+	$t->assert( ! is_wp_error( $start_no_lock ), 'Landing start still succeeds without the legacy lock' . ( is_wp_error( $start_no_lock ) ? ': ' . $start_no_lock->get_error_message() : '' ) );
+	$t->assert( ! $saw_lock, 'Landing start does not acquire the legacy state lock' );
+	$process_no_lock = $controller->execute_step( 'landing-page-builder', [ 'landing_action' => 'process' ] );
+	$t->assert( ! is_wp_error( $process_no_lock ), 'Landing process still succeeds without the legacy lock' . ( is_wp_error( $process_no_lock ) ? ': ' . $process_no_lock->get_error_message() : '' ) );
+	$t->assert( ! $saw_lock, 'Landing process does not acquire the legacy state lock' );
+	$t->assert( empty( $sm->get_state()['locks']['step_execution'] ), 'Landing start/process leave no leftover legacy lock' );
+
+	reset_state();
+	$sm         = new State_Manager();
+	$controller = new Step_Controller( $sm, new Logger() );
+	$GLOBALS['_update_option_hook'] = static function ( $name, $value ) {
+		if ( is_legacy_lock_clear_save( $name, $value ) ) {
+			throw new \RuntimeException( 'legacy-lock-save-boom' );
+		}
+	};
+	$threw = false;
+	try {
+		$controller->execute_step( 'ia-generation', [ 'provider' => 'test', 'model' => 'test' ] );
+	} catch ( \RuntimeException $exception ) {
+		$threw = 'legacy-lock-save-boom' === $exception->getMessage();
+	}
+	$t->assert( $threw, 'Legacy lock save exceptions still propagate' );
+	$t->assert( ! ( new Wizard_Mutation_Fence() )->is_held(), 'Nested finally releases the fence when legacy lock save throws' );
+	$owner_prop = new \ReflectionProperty( Step_Controller::class, 'mutation_fence_owner' );
+	$owner_prop->setAccessible( true );
+	$t->assertEqual( '', (string) $owner_prop->getValue( $controller ), 'Instance owner is cleared after a failed legacy lock save' );
 
 	echo "\n";
 	$t->results();

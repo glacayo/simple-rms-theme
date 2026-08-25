@@ -122,14 +122,15 @@ class Step_Home_Page_Builder {
 			return new \WP_Error( 'rms_wizard_home_page_save_failed', \__( 'Home page sections could not be saved.', 'simple-rms-theme' ), [ 'status' => 500 ] );
 		}
 
-			$seo_state                       = $this->harness->persist_home_seo_intent( $seo_intent );
-			$state['selected_home_sections'] = $sections;
-			$state['home_section_rows']      = $section_rows;
-			$state['home_sections']          = $prepared_sections;
-			$state['home_seo_targeting']     = $seo_state;
-			$state['canonical_sections']     = $this->first_write_canonical_sections( $prepared_sections );
+			$seo_state = $this->harness->persist_home_seo_intent( $seo_intent );
+			$fresh     = $this->state_manager->get_state();
+			$fresh['selected_home_sections'] = $sections;
+			$fresh['home_section_rows']      = $section_rows;
+			$fresh['home_sections']          = $prepared_sections;
+			$fresh['home_seo_targeting']     = $seo_state;
+			$fresh['canonical_sections']     = $this->first_write_canonical_sections( $prepared_sections );
 
-			$this->state_manager->save_state( $state );
+			$this->state_manager->save_state( $fresh );
 			$this->state_manager->set_step_status( self::STEP, 'complete' );
 			$this->maybe_mark_completed();
 			$this->logger->log( 'info', 'Wizard Home page sections built.', [ 'post_id' => $post_id, 'sections' => $sections ] );

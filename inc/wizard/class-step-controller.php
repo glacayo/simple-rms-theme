@@ -68,6 +68,12 @@ class Step_Controller {
 	private $state_manager;
 	private $logger;
 
+	/**
+	 * Opaque mutation-fence owner for this controller instance, if any.
+	 * Never expose this token in responses, errors, or logs.
+	 */
+	private $mutation_fence_owner = '';
+
 	public function __construct( ?State_Manager $state_manager = null, ?Logger $logger = null ) {
 		$this->state_manager = $state_manager ?? new State_Manager();
 		$this->logger        = $logger ?? new Logger();
@@ -90,7 +96,7 @@ class Step_Controller {
 	 * - failed / pending / unknown → false
 	 *
 	 * Non-terminal / special:
-	 * - no progress write (unlock/relock) → true
+	 * - no progress write (unlock/relock, landing start/process) → true
 	 * - running → true (healthy in-progress; issue #27 must keep this)
 	 *
 	 * The client must show "Step completed" only when status is complete.
@@ -129,19 +135,7 @@ class Step_Controller {
 		$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
 		$state['logs']                 = $this->logger->all();
 
-		// Recover stale landing run lease and expose the public run view only.
-		if ( class_exists( __NAMESPACE__ . '\\Landing_Run_Orchestrator' ) ) {
-			$orchestrator = new Landing_Run_Orchestrator( $this->state_manager, $this->logger );
-			$orchestrator->recover_stale_lease();
-
-			$run = $orchestrator->get_public_run();
-
-			if ( null !== $run ) {
-				$state['landing_run'] = $run;
-			}
-		}
-
-		return $state;
+		return $this->with_public_landing_run( $state );
 	}
 
 	/**
@@ -171,31 +165,59 @@ class Step_Controller {
 			return new \WP_Error( 'rms_wizard_locked', \__( 'The setup wizard is already complete.', 'simple-rms-theme' ), [ 'status' => 423 ] );
 		}
 
-		if ( ! $this->state_manager->acquire_lock( self::LOCK_NAME ) ) {
-			return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
+		// Site-wide mutation fence is the concurrency authority for every
+		// mutating execute_step() dispatch, including landing start/process
+		// and long Home/Generate/Menu/IA work. Acquire before any status or
+		// lock writes so a conflict cannot paint a step failed.
+		$mutation_fence = new Wizard_Mutation_Fence();
+		$fence_owner    = $mutation_fence->acquire();
+
+		if ( \is_wp_error( $fence_owner ) ) {
+			return $fence_owner;
 		}
 
-		// Orchestrated landing actions manage their own per-landing mutex lease.
-		// Release the global step lock immediately so it does not expire
-		// during a 5-6 minute per-landing build. The orchestrator's atomic
-		// mutex option (scoped to run id + owner token) is the concurrency boundary.
+		$this->mutation_fence_owner = (string) $fence_owner;
+
+		// Orchestrated landing actions keep the per-run lease for run ownership.
+		// The legacy UI state lock is compatibility-only and is not acquired for
+		// start/process so it cannot expire mid-build or overwrite newer state.
 		$is_landing_orchestrated = false;
+		$is_landing_skip_all     = false;
+		$legacy_lock_held        = false;
 
 		if ( 'landing-page-builder' === $step ) {
 			$landing_action = \sanitize_key( (string) ( $payload['landing_action'] ?? '' ) );
 
 			if ( in_array( $landing_action, [ 'start', 'process' ], true ) ) {
 				$is_landing_orchestrated = true;
-				$this->state_manager->release_lock( self::LOCK_NAME );
 			}
+
+			// Skip-all must not write running before the blocking-run guard.
+			// Direct REST skip_all has no landing_action; start+skip_all is
+			// already orchestrated. Process never skip-alls.
+			if ( $this->payload_is_truthy( $payload['skip_all'] ?? false ) && 'process' !== $landing_action ) {
+				$is_landing_skip_all = true;
+			}
+		}
+
+		if ( ! $is_landing_orchestrated ) {
+			if ( ! $this->state_manager->acquire_lock( self::LOCK_NAME ) ) {
+				$mutation_fence->release( (string) $fence_owner );
+				$this->mutation_fence_owner = '';
+
+				return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
+			}
+
+			$legacy_lock_held = true;
 		}
 
 		$progress_status_written = false;
 
 		try {
 			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
-			// Landing start/process keep step_status under the orchestrator, not this lock.
-			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated ) {
+			// Landing start/process persist their own run/public state.
+			// Skip-all either 409s without mutation or marks complete itself.
+			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all ) {
 				$this->state_manager->set_current_step( $step );
 				$this->state_manager->set_step_status( $step, 'running' );
 				$progress_status_written = true;
@@ -218,6 +240,8 @@ class Step_Controller {
 			 * bounded request may finish this HTTP call still `running`. That
 			 * is in-progress work, not a terminal failure. Do not coerce it to
 			 * success:false here, and never treat `running` as `complete`.
+			 * Landing start/process skip the progress write, so they stay
+			 * success:true even when the persisted run is still running.
 			 */
 			$final_status = $progress_status_written
 				? (string) ( $this->state_manager->get_state()['step_status'][ $step ] ?? '' )
@@ -263,8 +287,17 @@ class Step_Controller {
 				[ 'status' => 500 ]
 			);
 		} finally {
-			if ( ! $is_landing_orchestrated ) {
-				$this->state_manager->release_lock( self::LOCK_NAME );
+			// release_lock() still does a whole-state get/save. Keep the
+			// mutation fence (and this instance owner) until that write
+			// finishes so a landing start/process cannot acquire and then
+			// be overwritten by a stale snapshot.
+			try {
+				if ( $legacy_lock_held ) {
+					$this->state_manager->release_lock( self::LOCK_NAME );
+				}
+			} finally {
+				$mutation_fence->release( (string) $fence_owner );
+				$this->mutation_fence_owner = '';
 			}
 		}
 	}
@@ -279,19 +312,95 @@ class Step_Controller {
 			return new \WP_Error( 'rms_wizard_forbidden', \__( 'You do not have permission to complete the setup wizard.', 'simple-rms-theme' ), [ 'status' => 403 ] );
 		}
 
-		$state    = $this->state_manager->get_state();
-		$required = self::get_required_steps();
+		$mutation_fence = new Wizard_Mutation_Fence();
+		$fence_owner    = $mutation_fence->acquire();
 
-		foreach ( $required as $step ) {
-			if ( 'complete' !== ( $state['step_status'][ $step ] ?? '' ) ) {
-				return new \WP_Error( 'rms_wizard_incomplete', \__( 'The setup wizard cannot be completed until every step succeeds.', 'simple-rms-theme' ), [ 'status' => 400 ] );
-			}
+		if ( \is_wp_error( $fence_owner ) ) {
+			return $fence_owner;
 		}
 
-		$this->state_manager->mark_completed();
-		$this->logger->log( 'info', 'Setup wizard marked complete.' );
+		$this->mutation_fence_owner = (string) $fence_owner;
 
-		return [ 'success' => true, 'state' => $this->get_resume_state() ];
+		try {
+			$state    = $this->state_manager->get_state();
+			$required = self::get_required_steps();
+
+			foreach ( $required as $step ) {
+				if ( 'complete' !== ( $state['step_status'][ $step ] ?? '' ) ) {
+					return new \WP_Error( 'rms_wizard_incomplete', \__( 'The setup wizard cannot be completed until every step succeeds.', 'simple-rms-theme' ), [ 'status' => 400 ] );
+				}
+			}
+
+			$this->state_manager->mark_completed();
+			$this->logger->log( 'info', 'Setup wizard marked complete.' );
+
+			return [ 'success' => true, 'state' => $this->get_resume_state() ];
+		} finally {
+			$mutation_fence->release( (string) $fence_owner );
+			$this->mutation_fence_owner = '';
+		}
+	}
+
+	/**
+	 * Overlay the public landing run. Recover a stale lease only while this
+	 * controller already owns the mutation fence, or after a short scoped acquire.
+	 * A busy fence returns the current public view without recovery or mutation.
+	 *
+	 * @param array<string,mixed> $state
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function with_public_landing_run( array $state ): array {
+		if ( ! class_exists( __NAMESPACE__ . '\\Landing_Run_Orchestrator' ) ) {
+			return $state;
+		}
+
+		$fence        = new Wizard_Mutation_Fence();
+		$scoped_owner = '';
+
+		if ( '' === $this->mutation_fence_owner ) {
+			$acquired = $fence->acquire();
+
+			if ( \is_wp_error( $acquired ) ) {
+				return $this->overlay_public_landing_run( $state );
+			}
+
+			$scoped_owner               = (string) $acquired;
+			$this->mutation_fence_owner = $scoped_owner;
+		}
+
+		try {
+			$orchestrator = new Landing_Run_Orchestrator( $this->state_manager, $this->logger );
+			$orchestrator->recover_stale_lease();
+
+			return $this->overlay_public_landing_run( $state );
+		} finally {
+			if ( '' !== $scoped_owner ) {
+				$fence->release( $scoped_owner );
+
+				if ( $this->mutation_fence_owner === $scoped_owner ) {
+					$this->mutation_fence_owner = '';
+				}
+			}
+		}
+	}
+
+	/**
+	 * Replace landing_run with the public view. Never includes lease_owner.
+	 *
+	 * @param array<string,mixed> $state
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function overlay_public_landing_run( array $state ): array {
+		$orchestrator = new Landing_Run_Orchestrator( $this->state_manager, $this->logger );
+		$run          = $orchestrator->get_public_run();
+
+		if ( null !== $run ) {
+			$state['landing_run'] = $run;
+		}
+
+		return $state;
 	}
 
 	private function dispatch_step( string $step, array $payload ) {
@@ -401,8 +510,7 @@ class Step_Controller {
 			return new \WP_Error( 'rms_wizard_missing_ai_credentials', \__( 'The IA Generation step requires saved provider credentials.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		$state              = $this->state_manager->get_state();
-		$state['ai_config'] = [
+		$ai_config = [
 			'provider'         => $provider,
 			'provider_label'   => AI_Provider_Registry::get_provider_label( $provider ),
 			'model'            => $model,
@@ -411,11 +519,22 @@ class Step_Controller {
 			'configured_at'    => \current_time( 'mysql', true ),
 		];
 
-		$this->state_manager->save_state( $state );
+		$fresh              = $this->state_manager->get_state();
+		$fresh['ai_config'] = $ai_config;
+		$this->state_manager->save_state( $fresh );
 		$this->state_manager->set_step_status( 'ia-generation', 'complete' );
 		$this->logger->log( 'info', 'Wizard AI configuration saved.', [ 'provider' => $provider, 'model' => $model, 'has_credentials' => ! empty( $credential['has_key'] ) ] );
 
-		return [ 'ai_config' => $state['ai_config'] ];
+		return [ 'ai_config' => $ai_config ];
+	}
+
+	/**
+	 * Truthy payload values used by skip_all and similar flags.
+	 *
+	 * @param mixed $value
+	 */
+	private function payload_is_truthy( $value ): bool {
+		return true === $value || 1 === $value || '1' === $value || 'true' === $value || 'yes' === $value || 'on' === $value;
 	}
 
 	private function normalize_step( string $step ): string {
