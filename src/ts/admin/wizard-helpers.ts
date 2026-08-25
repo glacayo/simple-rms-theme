@@ -1,4 +1,29 @@
+export const SAVED_KEY_PLACEHOLDER = 'Leave blank to use the saved encrypted key';
+
+export type ApiKeyInputLike = {
+  value: string;
+  placeholder: string;
+  getAttribute?: (name: string) => string | null;
+};
+
 export type StepOutcomePresentation = 'success' | 'progress' | 'error';
+
+/**
+ * Clear plaintext from the API-key input after a successful Test/Load or
+ * save, and whenever hydration sees a saved credential. Failure/correction
+ * paths must call this with both flags false so the typed value is kept.
+ */
+export const applyApiKeyInputSafety = (
+  input: ApiKeyInputLike,
+  options: { clear: boolean; hasSavedCredential: boolean }
+): void => {
+  if (!options.clear && !options.hasSavedCredential) {
+    return;
+  }
+
+  input.value = '';
+  input.placeholder = SAVED_KEY_PLACEHOLDER;
+};
 
 /**
  * Client presentation for a step response.
@@ -52,4 +77,22 @@ export const summarizeDependencyResult = (result: unknown): string => {
   });
 
   return `${activeCount} of ${plugins.length} dependencies active. ${lines.join(' ')}`;
+};
+
+export const inputContainsSecret = (input: ApiKeyInputLike, sentinel: string): boolean => {
+  if (input.value.includes(sentinel)) {
+    return true;
+  }
+
+  if (input.placeholder.includes(sentinel)) {
+    return true;
+  }
+
+  if (typeof input.getAttribute !== 'function') {
+    return false;
+  }
+
+  const attributeNames = ['value', 'data-api-key', 'data-value', 'data-credential', 'data-key'];
+
+  return attributeNames.some((name) => (input.getAttribute?.(name) ?? '').includes(sentinel));
 };
