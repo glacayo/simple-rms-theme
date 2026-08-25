@@ -36,6 +36,7 @@ class State_Manager {
             'menu_config'            => [],
             'selected_home_sections' => [],
             'home_sections'          => [],
+            'home_seo_targeting'     => [ 'enabled' => false ],
             'landing_pages'          => [],
             'canonical_sections'     => [],
             'logs'                   => self::LOG_OPTION,

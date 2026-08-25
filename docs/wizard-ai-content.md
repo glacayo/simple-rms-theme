@@ -14,7 +14,7 @@ The wizard is orchestrated by `Inc\Wizard\Step_Controller` and currently runs th
 | `generate-pages` | Create selected WordPress pages. |
 | `menu-setup` | Build menu assignments. |
 | `ia-generation` | Store AI provider/model/key configuration. |
-| `home-page-builder` | Generate and save Home page flexible content sections. |
+| `home-page-builder` | Generate and save Home page flexible content sections. Optional page-level SEO targeting can add editorial keyword intent to Hero and SEO Content only. |
 
 State is stored in `wp_options` through `Inc\Wizard\State_Manager`.
 
@@ -53,6 +53,16 @@ The reviewer runs after JSON decode and before final validation. If review fails
 | `AI_Content_Harness` | Source of truth for generation prompts, fillable fields, blocked fields, text repeater rules, and shared editorial rules. |
 | `AI_Content_Reviewer` | Diagnosis-first quality review, rewrite guidance, cross-section repetition checks, and dev-only quality report. |
 | `Step_Home_Page_Builder` | Runtime orchestration, request-scoped prior section context, kill-switch handling, fallback, and bounded logging. |
+
+## Homepage SEO targeting
+
+Home Page Builder can optionally declare a primary keyword and up to ten secondary keywords. The control is off by default.
+
+- Disabled mode keeps the current neutral Home generation prompts and does not persist stale keyword values.
+- Enabled mode requires a normalized primary keyword. Keywords are editorial intent, not evidence, and must not invent services, locations, credentials, guarantees, statistics, or other business facts.
+- Keyword context is injected only into Hero and SEO Content generation and review. About, testimonials, FAQ, portfolio, trust, and other reusable sections stay on their own purpose plus trusted client facts.
+- Declared homepage keyword intent is excluded from the canonical reusable-section store and from neutral prior-section context.
+- This path does not write Yoast focus keyphrase, title, or meta description. Landing Page Builder keyword behavior is unchanged.
 
 ## Current quality principles
 
