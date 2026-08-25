@@ -38,6 +38,7 @@ class State_Manager {
             'home_sections'          => [],
             'home_seo_targeting'     => [ 'enabled' => false ],
             'landing_pages'          => [],
+            'landing_run'             => null,
             'canonical_sections'     => [],
             'logs'                   => self::LOG_OPTION,
             'locks'                  => [],
