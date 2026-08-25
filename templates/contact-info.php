@@ -16,7 +16,7 @@
                 <div class="contact-info__list">
 
                     <?php
-                    $phones = get_field('company_phones', 'option');
+                    $phones = rms_get_option('company_phones');
                     if (is_array($phones) && !empty($phones)) :
                         $primary_phone = $phones[0]['phone_number'] ?? '';
                         $primary_phone_clean = preg_replace('/[^0-9+]/', '', $primary_phone);
@@ -46,7 +46,7 @@
                     <?php endif; ?>
 
                     <?php
-                    $emails = get_field('company_emails', 'option');
+                    $emails = rms_get_option('company_emails');
                     if (is_array($emails) && !empty($emails)) :
                         $primary_email = $emails[0]['email_address'] ?? '';
                         ?>
@@ -134,7 +134,7 @@
                     <?php endif; ?>
 
                     <?php
-                    $schedule = get_field('company_schedule', 'option');
+                    $schedule = rms_get_option('company_schedule');
                     if (is_array($schedule) && !empty($schedule)) :
                         $day_labels = [
                             'monday'    => 'Mon',
@@ -199,7 +199,7 @@
                         <div>
                             <strong class="contact-info__item-label">Payment Methods</strong>
                             <?php
-                        $methods = get_field('company_payment_methods', 'option');
+                        $methods = rms_get_option('company_payment_methods');
                         $method_labels = [];
                         if (!empty($methods) && is_array($methods)) {
                             foreach ($methods as $m) {
