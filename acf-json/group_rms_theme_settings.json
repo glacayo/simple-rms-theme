@@ -884,7 +884,7 @@
             "name": "company_footer_version",
             "aria-label": "",
             "type": "select",
-            "instructions": "",
+            "instructions": "Compact Footer V1 or full Footer V2. Legacy Footer One and Footer Two values still resolve automatically.",
             "required": false,
             "conditional_logic": false,
             "wrapper": {
@@ -893,12 +893,12 @@
                 "id": ""
             },
             "choices": {
-                "footer-one": "Footer One",
-                "footer-two": "Footer Two"
+                "footer-v1": "Footer V1",
+                "footer-v2": "Footer V2"
             },
             "multiple": 0,
             "allow_null": 0,
-            "default_value": false,
+            "default_value": "footer-v2",
             "ui": 0,
             "ajax": 0,
             "placeholder": "",
@@ -1427,5 +1427,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1779850014
+    "modified": 1779912000
 }

@@ -56,6 +56,104 @@ function rms_get_option(string $field_name, $default = null) {
 }
 
 /**
+ * Map stored footer version values to canonical slugs.
+ *
+ * Offered choices are footer-v1 and footer-v2. Legacy aliases remain
+ * readable so existing option rows still resolve after the rename.
+ *
+ * @return array<string,string>
+ */
+function rms_get_footer_version_aliases(): array {
+    return [
+        'footer-v1'  => 'footer-v1',
+        'footer-v2'  => 'footer-v2',
+        'footer-one' => 'footer-v1',
+        'footer-two' => 'footer-v2',
+    ];
+}
+
+/**
+ * Whether a footer slug has both a PHP template and an authored stylesheet.
+ */
+function rms_footer_version_assets_exist(string $slug, string $theme_root = ''): bool {
+    if ($slug === '') {
+        return false;
+    }
+
+    $root = $theme_root !== ''
+        ? $theme_root
+        : (function_exists('get_template_directory') ? get_template_directory() : '');
+
+    if ($root === '') {
+        return false;
+    }
+
+    $template = $root . '/templates/' . $slug . '.php';
+    $styles   = $root . '/src/scss/layout/' . $slug . '.scss';
+
+    return is_readable($template) && is_readable($styles);
+}
+
+/**
+ * Normalize a stored footer version to a verified, renderable slug.
+ *
+ * Empty, unknown, or incomplete assets fall back to footer-v2. The fallback
+ * is returned only when its own PHP + SCSS exist; otherwise the resolver
+ * fails closed with an empty string so callers can skip rendering.
+ */
+function rms_resolve_footer_version(?string $raw, string $theme_root = ''): string {
+    $fallback  = 'footer-v2';
+    $aliases   = rms_get_footer_version_aliases();
+    $candidate = $raw ? sanitize_key($raw) : '';
+
+    if ($candidate !== '' && isset($aliases[$candidate])) {
+        $candidate = $aliases[$candidate];
+    } else {
+        $candidate = $fallback;
+    }
+
+    if (rms_footer_version_assets_exist($candidate, $theme_root)) {
+        return $candidate;
+    }
+
+    if ($candidate !== $fallback && rms_footer_version_assets_exist($fallback, $theme_root)) {
+        return $fallback;
+    }
+
+    return rms_footer_version_assets_exist($fallback, $theme_root) ? $fallback : '';
+}
+
+/**
+ * Resolve the active footer version for header and footer dispatch.
+ */
+function rms_get_footer_version(): string {
+    $raw = rms_get_option('company_footer_version');
+
+    return rms_resolve_footer_version(is_string($raw) ? $raw : '');
+}
+
+/**
+ * Present legacy footer aliases as the current ACF choices without changing the field key.
+ *
+ * @param mixed $value
+ * @return mixed
+ */
+function rms_migrate_footer_version_value($value) {
+    if (!is_string($value) || $value === '') {
+        return $value;
+    }
+
+    $aliases = rms_get_footer_version_aliases();
+    $key     = sanitize_key($value);
+
+    return $aliases[$key] ?? $value;
+}
+
+if (function_exists('add_filter')) {
+    add_filter('acf/load_value/key=field_rms_company_footer_version', 'rms_migrate_footer_version_value');
+}
+
+/**
  * Get the primary phone number from theme options.
  *
  * @return string
