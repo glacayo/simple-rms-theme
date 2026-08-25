@@ -3,6 +3,18 @@ import {
   presentStepOutcome,
   summarizeDependencyResult,
 } from './wizard-helpers';
+import {
+  applyHomeSeoTargetingUi,
+  clearHomeSeoDirty,
+  collectHomeSeoTargetingFromForm,
+  createHomeSeoValidationError,
+  hydrateHomeSeoTargeting,
+  isHomeSeoValidationError,
+  markHomeSeoDirty,
+  presentHomeSeoCollectionResult,
+  shouldReloadWizardStateOnStepFinish,
+  shouldReplaceHomeSeoOnStepFinish,
+} from './wizard-home-seo';
 
 type StepStatus = 'pending' | 'running' | 'complete' | 'failed';
 
@@ -109,6 +121,11 @@ interface WizardState {
     configured_at?: string;
   };
   generated_pages?: GeneratedPage[];
+  home_seo_targeting?: {
+    enabled?: boolean;
+    primary_keyword?: string;
+    secondary_keywords?: string[];
+  };
   landing_pages?: LandingPageState[];
   locked?: boolean;
   unlocked?: boolean;
@@ -382,13 +399,14 @@ declare global {
     syncLandingSkipAllUi();
   };
 
-  const render = (): void => {
+  const render = (options?: { replaceHomeSeo?: boolean }): void => {
     const nextStep = state.current_step && steps.some((step) => step.slug === state.current_step)
       ? state.current_step
       : activeStep;
 
     renderGeneratedPageControls();
     hydrateIaGenerationForm();
+    hydrateHomeSeoTargetingForm(options?.replaceHomeSeo);
     hydrateLandingRowsFromState();
     renderLandingReplaceOptions();
     syncGuidedControlState();
@@ -439,11 +457,20 @@ declare global {
     throw lastError ?? new Error('Request failed.');
   };
 
-  const loadState = async (): Promise<void> => {
+  const loadState = async (options?: { replaceHomeSeo?: boolean }): Promise<void> => {
     setHydrating(true);
     try {
       state = await request<WizardState>('state', { method: 'GET' }, 1);
-      render();
+
+      if (options?.replaceHomeSeo) {
+        const form = root.querySelector<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          clearHomeSeoDirty(form);
+        }
+      }
+
+      render({ replaceHomeSeo: Boolean(options?.replaceHomeSeo) });
     } catch (error) {
       handleStateLoadError(error);
     } finally {
@@ -472,6 +499,9 @@ declare global {
     setStepActionStatus(step, 'Running step...', 'info');
     setNotice('Running setup wizard step. Keep this page open.', 'info');
 
+    let persisted = false;
+    let validationBlocked = false;
+
     try {
       const payload = collectPayload(step);
 
@@ -492,6 +522,7 @@ declare global {
         state = response.state;
       }
 
+      persisted = true;
       const stepStatus = statusFor(step);
       const responseSuccess = response.success !== false;
       const outcome = presentStepOutcome(stepStatus, responseSuccess);
@@ -532,6 +563,7 @@ declare global {
       }
     } catch (error) {
       const message = errorMessage(error);
+      validationBlocked = isHomeSeoValidationError(error);
 
       if (step === 'home-page-builder' && message.includes('Missing required client data:')) {
         setHomeHarnessWarning(message, 'error');
@@ -541,7 +573,18 @@ declare global {
       setNotice(message, 'error');
     } finally {
       runningStep = null;
-      await loadState();
+
+      if (shouldReloadWizardStateOnStepFinish({ validationBlocked })) {
+        await loadState({
+          replaceHomeSeo: shouldReplaceHomeSeoOnStepFinish({
+            step,
+            persisted,
+            validationBlocked,
+          }),
+        });
+      } else {
+        updateButtons();
+      }
     }
   };
 
@@ -742,7 +785,19 @@ declare global {
 
     setHomeHarnessWarning('', 'info');
 
-    return { sections };
+    markHomeSeoDirty(form);
+    const seoResult = collectHomeSeoTargetingFromForm(form);
+    presentHomeSeoCollectionResult(form, seoResult);
+
+    if ('error' in seoResult && seoResult.error) {
+      setHomeHarnessWarning(seoResult.message, 'error');
+      throw createHomeSeoValidationError(seoResult.message);
+    }
+
+    return {
+      sections,
+      seo_targeting: seoResult.payload,
+    };
   };
 
   const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
@@ -1920,6 +1975,16 @@ declare global {
     }
   };
 
+  const hydrateHomeSeoTargetingForm = (replace = false): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+    if (!form) {
+      return;
+    }
+
+    hydrateHomeSeoTargeting(form, state.home_seo_targeting, { force: replace });
+  };
+
   const setHomeHarnessWarning = (message: string, tone: 'info' | 'error'): void => {
     const warning = root.querySelector<HTMLElement>('[data-wizard-home-harness-warning]');
     const target = warning?.querySelector<HTMLElement>('p') ?? warning;
@@ -2528,6 +2593,21 @@ declare global {
         }
       }
 
+      if (
+        target instanceof HTMLInputElement
+        && target.matches('[data-wizard-home-seo-primary], [data-wizard-home-seo-secondary]')
+      ) {
+        const form = target.closest<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          markHomeSeoDirty(form);
+
+          if (target.matches('[data-wizard-home-seo-primary]') && target.value.trim() !== '') {
+            presentHomeSeoCollectionResult(form, collectHomeSeoTargetingFromForm(form), { focus: false });
+          }
+        }
+      }
+
       if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-primary-keyword]')) {
         const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
 
@@ -2573,6 +2653,17 @@ declare global {
 
       if (target instanceof HTMLSelectElement && target.matches('[data-wizard-home-section-select]')) {
         syncGuidedControlState();
+        return;
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-home-seo-enabled]')) {
+        const form = target.closest<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          markHomeSeoDirty(form);
+          applyHomeSeoTargetingUi(form, target.checked);
+        }
+
         return;
       }
 
@@ -2792,7 +2883,7 @@ declare global {
   });
 
   refreshButton?.addEventListener('click', () => {
-    void loadState();
+    void loadState({ replaceHomeSeo: true });
   });
 
   completeButton?.addEventListener('click', () => {
@@ -2800,7 +2891,7 @@ declare global {
   });
 
   render();
-  void loadState();
+  void loadState({ replaceHomeSeo: true });
 })();
 
 function getSettings(root: HTMLElement | null): WizardSettings | undefined {
