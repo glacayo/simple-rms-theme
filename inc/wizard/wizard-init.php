@@ -905,6 +905,12 @@ function rms_wizard_render_landing_page_builder_form(): void {
 				<?php esc_html_e( 'Create one or more SEO or Ads landing pages. Only Hero and SEO Content receive keywords; reusable sections stay neutral and pull from the canonical store. Ads landings are noindex and never auto-added to menus.', 'simple-rms-theme' ); ?>
 			</p>
 
+			<div class="rms-wizard-landing-run-progress" data-wizard-landing-run-progress hidden>
+				<p class="rms-wizard-landing-run-progress__text" data-wizard-landing-run-progress-text aria-live="polite"></p>
+				<p class="rms-wizard-landing-run-progress__current" data-wizard-landing-run-current-title aria-live="polite"></p>
+				<button type="button" class="button button-primary" data-wizard-landing-resume><?php esc_html_e( 'Resume run', 'simple-rms-theme' ); ?></button>
+			</div>
+
 			<label class="rms-wizard-landing-skip-all">
 				<input type="checkbox" name="skip_all" value="1" data-wizard-landing-skip-all>
 				<span><?php esc_html_e( 'Skip landing pages for now (complete this step with zero landings)', 'simple-rms-theme' ); ?></span>
@@ -986,6 +992,7 @@ function rms_wizard_render_landing_page_builder_form(): void {
 
 			<template data-wizard-landing-section-row-template>
 				<div class="rms-wizard-landing-section-row" data-wizard-landing-section-row>
+					<input type="hidden" name="landings[__LINDEX__][sections][__SINDEX__][item_count]" value="" data-wizard-landing-section-item-count>
 					<select name="landings[__LINDEX__][sections][__SINDEX__][layout]" data-wizard-landing-section-layout></select>
 					<label class="rms-wizard-landing-section-override">
 						<input type="checkbox" name="landings[__LINDEX__][sections][__SINDEX__][override_canonical]" value="1" data-wizard-landing-section-override>
