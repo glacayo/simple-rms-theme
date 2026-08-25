@@ -83,6 +83,29 @@ class Step_Controller {
 	}
 
 	/**
+	 * Map the persisted step status to the REST `success` flag.
+	 *
+	 * Normal terminal outcomes:
+	 * - complete → true
+	 * - failed / pending / unknown → false
+	 *
+	 * Non-terminal / special:
+	 * - no progress write (unlock/relock) → true
+	 * - running → true (healthy in-progress; issue #27 must keep this)
+	 *
+	 * The client must show "Step completed" only when status is complete.
+	 * A `running` + success:true response is progress, never green-complete
+	 * and never a false failure.
+	 */
+	public static function response_success_from_status( string $status, bool $progress_status_written ): bool {
+		if ( ! $progress_status_written ) {
+			return true;
+		}
+
+		return in_array( $status, [ 'complete', 'running' ], true );
+	}
+
+	/**
 	 * Verify the current user can access the wizard.
 	 */
 	public function can_access(): bool {
@@ -156,8 +179,25 @@ class Step_Controller {
 				return $result;
 			}
 
+			/*
+			 * Top-level success must reflect the authoritative terminal step
+			 * status, not merely that the HTTP request completed. A step that
+			 * returned a result array but failed (e.g. dependencies with missing
+			 * plugins) must not emit success:true or the frontend will show a
+			 * false "Step completed" message.
+			 *
+			 * Merge invariant for issue #27: a healthy landing-page-builder
+			 * bounded request may finish this HTTP call still `running`. That
+			 * is in-progress work, not a terminal failure. Do not coerce it to
+			 * success:false here, and never treat `running` as `complete`.
+			 */
+			$final_status = $progress_status_written
+				? (string) ( $this->state_manager->get_state()['step_status'][ $step ] ?? '' )
+				: '';
+			$success      = self::response_success_from_status( $final_status, $progress_status_written );
+
 			return [
-				'success' => true,
+				'success' => $success,
 				'step'    => $step,
 				'result'  => $result,
 				'state'   => $this->get_resume_state(),
