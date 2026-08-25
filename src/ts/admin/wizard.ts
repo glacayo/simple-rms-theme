@@ -1,6 +1,9 @@
-type StepStatus = 'pending' | 'running' | 'complete' | 'failed';
+import {
+  presentStepOutcome,
+  summarizeDependencyResult,
+} from './wizard-helpers';
 
-export {};
+type StepStatus = 'pending' | 'running' | 'complete' | 'failed';
 
 interface WizardSettings {
   root: string;
@@ -488,15 +491,34 @@ declare global {
         state = response.state;
       }
 
+      const stepStatus = statusFor(step);
+      const responseSuccess = response.success !== false;
+      const outcome = presentStepOutcome(stepStatus, responseSuccess);
       setStepResult(step, response.result ?? response);
-      setStepActionStatus(step, 'Step completed.', 'success');
-      const nextStep = nextStepFor(step);
-      setNotice(
-        nextStep
-          ? `${labelFor(step)} completed successfully. Continue to ${labelFor(nextStep)} when ready.`
-          : `${labelFor(step)} completed successfully.`,
-        'success'
-      );
+
+      if (outcome === 'success') {
+        const nextStep = nextStepFor(step);
+        setStepActionStatus(step, 'Step completed.', 'success');
+        setNotice(
+          nextStep
+            ? `${labelFor(step)} completed successfully. Continue to ${labelFor(nextStep)} when ready.`
+            : `${labelFor(step)} completed successfully.`,
+          'success'
+        );
+      } else if (outcome === 'progress') {
+        /*
+         * Issue #27 merge invariant: a healthy landing-page-builder request
+         * may finish still `running`. Do not paint that as "Step completed"
+         * and do not paint it as a failure.
+         */
+        const progressMessage = `${labelFor(step)} is still in progress.`;
+        setStepActionStatus(step, progressMessage, 'info');
+        setNotice(progressMessage, 'info');
+      } else {
+        const summary = stepResultSummary(step, response.result);
+        setStepActionStatus(step, summary, 'error');
+        setNotice(summary, 'error');
+      }
     } catch (error) {
       const message = errorMessage(error);
 
@@ -2251,6 +2273,23 @@ declare global {
 
     target.hidden = false;
     target.textContent = JSON.stringify(result, null, 2);
+  };
+
+  /**
+   * Build a truthful per-step summary from the response result.
+   *
+   * For the dependencies step, renders a per-plugin status line from the
+   * authoritative installed/active flags and diagnostic `action` labels so
+   * the user sees which plugins failed and why. For other steps, returns a
+   * generic incomplete message. Only the final step status (checked by the
+   * caller) decides whether success copy is shown.
+   */
+  const stepResultSummary = (step: string, result: unknown): string => {
+    if (step === 'dependencies') {
+      return summarizeDependencyResult(result);
+    }
+
+    return `${labelFor(step)} did not complete. Check the result details and retry.`;
   };
 
   const labelFor = (step: string): string => steps.find((item) => item.slug === step)?.label ?? step;
