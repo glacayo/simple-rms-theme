@@ -128,12 +128,13 @@ class Step_Generate_Pages {
 			return $reading;
 		}
 
-		$state['created_posts']   = $created_posts;
-		$state['generated_pages'] = $generated_pages;
-		$state['home_page_slug']  = $roles['home_slug'];
-		$state['blog_page_slug']  = $roles['blog_slug'];
+		$fresh                    = $this->state_manager->get_state();
+		$fresh['created_posts']   = $created_posts;
+		$fresh['generated_pages'] = $generated_pages;
+		$fresh['home_page_slug']  = $roles['home_slug'];
+		$fresh['blog_page_slug']  = $roles['blog_slug'];
 
-		$this->state_manager->save_state( $state );
+		$this->state_manager->save_state( $fresh );
 		$this->state_manager->set_step_status( self::STEP, 'complete' );
 		$this->logger->log( 'info', 'Wizard pages generated.', [ 'count' => count( $generated_pages ), 'home' => $roles['home_slug'], 'blog' => $roles['blog_slug'] ] );
 

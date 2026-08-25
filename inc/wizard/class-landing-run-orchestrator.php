@@ -34,6 +34,7 @@ class Landing_Run_Orchestrator {
 	public const RUN_PENDING     = 'pending';
 	public const RUN_RUNNING     = 'running';
 	public const RUN_COMPLETED   = 'completed';
+	public const RUN_SKIPPED     = 'skipped';
 	public const RUN_INTERRUPTED = 'interrupted';
 	public const RUN_FAILED      = 'failed';
 
@@ -124,6 +125,39 @@ class Landing_Run_Orchestrator {
 		}
 
 		/**
+		 * Whether skip-all may proceed without racing a live or incomplete run.
+		 *
+		 * Permitted only when there is no persisted run, or the persisted run
+		 * is completed or skipped, no execution lease is active, and no start
+		 * fence is held. The start-fence check is defense-in-depth for the
+		 * window before a run row exists.
+		 */
+		public function allows_skip_all(): bool {
+			if ( $this->has_active_start_fence() ) {
+				return false;
+			}
+
+			return ! $this->has_blocking_run();
+		}
+
+		/**
+		 * Whether the site-wide landing start fence is currently held.
+		 *
+		 * Does not expose the owner token.
+		 */
+		public function has_active_start_fence(): bool {
+			$existing = $this->read_lease_record( self::START_FENCE_OPTION );
+
+			if ( null === $existing || ! is_array( $existing['value'] ) ) {
+				return false;
+			}
+
+			$expires = (int) ( $existing['value']['expires_at'] ?? 0 );
+
+			return $expires > time() || 0 === $expires;
+		}
+
+		/**
 		 * Whether a persisted run still has work and must not be replaced.
 		 */
 		public function has_incomplete_run(): bool {
@@ -136,7 +170,7 @@ class Landing_Run_Orchestrator {
 			$items  = is_array( $run['items'] ?? null ) ? $run['items'] : [];
 			$status = (string) ( $run['status'] ?? '' );
 
-			if ( self::RUN_COMPLETED === $status ) {
+			if ( in_array( $status, [ self::RUN_COMPLETED, self::RUN_SKIPPED ], true ) ) {
 				return $this->has_active_items( $items );
 			}
 

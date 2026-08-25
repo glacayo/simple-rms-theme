@@ -109,13 +109,26 @@ class Step_Landing_Page_Builder {
 		);
 	}
 
-	/**
-	 * Skip-all: complete the landing step without generating new pages.
-	 *
-	 * Existing landings (if any) receive final-state robots/menu reconciliation.
-	 */
-	private function run_skip_all() {
-		$state             = $this->state_manager->get_state();
+		/**
+		 * Skip-all: complete the landing step without generating new pages.
+		 *
+		 * Permitted only when there is no persisted landing run, or the
+		 * persisted run is completed or skipped, and no execution lease is
+		 * active. A live or incomplete run is refused with 409 before any
+		 * mutation; run identity and step status are preserved.
+		 *
+		 * Existing landings (if any) receive final-state robots/menu reconciliation.
+		 */
+		private function run_skip_all() {
+			if ( ! $this->run_orchestrator->allows_skip_all() ) {
+				return new \WP_Error(
+					'rms_wizard_landing_run_active',
+					\__( 'A landing run is already active or incomplete. Wait for it to finish or expire before skipping.', 'simple-rms-theme' ),
+					[ 'status' => 409 ]
+				);
+			}
+
+			$state             = $this->state_manager->get_state();
 		$existing_landings = $this->normalize_state_landings(
 			is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : []
 		);
@@ -680,9 +693,9 @@ class Step_Landing_Page_Builder {
 			return $this->build_progress_response();
 		}
 
-		$state = $this->state_manager->get_state();
-		$state['canonical_sections'] = $this->canonical_store->summary();
-		$this->state_manager->save_state( $state );
+		$fresh                       = $this->state_manager->get_state();
+		$fresh['canonical_sections'] = $this->canonical_store->summary();
+		$this->state_manager->save_state( $fresh );
 
 		if ( ! $this->mark_step_status( 'complete' ) ) {
 			return new \WP_Error(
@@ -694,7 +707,8 @@ class Step_Landing_Page_Builder {
 
 		$this->maybe_mark_completed();
 
-		$run = $this->run_orchestrator->get_run();
+		$run   = $this->run_orchestrator->get_run();
+		$fresh = $this->state_manager->get_state();
 
 		$this->logger->log(
 			'info',
@@ -707,7 +721,7 @@ class Step_Landing_Page_Builder {
 			'completed'     => $run['completed'] ?? 0,
 			'total'         => $run['total'] ?? 0,
 			'current_title' => '',
-			'landing_pages' => is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [],
+			'landing_pages' => is_array( $fresh['landing_pages'] ?? null ) ? $fresh['landing_pages'] : [],
 		];
 	}
 
