@@ -24,6 +24,9 @@ require_once get_template_directory() . '/inc/vite-integration.php';
 // ─── Structured Data (Schema) — AEO/GEO ─────────────────────────────
 require_once get_template_directory() . '/inc/schema.php';
 
+// ─── ACF Frontend Template Boundary (setup-safe shell when ACF inactive) ─
+require_once get_template_directory() . '/inc/acf-template-boundary.php';
+
 // ─── TGM Plugin Activation ────────────────────────────────────────
 require_once get_template_directory() . '/inc/tgmpa.php';
 

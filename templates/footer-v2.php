@@ -91,8 +91,8 @@
             <div class="footer-v2__column footer-v2__column--info">
                 <h2 class="footer-v2__heading">Company Info</h2>
                 <?php
-                    $phones = get_field('company_phones', 'option');
-                    $emails = get_field('company_emails', 'option');
+                    $phones = rms_get_option('company_phones');
+                    $emails = rms_get_option('company_emails');
                     $addr_line1 = rms_get_option('company_address_line_1');
                     $addr_line2 = rms_get_option('company_address_line_2');
                     $addr_city  = rms_get_option('company_city');
@@ -160,7 +160,7 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                     <strong>Payment Methods:</strong>
                     <?php
-                    $methods = get_field('company_payment_methods', 'option');
+                    $methods = rms_get_option('company_payment_methods');
                     if (!empty($methods) && is_array($methods)) {
                         $labels = array_filter(array_column($methods, 'payment_method_name'));
                         if (!empty($labels)) {
