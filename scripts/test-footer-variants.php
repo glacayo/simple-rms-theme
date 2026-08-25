@@ -605,30 +605,21 @@ $palette_needles = [
     'function rms_enqueue_palette_bridge',
     'rms-palette.css',
 ];
-$palette_hits = [];
-$scan_files = [
-    $theme_root . '/inc/acf-theme-options.php',
-    $theme_root . '/header.php',
-    $theme_root . '/footer.php',
-    $theme_root . '/templates/footer-v1.php',
-    $theme_root . '/src/scss/layout/footer-v1.scss',
-];
-foreach ($scan_files as $path) {
-    $contents = rms_footer_read($path);
-    foreach ($palette_needles as $needle) {
-        if (strpos($contents, $needle) !== false) {
-            $palette_hits[] = basename($path) . ' contains ' . $needle;
-        }
+$palette_missing = [];
+$options_php = rms_footer_read($theme_root . '/inc/acf-theme-options.php');
+foreach ($palette_needles as $needle) {
+    if (strpos($options_php, $needle) === false) {
+        $palette_missing[] = 'acf-theme-options.php is missing ' . $needle;
     }
 }
-if (is_file($theme_root . '/assets/css/rms-palette.css')) {
-    $palette_hits[] = 'assets/css/rms-palette.css exists';
+if (!is_file($theme_root . '/assets/css/rms-palette.css')) {
+    $palette_missing[] = 'assets/css/rms-palette.css is missing';
 }
 
-if ($palette_hits !== []) {
-    rms_footer_test_fail('test_no_issue_29_palette_implementation', implode('; ', $palette_hits));
+if ($palette_missing !== []) {
+    rms_footer_test_fail('test_issue_29_palette_coexists', implode('; ', $palette_missing));
 } else {
-    rms_footer_test_pass('test_no_issue_29_palette_implementation');
+    rms_footer_test_pass('test_issue_29_palette_coexists');
 }
 
 if ($failures > 0) {

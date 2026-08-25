@@ -1,0 +1,513 @@
+/**
+ * Simple RMS Theme — Runtime Palette Bridge
+ *
+ * Bridges the four ACF company_palette_color_* options (emitted as CSS custom
+ * properties by inc/acf-theme-options.php via wp_add_inline_style) to the
+ * semantic surfaces of the active JBA homepage (header-two + footer-v2 +
+ * hero slider + about-us + services-v2 + portfolio-v2 + testimonials-v3 +
+ * badges + area-coverage-v1 + seo-content).
+ *
+ * Design token mapping:
+ *   --rms-color-primary        -> body primary text + intentional dark surface backgrounds
+ *   --rms-color-accent          -> primary CTAs, buttons, links, accent borders/focus rings
+ *   --rms-color-accent-2        -> review stars, secondary highlights (slider subheadline)
+ *   --rms-color-surface         -> white/light surfaces and on-dark foreground text
+ *   --rms-color-primary-strong  -> derived mid-dark shade (replaces #1e293b-like surfaces)
+ *   --rms-color-primary-muted   -> derived lighter neutral (replaces #334155-like body/borders)
+ *   --rms-color-accent-strong   -> derived accent/primary mix (CTA-v1 mid-stop)
+ *
+ * Derived tokens are computed from primary + surface (or accent + primary)
+ * via color-mix so they track the brand automatically. Fallback hex values
+ * matching the compiled defaults are emitted first so browsers without
+ * color-mix support still render correctly.
+ *
+ * Scope rules:
+ *   - No !important. Source order wins because this stylesheet loads after the
+ *     theme's compiled CSS (enqueued with a dependency on the header handle).
+ *   - Selectors are intentionally narrow: they target specific component classes
+ *     present on the active homepage so links/buttons elsewhere stay readable.
+ *   - Layout, typography, shadows, and transitions are NOT touched here — only
+ *     the color/background-color/border-color declarations that map to the palette.
+ *   - When all four ACF fields are empty/invalid the inline variables fall back to
+ *     the compiled defaults (#0f172a / #2563eb / #f59e0b / #ffffff), so the
+ *     existing hardcoded design is preserved.
+ */
+
+/* ─── Derived neutral shades from primary + surface ──────────────────── */
+/* Fallbacks match the compiled defaults (primary=#0f172a, surface=#fff):
+   strong ~ #1e293b, muted ~ #334155. color-mix overrides when supported. */
+:root {
+    --rms-color-primary-strong: #1e293b;
+    --rms-color-primary-muted:  #334155;
+    --rms-color-accent-strong:  #1d4ed8;
+}
+
+@supports (color: color-mix(in srgb, #000, #fff)) {
+    :root {
+        --rms-color-primary-strong: color-mix(in srgb, var(--rms-color-primary), var(--rms-color-surface) 15%);
+        --rms-color-primary-muted:  color-mix(in srgb, var(--rms-color-primary), var(--rms-color-surface) 30%);
+        --rms-color-accent-strong:  color-mix(in srgb, var(--rms-color-accent) 70%, var(--rms-color-primary) 30%);
+    }
+}
+
+/* ─── Primary text ──────────────────────────────────────────────────── */
+body {
+    color: var(--rms-color-primary);
+}
+
+/* ─── Intentional dark surfaces (primary background) ─────────────────── */
+.footer-v2,
+.badges,
+.cta-v2,
+.area-coverage-v1,
+.testimonials-v2 {
+    background-color: var(--rms-color-primary);
+}
+
+/* Header-two top-bar — was #0f172a. */
+.rms-header-v2__top-bar {
+    background-color: var(--rms-color-primary);
+}
+
+/* Slider bottom shape SVG path — was inline fill #0f172a. The path fill is
+   a presentation attribute on the <path> element inside .slider__shape.
+   CSS fill on the path overrides the presentation attribute. */
+.slider__shape path {
+    fill: var(--rms-color-primary);
+}
+
+/* Slider / hero dark overlays — compiled rgba(15,23,42,.75). */
+.slider__overlay--dark,
+.hero__overlay--dark {
+    background-color: rgba(15, 23, 42, 0.75);
+    background-color: color-mix(in srgb, var(--rms-color-primary) 75%, transparent);
+}
+
+/* Slider / hero primary overlays — compiled rgba(37,99,235,.80). */
+.slider__overlay--primary,
+.hero__overlay--primary {
+    background-color: rgba(37, 99, 235, 0.80);
+    background-color: color-mix(in srgb, var(--rms-color-accent) 80%, transparent);
+}
+
+/* Portfolio hover overlays — compiled rgba(15,23,42,.80). */
+.portfolio-v1__overlay,
+.portfolio-v2__overlay,
+.portfolio-v3__overlay {
+    background-color: rgba(15, 23, 42, 0.80);
+    background-color: color-mix(in srgb, var(--rms-color-primary) 80%, transparent);
+}
+
+/* Header-two mobile menu overlay — compiled rgba(15,23,42,.5). */
+.rms-header-v2__overlay {
+    background-color: rgba(15, 23, 42, 0.5);
+    background-color: color-mix(in srgb, var(--rms-color-primary) 50%, transparent);
+}
+
+/* CTA-v1 brand gradient — previously used independent blue/slate literals. */
+.cta-v1 {
+    background-image: linear-gradient(
+        135deg,
+        var(--rms-color-accent) 0%,
+        var(--rms-color-accent-strong) 60%,
+        var(--rms-color-primary) 100%
+    );
+}
+
+/* ─── Accent: primary CTAs, buttons, links, focus ────────────────────── */
+
+/* Header-two top-bar CTA — was amber on dark; now uses the accent token so
+   the approved red reads as the primary call-to-action. */
+.rms-header-v2__top-bar-right .rms-header-v2__cta-btn {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+}
+
+.rms-header-v2__top-bar-right .rms-header-v2__cta-btn:hover,
+.rms-header-v2__top-bar-right .rms-header-v2__cta-btn:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent-strong);
+}
+
+/* Footer-v2 CTA strip button — was blue / #1d4ed8 hover. */
+.footer-v2__cta-button {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+}
+
+.footer-v2__cta-button:hover,
+.footer-v2__cta-button:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent-strong);
+}
+
+/* Shared .btn primary variant — compiled hover is #1d4ed8. */
+.btn {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+    border-color: var(--rms-color-accent);
+}
+
+.btn:hover,
+.btn:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent-strong);
+    border-color: var(--rms-color-accent-strong);
+}
+
+/* Outline button: accent text/border, surface-on-accent hover. */
+.btn--outline {
+    color: var(--rms-color-accent);
+    background-color: transparent;
+    border-color: var(--rms-color-accent);
+}
+
+.btn--outline:hover,
+.btn--outline:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+    border-color: var(--rms-color-accent);
+}
+
+/* White-outline button on CTA-v1 gradients. Must follow .btn so the generic
+   solid-accent rule cannot clobber transparent/white semantics. */
+.btn.btn--outline-white {
+    color: var(--rms-color-surface);
+    background-color: transparent;
+    border-color: var(--rms-color-surface);
+}
+
+.btn.btn--outline-white:hover,
+.btn.btn--outline-white:focus-visible {
+    color: var(--rms-color-primary);
+    background-color: var(--rms-color-surface);
+    border-color: var(--rms-color-surface);
+}
+
+/* Focus ring on buttons and social links — was #2563eb. */
+.btn:focus-visible,
+.hero__form-submit:focus-visible,
+.footer-v2__cta-button:focus-visible,
+.rms-header-v2__top-bar-right .rms-header-v2__cta-btn:focus-visible,
+.footer-v2__logo-placeholder:focus-visible,
+.footer-v2__social-link:focus-visible,
+.footer-v2__list a:focus-visible {
+    outline-color: var(--rms-color-accent);
+}
+
+/* Hero form submit (primary CTA inside hero card). */
+.hero__form-submit {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+}
+
+.hero__form-submit:hover,
+.hero__form-submit:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent-strong);
+}
+
+.hero__form-group input:focus,
+.hero__form-group select:focus,
+.hero__form-group textarea:focus {
+    border-color: var(--rms-color-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rms-color-accent) 15%, transparent);
+}
+
+/* Area-coverage radius pill accent border (on dark surface). */
+.area-coverage-v1__radius {
+    border-color: var(--rms-color-accent);
+}
+
+/* Map rings accent stroke + glow. Compiled drop-shadow uses rgba(37,99,235,.35). */
+.area-coverage-v1__map-ring {
+    stroke: var(--rms-color-accent);
+    filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.35));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--rms-color-accent) 35%, transparent));
+}
+
+/* ─── Accent-2: review stars + secondary highlights ─────────────────── */
+.testimonials-v1__stars,
+.testimonials-v2__stars,
+.testimonials-v3__stars,
+.hero__reviews-stars {
+    color: var(--rms-color-accent-2);
+}
+
+/* Slider subheadline (eyebrow on dark hero) — was amber, now accent-2. */
+.slider__subheadline {
+    color: var(--rms-color-accent-2);
+}
+
+/* ─── Surface: white/light surfaces + on-dark foreground ────────────── */
+
+/* Footer-v2 CTA headline and heading text on dark surface — keep #fff
+   semantics via the surface token. */
+.footer-v2__cta-text,
+.footer-v2__heading,
+.footer-v2__logo-placeholder {
+    color: var(--rms-color-surface);
+}
+
+/* Header main bar background (light surface) — was #fff. */
+.rms-header-v2__main-bar {
+    background-color: var(--rms-color-surface);
+}
+
+/* ─── Derived strong shade (#1e293b-like surfaces, nav, quote) ──────── */
+
+/* Footer-v2 CTA strip — was #1e293b background, #334155 bottom border. */
+.footer-v2__cta-strip {
+    background-color: var(--rms-color-primary-strong);
+    border-bottom-color: var(--rms-color-primary-muted);
+}
+
+/* Badges icon background — was #1e293b on the dark badges section. */
+.badges__icon {
+    background-color: var(--rms-color-primary-strong);
+}
+
+/* Area-coverage eyebrow pill, radius pill, city pills, map card — were
+   #1e293b backgrounds with #334155 borders. */
+.area-coverage-v1__eyebrow {
+    background-color: var(--rms-color-primary-strong);
+    border-color: var(--rms-color-primary-muted);
+}
+
+.area-coverage-v1__radius {
+    background-color: var(--rms-color-primary-strong);
+}
+
+.area-coverage-v1__city {
+    background-color: var(--rms-color-primary-strong);
+    border-color: var(--rms-color-primary-muted);
+}
+
+.area-coverage-v1__map-card {
+    background-color: var(--rms-color-primary-strong);
+}
+
+.area-coverage-v1__map-card::before,
+.area-coverage-v1__map-card::after {
+    border-color: var(--rms-color-primary-muted);
+}
+
+/* Header-two desktop and mobile nav link text — was #1e293b. */
+.rms-header-v2__main-bar .rms-header-v2__nav-link,
+.rms-header-v2__mobile-nav-link {
+    color: var(--rms-color-primary-strong);
+}
+
+/* Header-two mobile menu icon bars — compiled selector includes menu-toggle. */
+.rms-header-v2__main-bar .rms-header-v2__menu-toggle .rms-header-v2__menu-icon span {
+    background-color: var(--rms-color-primary-strong);
+}
+
+/* Testimonials-v3 quote text — was #1e293b. */
+.testimonials-v3__quote {
+    color: var(--rms-color-primary-strong);
+}
+
+/* ─── Derived muted shade (#334155-like body copy, borders) ─────────── */
+
+/* SEO-content body text — was #334155. */
+.seo-content__text p {
+    color: var(--rms-color-primary-muted);
+}
+
+/* Footer-v2 copyright border — was #334155. */
+.footer-v2__copyright {
+    border-top-color: var(--rms-color-primary-muted);
+}
+
+/* Footer-v2 social link border — was #334155. Hover compiled to #2563eb. */
+.footer-v2__social-link {
+    border-color: var(--rms-color-primary-muted);
+}
+
+.footer-v2__social-link:hover,
+.footer-v2__social-link:focus-visible {
+    border-color: var(--rms-color-accent);
+    color: var(--rms-color-surface);
+}
+
+/* ─── Primary headings (direct dark, was #0f172a) ───────────────────── */
+/* Targeted semantic headline selectors only — not a blanket heading rule. */
+
+.about-us__headline,
+.services-v2__headline,
+.services-v2__box-title,
+.portfolio-v2__headline,
+.testimonials-v3__headline,
+.testimonials-v3__author,
+.seo-content__headline {
+    color: var(--rms-color-primary);
+}
+
+/* ─── Accent: blue brand details (was #2563eb) ─────────────────────── */
+
+/* About-us subheadline — was #2563eb. */
+.about-us__subheadline {
+    color: var(--rms-color-accent);
+}
+
+/* About-us badge (years experience box) — was #2563eb background. */
+.about-us__badge {
+    background-color: var(--rms-color-accent);
+}
+
+/* Testimonials-v3 decorative quote mark — was #2563eb. */
+.testimonials-v3__quote-mark {
+    color: var(--rms-color-accent);
+}
+
+/* Nav link hover/focus — was #2563eb. */
+.rms-header-v2__main-bar .rms-header-v2__nav-link:hover,
+.rms-header-v2__main-bar .rms-header-v2__nav-link:focus,
+.rms-header-v2__main-bar .rms-header-v2__nav-link:focus-visible,
+.rms-header-v2__mobile-nav-link:hover,
+.rms-header-v2__mobile-nav-link:focus,
+.rms-header-v2__mobile-nav-link:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+/* Mobile submenu links are more specific in compiled CSS. */
+.rms-header-v2__mobile-submenu .rms-header-v2__mobile-nav-link:hover,
+.rms-header-v2__mobile-submenu .rms-header-v2__mobile-nav-link:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+/* Desktop dropdown links — compiled uses `> li > a:hover` with #2563eb. */
+.rms-header-v2__dropdown > li > a {
+    color: var(--rms-color-primary-muted);
+}
+
+.rms-header-v2__dropdown > li > a:hover,
+.rms-header-v2__dropdown > li > a:focus-visible,
+.rms-header-v2__dropdown--submenu > li > a:hover,
+.rms-header-v2__dropdown--submenu > li > a:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+/* Nav link focus-visible outline — was #2563eb. */
+.rms-header-v2__main-bar .rms-header-v2__nav-link:focus-visible,
+.rms-header-v2__mobile-nav-link:focus-visible {
+    outline-color: var(--rms-color-accent);
+}
+
+/* Area-coverage city hover border — was #2563eb. */
+.area-coverage-v1__city:hover {
+    border-color: var(--rms-color-accent);
+}
+
+/* ─── On-dark text readability (surface token) ──────────────────────── */
+/* Ensure text on the derived strong surfaces stays readable. */
+
+/* Area-coverage eyebrow text on strong pill — keep light. */
+.area-coverage-v1__eyebrow {
+    color: var(--rms-color-surface);
+}
+
+/* Badges icon text — was #fff, keep readable on strong background. */
+.badges__icon {
+    color: var(--rms-color-surface);
+}
+
+/* Area-coverage city text — keep light on strong pill. */
+.area-coverage-v1__city {
+    color: var(--rms-color-surface);
+}
+
+/* Area-coverage city hover text — keep light. */
+.area-coverage-v1__city:hover {
+    color: var(--rms-color-surface);
+}
+
+/* ─── Header One — selectable global chrome ─────────────────────────── */
+/* Compiled Header One still uses $color-primary literals. Bridge rest,
+   hover, and focus on the shipped nav bar, CTA, social, dropdown, and
+   mobile surfaces. Same specificity as compiled CSS; later source order. */
+
+.rms-header__nav-bar {
+    background-color: var(--rms-color-accent);
+}
+
+.rms-header__cta-btn {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent);
+}
+
+.rms-header__cta-btn:hover,
+.rms-header__cta-btn:focus-visible {
+    color: var(--rms-color-surface);
+    background-color: var(--rms-color-accent-strong);
+    outline-color: var(--rms-color-accent);
+}
+
+.rms-header__social-list a:hover,
+.rms-header__social-list a:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+.rms-header__dropdown > li > a:hover,
+.rms-header__dropdown > li > a:focus-visible,
+.rms-header__dropdown--submenu > li > a:hover,
+.rms-header__dropdown--submenu > li > a:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+.rms-header__mobile-nav-list > li > a:hover,
+.rms-header__mobile-nav-list > li > a:focus-visible,
+.rms-header__mobile-submenu li a:hover,
+.rms-header__mobile-submenu li a:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+.rms-header__cta-btn:focus-visible,
+.rms-header__nav-link:focus-visible,
+.rms-header__menu-toggle:focus-visible,
+.rms-header__menu-close:focus-visible,
+.rms-header__social-list a:focus-visible,
+.rms-header__dropdown > li > a:focus-visible,
+.rms-header__mobile-nav-list > li > a:focus-visible {
+    outline-color: var(--rms-color-accent);
+}
+
+/* ─── Header Three — selectable overlay chrome ──────────────────────── */
+/* Keep the dark overlay design. Tokenize brand accent on active underline,
+   social/phone hover, and focus rings that still compile to $color-primary. */
+
+.rms-header-v3__nav-link::after {
+    background-color: var(--rms-color-accent);
+}
+
+.rms-header-v3__social-link:hover,
+.rms-header-v3__social-link:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+.rms-header-v3__mobile-phone:hover,
+.rms-header-v3__mobile-phone:focus-visible {
+    color: var(--rms-color-accent);
+}
+
+.rms-header-v3__phone:focus-visible,
+.rms-header-v3__social-link:focus-visible,
+.rms-header-v3__nav-link:focus-visible,
+.rms-header-v3__menu-toggle:focus-visible,
+.rms-header-v3__mobile-close:focus-visible,
+.rms-header-v3__mobile-nav-link:focus-visible,
+.rms-header-v3__mobile-phone:focus-visible {
+    outline-color: var(--rms-color-accent);
+}
+
+/* Footer V1 focus rings are tokenized in authored SCSS. Bridge the same
+   outline token so a stale compiled sheet still tracks the palette. */
+.footer-v1__logo-link:focus-visible,
+.footer-v1 .custom-logo-link:focus-visible,
+.footer-v1__wordmark:focus-visible,
+.footer-v1__contact-link:focus-visible,
+.footer-v1__social-link:focus-visible {
+    outline-color: var(--rms-color-accent);
+}
