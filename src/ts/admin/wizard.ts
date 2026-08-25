@@ -1,4 +1,5 @@
 import {
+  applyApiKeyInputSafety,
   presentStepOutcome,
   summarizeDependencyResult,
 } from './wizard-helpers';
@@ -497,6 +498,16 @@ declare global {
       setStepResult(step, response.result ?? response);
 
       if (outcome === 'success') {
+        /*
+         * Clear the API key input immediately after a successful IA Generation
+         * save so the plaintext does not linger in the DOM between the
+         * response and the state re-hydration. The saved-key status element
+         * already shows masked metadata.
+         */
+        if (step === 'ia-generation') {
+          clearApiKeyInput();
+        }
+
         const nextStep = nextStepFor(step);
         setStepActionStatus(step, 'Step completed.', 'success');
         setNotice(
@@ -1975,6 +1986,15 @@ declare global {
     return defaults[normalized] ?? 1;
   };
 
+  const clearApiKeyInput = (): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-ia-generation-form]');
+    const apiKeyInput = form?.querySelector<HTMLInputElement>('input[name="api_key"]');
+
+    if (apiKeyInput) {
+      applyApiKeyInputSafety(apiKeyInput, { clear: true, hasSavedCredential: true });
+    }
+  };
+
   const hydrateIaGenerationForm = (): void => {
     const form = root.querySelector<HTMLFormElement>('[data-wizard-ia-generation-form]');
     const aiConfig = state.ai_config;
@@ -1996,8 +2016,20 @@ declare global {
       providerSelect.value = provider;
     }
 
-    if (apiKeyInput && (aiConfig.has_credentials || aiConfig.credential?.has_key)) {
-      apiKeyInput.placeholder = '************';
+    if (apiKeyInput) {
+      const hasSavedCredential = Boolean(aiConfig.has_credentials || aiConfig.credential?.has_key);
+
+      /*
+       * When a saved credential exists, clear any residual value from the
+       * input so a plaintext key cannot survive a render triggered by a
+       * state reload (e.g. after a successful save or on re-opening the
+       * wizard). When no credential is saved (error/correction path), the
+       * user's typed value is retained so they can fix and retry.
+       */
+      applyApiKeyInputSafety(apiKeyInput, {
+        clear: false,
+        hasSavedCredential,
+      });
     }
 
     if (credentialStatus) {
@@ -2061,6 +2093,16 @@ declare global {
 
       if (credentialStatus && response.credential?.status) {
         credentialStatus.textContent = response.credential.status;
+      }
+
+      /*
+       * After a successful provider test with a newly entered key, the
+       * credential is persisted server-side. Clear the plaintext from the
+       * input value so it does not linger in the DOM or any accessibility
+       * snapshot. The saved-key placeholder/status is shown instead.
+       */
+      if (apiKeyInput) {
+        applyApiKeyInputSafety(apiKeyInput, { clear: true, hasSavedCredential: true });
       }
 
       setInlineStatus(
