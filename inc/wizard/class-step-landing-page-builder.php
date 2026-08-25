@@ -44,6 +44,7 @@ class Step_Landing_Page_Builder {
 	private $canonical_store;
 	private $menu_builder;
 	private $yoast_meta_writer;
+	private $run_orchestrator;
 
 	public function __construct(
 		?Logger $logger = null,
@@ -54,7 +55,8 @@ class Step_Landing_Page_Builder {
 		?AI_Content_Reviewer $reviewer = null,
 		?Canonical_Section_Store $canonical_store = null,
 		?Menu_Builder $menu_builder = null,
-		?Yoast_Meta_Writer $yoast_meta_writer = null
+		?Yoast_Meta_Writer $yoast_meta_writer = null,
+		?Landing_Run_Orchestrator $run_orchestrator = null
 	) {
 		$this->logger            = $logger ?? new Logger();
 		$this->state_manager     = $state_manager ?? new State_Manager();
@@ -65,98 +67,161 @@ class Step_Landing_Page_Builder {
 		$this->canonical_store   = $canonical_store ?? new Canonical_Section_Store();
 		$this->menu_builder      = $menu_builder ?? new Menu_Builder( $this->logger );
 		$this->yoast_meta_writer = $yoast_meta_writer ?? new Yoast_Meta_Writer( $this->logger );
+		$this->run_orchestrator  = $run_orchestrator ?? new Landing_Run_Orchestrator( $this->state_manager, $this->logger );
 	}
 
 	/**
-	 * Run the Landing page builder.
+	 * Run the Landing page builder — orchestrated resumable execution.
+	 *
+	 * API contract: landing_action must be "start" or "process".
+	 *   start  — validate, persist run plan, process first pending item.
+	 *   process — process one pending/interrupted item with lease + checkpoint.
+	 * skip_all is handled via run_skip_all() when landing_action is absent and skip_all=true.
+	 * No landing_action without skip_all → 400 contract error (legacy batch removed).
 	 *
 	 * @param array<string,mixed> $payload Step payload.
 	 *
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function run( array $payload ) {
-		if ( $this->truthy( $payload['skip_all'] ?? false ) ) {
-			$state             = $this->state_manager->get_state();
-			$existing_landings = $this->normalize_state_landings(
-				is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : []
-			);
+		$landing_action = \sanitize_key( (string) ( $payload['landing_action'] ?? '' ) );
 
-			// Existing landings must still receive final-state robots/menu reconciliation.
-			// No existing landings → skip-all is a pure no-op complete.
-			if ( [] !== $existing_landings ) {
-				foreach ( $existing_landings as $landing_key => $row ) {
-					if ( ! is_array( $row ) ) {
-						continue;
-					}
-
-					$post_id     = (int) ( $row['id'] ?? 0 );
-					$slug        = (string) ( $row['slug'] ?? '' );
-					$log_context = [
-						'landing_key' => (string) ( $row['landing_key'] ?? $landing_key ),
-						'slug'        => $slug,
-						'skip_all'    => true,
-					];
-
-					if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
-						$post_id = $this->recover_build_page_post_id( $post_id, $slug );
-					}
-
-					if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
-						$this->mark_step_status( 'failed' );
-
-						return new \WP_Error(
-							'rms_wizard_landing_skip_all_missing_post',
-							sprintf(
-								/* translators: %s: landing key or slug. */
-								\__( 'Skip-all could not reconcile landing "%s": page not found.', 'simple-rms-theme' ),
-								'' !== (string) ( $row['landing_key'] ?? '' )
-									? (string) $row['landing_key']
-									: ( '' !== $slug ? $slug : (string) $landing_key )
-							),
-							array_merge( [ 'status' => 500 ], $log_context )
-						);
-					}
-
-					$final_state = $this->sync_landing_final_state( $post_id, $row, $log_context );
-
-					if ( \is_wp_error( $final_state ) ) {
-						$this->mark_step_status( 'failed' );
-						$this->logger->log(
-							'error',
-							'Skip-all final-state sync failed; step not marked complete.',
-							array_merge(
-								$log_context,
-								[
-									'post_id'       => $post_id,
-									'error_code'    => $final_state->get_error_code(),
-									'error_message' => $final_state->get_error_message(),
-								]
-							)
-						);
-
-						return $final_state;
-					}
-				}
-			}
-
-			if ( ! $this->mark_step_status( 'complete' ) ) {
-				return new \WP_Error(
-					'rms_wizard_landing_status_persist_failed',
-					\__( 'Landing step completed but status could not be persisted.', 'simple-rms-theme' ),
-					[ 'status' => 500 ]
-				);
-			}
-			$this->maybe_mark_completed();
-			$state = $this->state_manager->get_state();
-
-			return [
-				'skipped'       => true,
-				'landing_pages' => is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [],
-			];
+		if ( 'start' === $landing_action ) {
+			return $this->orchestrate_start( $payload );
 		}
 
-		$state     = $this->state_manager->get_state();
-		$ai_config = is_array( $state['ai_config'] ?? null ) ? $state['ai_config'] : [];
+		if ( 'process' === $landing_action ) {
+			return $this->orchestrate_process();
+		}
+
+		// skip_all without landing_action → focused skip-all handler.
+		if ( $this->truthy( $payload['skip_all'] ?? false ) ) {
+			return $this->run_skip_all();
+		}
+
+		// No landing_action and no skip_all → contract error.
+		$this->mark_step_status( 'failed' );
+
+		return new \WP_Error(
+			'rms_wizard_landing_action_required',
+			\__( 'A landing_action (start or process) is required.', 'simple-rms-theme' ),
+			[ 'status' => 400 ]
+		);
+	}
+
+		/**
+		 * Skip-all: complete the landing step without generating new pages.
+		 *
+		 * Permitted only when there is no persisted landing run, or the
+		 * persisted run is completed or skipped, and no execution lease is
+		 * active. A live or incomplete run is refused with 409 before any
+		 * mutation; run identity and step status are preserved.
+		 *
+		 * Existing landings (if any) receive final-state robots/menu reconciliation.
+		 */
+		private function run_skip_all() {
+			if ( ! $this->run_orchestrator->allows_skip_all() ) {
+				return new \WP_Error(
+					'rms_wizard_landing_run_active',
+					\__( 'A landing run is already active or incomplete. Wait for it to finish or expire before skipping.', 'simple-rms-theme' ),
+					[ 'status' => 409 ]
+				);
+			}
+
+			$state             = $this->state_manager->get_state();
+		$existing_landings = $this->normalize_state_landings(
+			is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : []
+		);
+
+		if ( [] !== $existing_landings ) {
+			foreach ( $existing_landings as $landing_key => $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+
+				$post_id     = (int) ( $row['id'] ?? 0 );
+				$slug        = (string) ( $row['slug'] ?? '' );
+				$log_context = [
+					'landing_key' => (string) ( $row['landing_key'] ?? $landing_key ),
+					'slug'        => $slug,
+					'skip_all'    => true,
+				];
+
+				if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
+					$post_id = $this->recover_build_page_post_id( $post_id, $slug );
+				}
+
+				if ( $post_id <= 0 || 'page' !== \get_post_type( $post_id ) ) {
+					$this->mark_step_status( 'failed' );
+
+					return new \WP_Error(
+						'rms_wizard_landing_skip_all_missing_post',
+						sprintf(
+							/* translators: %s: landing key or slug. */
+							\__( 'Skip-all could not reconcile landing "%s": page not found.', 'simple-rms-theme' ),
+							'' !== (string) ( $row['landing_key'] ?? '' )
+								? (string) $row['landing_key']
+								: ( '' !== $slug ? $slug : (string) $landing_key )
+						),
+						array_merge( [ 'status' => 500 ], $log_context )
+					);
+				}
+
+				$final_state = $this->sync_landing_final_state( $post_id, $row, $log_context );
+
+				if ( \is_wp_error( $final_state ) ) {
+					$this->mark_step_status( 'failed' );
+					$this->logger->log( 'error', 'Skip-all final-state sync failed; step not marked complete.',
+						array_merge( $log_context, [ 'post_id' => $post_id, 'error_code' => $final_state->get_error_code(), 'error_message' => $final_state->get_error_message() ] )
+					);
+
+					return $final_state;
+				}
+			}
+		}
+
+		if ( ! $this->mark_step_status( 'complete' ) ) {
+			return new \WP_Error(
+				'rms_wizard_landing_status_persist_failed',
+				\__( 'Landing step completed but status could not be persisted.', 'simple-rms-theme' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$this->maybe_mark_completed();
+		$state = $this->state_manager->get_state();
+
+		return [
+			'skipped'       => true,
+			'landing_pages' => is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [],
+		];
+	}
+
+	/**
+	 * Start a new landing run plan.
+	 *
+	 * Validates AI config, client data, parses rows, classifies unchanged
+	 * existing entries as complete, persists the plan, then processes first item.
+	 *
+	 * @param array<string,mixed> $payload
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+		private function orchestrate_start( array $payload ) {
+			if ( $this->truthy( $payload['skip_all'] ?? false ) ) {
+				return $this->run_skip_all();
+			}
+
+			if ( $this->run_orchestrator->has_blocking_run() ) {
+				return new \WP_Error(
+					'rms_wizard_landing_run_active',
+					\__( 'A landing run is already active. Wait for it to finish or expire before starting a new run.', 'simple-rms-theme' ),
+					[ 'status' => 409 ]
+				);
+			}
+
+			$state     = $this->state_manager->get_state();
+			$ai_config = is_array( $state['ai_config'] ?? null ) ? $state['ai_config'] : [];
 
 		if ( ! $this->has_ai_config( $ai_config ) ) {
 			$this->mark_step_status( 'failed' );
@@ -204,110 +269,531 @@ class Step_Landing_Page_Builder {
 			);
 		}
 
-		$required_layouts = $this->collect_required_reusable_layouts( $rows );
-		$bootstrap        = $this->ensure_canonical_reusables( $required_layouts, $state, $client_data, $ai_config );
+			// Persist the complete normalized plan before any AI/bootstrap work.
+			$run = $this->run_orchestrator->start_run( $rows, $existing_landings, $replace_map );
 
-		if ( \is_wp_error( $bootstrap ) ) {
+			if ( \is_wp_error( $run ) ) {
+				if ( ! $this->is_start_conflict_error( $run ) ) {
+					$this->mark_step_status( 'failed' );
+				}
+
+				return $run;
+			}
+
+			$this->mark_step_status( 'running' );
+
+			$required_layouts = $this->collect_required_reusable_layouts( $rows );
+			$bootstrap        = $this->ensure_canonical_reusables( $required_layouts, $state, $client_data, $ai_config );
+
+			if ( \is_wp_error( $bootstrap ) ) {
+				$this->mark_step_status( 'failed' );
+
+				return $bootstrap;
+			}
+
+		// Immediately process the first pending item if one exists.
+		$next = $this->run_orchestrator->get_next_item();
+
+		if ( null !== $next ) {
+			return $this->orchestrate_process();
+		}
+
+		// All items already complete (e.g. all unchanged).
+		return $this->orchestrate_finalize();
+	}
+
+	/**
+	 * Process at most one pending/interrupted item.
+	 *
+	 * Flow: recover stale → acquire lease → pre-build reconcile →
+	 * mark running → build → checkpoint → release lease.
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function orchestrate_process() {
+		// Recover stale lease from a prior dead process.
+		$this->run_orchestrator->recover_stale_lease();
+
+		$state     = $this->state_manager->get_state();
+		$ai_config = is_array( $state['ai_config'] ?? null ) ? $state['ai_config'] : [];
+
+		if ( ! $this->has_ai_config( $ai_config ) ) {
 			$this->mark_step_status( 'failed' );
 
-			return $bootstrap;
+			return new \WP_Error( 'rms_wizard_ai_config_required', \__( 'AI configuration required. Complete the IA Generation step first.', 'simple-rms-theme' ), [ 'status' => 400 ] );
 		}
 
-		$client_context = $this->harness->get_harness_context( $client_data );
-		$landing_pages  = $existing_landings;
-		$built          = [];
-		$prior_payloads = [];
-		$built_ids      = [];
+		$client_data = is_array( $state['client_data'] ?? null ) ? $state['client_data'] : [];
+		$missing     = $this->harness->validate_required_context( $client_data );
 
-		foreach ( $rows as $row ) {
-			try {
-				$result = $this->build_one_landing( $row, $replace_map, $client_data, $client_context, $ai_config, $landing_pages, $prior_payloads );
-			} catch ( \Throwable $exception ) {
-				// Convert thrown failures so partial persistence still runs before returning.
-				$landing_key = (string) ( $row['landing_key'] ?? '' );
-				$slug        = (string) ( $row['slug'] ?? '' );
-
-				$this->logger->log(
-					'error',
-					'Wizard landing build threw an exception.',
-					[
-						'landing_key'     => $landing_key,
-						'slug'            => $slug,
-						'exception_class' => get_class( $exception ),
-						'message'         => $exception->getMessage(),
-					]
-				);
-
-				$result = new \WP_Error(
-					'rms_wizard_landing_build_exception',
-					sprintf(
-						/* translators: 1: landing slug or key, 2: exception message. */
-						\__( 'Landing "%1$s" failed unexpectedly: %2$s', 'simple-rms-theme' ),
-						'' !== $slug ? $slug : $landing_key,
-						$exception->getMessage()
-					),
-					[
-						'status'          => 500,
-						'landing_key'     => $landing_key,
-						'slug'            => $slug,
-						'exception_class' => get_class( $exception ),
-					]
-				);
-			}
-
-			if ( \is_wp_error( $result ) ) {
-				// Persist successful landings before failing so partial progress is not lost.
-				$this->persist_partial_landing_progress( $state, $landing_pages, $built_ids, $result );
-
-				return $result;
-			}
-
-			$landing_pages[ $result['landing_key'] ] = $result['entry'];
-			$built[]                                 = $result['entry'];
-			$built_ids[]                             = (int) ( $result['entry']['id'] ?? 0 );
-			$prior_payloads                          = array_merge( $prior_payloads, $result['prior_payloads'] );
-		}
-
-		$state['landing_pages']      = array_values( $landing_pages );
-		$state['canonical_sections'] = $this->canonical_store->summary();
-
-		if ( ! $this->persist_wizard_state( $state, 'full success' ) ) {
+		if ( [] !== $missing ) {
 			$this->mark_step_status( 'failed' );
 
 			return new \WP_Error(
-				'rms_wizard_landing_state_persist_failed',
-				\__( 'Landing pages were built but wizard state could not be persisted.', 'simple-rms-theme' ),
-				[
-					'status'    => 500,
-					'post_ids'  => array_values( array_filter( $built_ids ) ),
-					'built'     => count( $built ),
-				]
+				'rms_wizard_landing_required_client_data_missing',
+				sprintf(
+					/* translators: %s: comma-separated missing client data keys. */
+					\__( 'Missing required client data: %s. Complete your client profile before generating.', 'simple-rms-theme' ),
+					implode( ', ', $missing )
+				),
+				[ 'status' => 400 ]
 			);
 		}
+
+		// Reject concurrent process requests for the same run.
+		$lease_result = $this->run_orchestrator->acquire_lease();
+
+		if ( \is_wp_error( $lease_result ) ) {
+			if ( ! $this->is_lease_conflict_error( $lease_result ) ) {
+				$this->mark_step_status( 'failed' );
+			}
+
+			return $lease_result;
+		}
+
+		/** @var string $lease_owner */
+		$lease_owner = $lease_result;
+
+		$run = $this->run_orchestrator->get_run();
+
+		if ( null === $run ) {
+			$this->run_orchestrator->release_lease( $lease_owner );
+			$this->mark_step_status( 'failed' );
+
+			return new \WP_Error( 'rms_wizard_landing_no_run', \__( 'No landing run is active. Start a run first.', 'simple-rms-theme' ), [ 'status' => 409 ] );
+		}
+
+		if ( ! $this->run_orchestrator->rearm_failed_items_for_resume() ) {
+			$this->run_orchestrator->release_lease( $lease_owner );
+			$this->mark_step_status( 'failed' );
+
+			return new \WP_Error(
+				'rms_wizard_landing_run_persist_failed',
+				\__( 'The persisted landing run could not be prepared for resume.', 'simple-rms-theme' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$replace_map = is_array( $run['replace_map'] ?? null ) ? $run['replace_map'] : [];
+		$item        = $this->run_orchestrator->get_next_item();
+
+		if ( null === $item ) {
+			$this->run_orchestrator->release_lease( $lease_owner );
+
+			// No more processable items — finalize if truly complete.
+			return $this->orchestrate_finalize();
+		}
+
+		$item_key = (string) ( $item['key'] ?? '' );
+
+		// Pre-build reconciliation: if the item is interrupted (from a prior crash)
+		// and a post already exists by ID/key/slug with landing meta, reconcile it
+		// instead of calling build_one_landing again (no duplicate creation).
+		$checkpointed_post_id = (int) ( $item['post_id'] ?? 0 );
+
+		if ( Landing_Run_Orchestrator::ITEM_INTERRUPTED === $item['status'] && $checkpointed_post_id <= 0 ) {
+			$recovered_id = $this->recover_build_page_post_id( (int) ( $item['id'] ?? 0 ), (string) ( $item['slug'] ?? '' ) );
+
+			if ( $recovered_id > 0 && $this->page_has_landing_type( $recovered_id ) ) {
+				$row_for_reconcile = $this->item_to_row( $item );
+				$landing_pages     = $this->normalize_state_landings( is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [] );
+				$reconciled        = $this->reconcile_post_created_before_checkpoint( $recovered_id, $row_for_reconcile );
+
+				if ( \is_wp_error( $reconciled ) ) {
+					$this->logger->log(
+						'error',
+						'Pre-build reconciliation found an existing landing but finalization failed; refusing duplicate creation.',
+						[ 'item_key' => $item_key, 'recovered_id' => $recovered_id, 'error_code' => $reconciled->get_error_code() ]
+					);
+					$this->run_orchestrator->mark_item_error( $item_key, 'failed', $reconciled->get_error_code(), $reconciled->get_error_message() );
+					$this->run_orchestrator->release_lease( $lease_owner );
+					$this->mark_step_status( 'failed' );
+
+					return $reconciled;
+				}
+
+				// Atomically checkpoint the reconciled entry before finalize.
+				$landing_pages = $this->run_orchestrator->checkpoint_item( $item_key, $reconciled, $landing_pages );
+
+				if ( \is_wp_error( $landing_pages ) ) {
+					$this->run_orchestrator->release_lease( $lease_owner );
+					$this->mark_step_status( 'failed' );
+
+					return $landing_pages;
+				}
+
+				$this->run_orchestrator->release_lease( $lease_owner );
+
+				if ( $this->run_orchestrator->is_run_complete() ) {
+					return $this->orchestrate_finalize();
+				}
+
+				return $this->build_progress_response();
+			}
+		}
+
+		// Mark item running before work.
+		$running_item = $this->run_orchestrator->mark_item_running( $item_key );
+
+		if ( \is_wp_error( $running_item ) ) {
+			$this->run_orchestrator->release_lease( $lease_owner );
+			$this->mark_step_status( 'failed' );
+
+			return $running_item;
+		}
+
+		$client_context = $this->harness->get_harness_context( $client_data );
+		$landing_pages   = $this->normalize_state_landings( is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [] );
+		$row             = $this->item_to_row( $item );
+
+		try {
+			$result = $this->build_one_landing( $row, $replace_map, $client_data, $client_context, $ai_config, $landing_pages, [] );
+		} catch ( \Throwable $exception ) {
+			$landing_key = (string) ( $row['landing_key'] ?? $item_key );
+			$slug        = (string) ( $row['slug'] ?? '' );
+
+			$this->logger->log(
+				'error',
+				'Wizard landing build threw an exception during orchestrated processing.',
+				[ 'landing_key' => $landing_key, 'slug' => $slug, 'exception_class' => get_class( $exception ), 'message' => $exception->getMessage() ]
+			);
+
+			// Attempt post-exception recovery by ID/key/slug.
+			$recovered_id = $this->recover_build_page_post_id( (int) ( $row['id'] ?? 0 ), (string) ( $row['slug'] ?? '' ) );
+
+			if ( $recovered_id > 0 && $this->page_has_landing_type( $recovered_id ) ) {
+				$reconciled = $this->reconcile_post_created_before_checkpoint( $recovered_id, $row );
+
+				if ( ! \is_wp_error( $reconciled ) ) {
+					$landing_pages = $this->run_orchestrator->checkpoint_item( $item_key, $reconciled, $landing_pages );
+
+					if ( \is_wp_error( $landing_pages ) ) {
+						$this->run_orchestrator->release_lease( $lease_owner );
+						$this->mark_step_status( 'failed' );
+
+						return $landing_pages;
+					}
+
+					$this->run_orchestrator->release_lease( $lease_owner );
+
+					if ( $this->run_orchestrator->is_run_complete() ) {
+						return $this->orchestrate_finalize();
+					}
+
+					return $this->build_progress_response();
+				}
+			}
+
+			$result = new \WP_Error(
+				'rms_wizard_landing_build_exception',
+				sprintf(
+					/* translators: 1: landing slug or key, 2: exception message. */
+					\__( 'Landing "%1$s" failed unexpectedly: %2$s', 'simple-rms-theme' ),
+					'' !== $slug ? $slug : $landing_key,
+					$exception->getMessage()
+				),
+				[ 'status' => 500, 'landing_key' => $landing_key, 'slug' => $slug, 'exception_class' => get_class( $exception ) ]
+			);
+		}
+
+		if ( \is_wp_error( $result ) ) {
+			$error_status = $this->classify_error( $result );
+
+			$this->run_orchestrator->mark_item_error( $item_key, 'failed', $result->get_error_code(), $result->get_error_message() );
+			$this->run_orchestrator->release_lease( $lease_owner );
+			$this->mark_step_status( 'failed' );
+
+			// Preserve provider/status attribution in the error data.
+			$error_data = $result->get_error_data();
+
+			if ( is_array( $error_data ) ) {
+				$error_data['attribution'] = $error_status;
+				$result->add_data( $error_data );
+			}
+
+			return $result;
+		}
+
+		/** @var array{entry:array<string,mixed>,landing_key:string,prior_payloads:array<int,array<string,mixed>>} $result */
+		$entry = $result['entry'];
+
+		// Atomic checkpoint: persist entry + mark item complete.
+		$landing_pages = $this->run_orchestrator->checkpoint_item( $item_key, $entry, $landing_pages );
+
+		if ( \is_wp_error( $landing_pages ) ) {
+			$this->run_orchestrator->release_lease( $lease_owner );
+			$this->mark_step_status( 'failed' );
+
+			return $landing_pages;
+		}
+
+		$this->run_orchestrator->release_lease( $lease_owner );
+
+		if ( $this->run_orchestrator->is_run_complete() ) {
+			return $this->orchestrate_finalize();
+		}
+
+		return $this->build_progress_response();
+	}
+
+	/**
+	 * Convert a run plan item array into a build row.
+	 *
+	 * @param array<string,mixed> $item
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function item_to_row( array $item ): array {
+		return [
+			'id'              => (int) ( $item['post_id'] ?? $item['id'] ?? 0 ),
+			'landing_key'     => (string) ( $item['landing_key'] ?? $item['key'] ?? '' ),
+			'title'           => (string) ( $item['title'] ?? '' ),
+			'slug'            => (string) ( $item['slug'] ?? '' ),
+			'landing_type'    => (string) ( $item['landing_type'] ?? 'seo' ),
+			'menu_eligible'   => ! empty( $item['menu_eligible'] ),
+			'primary_keyword' => (string) ( $item['primary_keyword'] ?? '' ),
+			'subkeywords'     => is_array( $item['subkeywords'] ?? null ) ? array_values( $item['subkeywords'] ) : [],
+			'sections'        => is_array( $item['sections'] ?? null ) ? $item['sections'] : [],
+		];
+	}
+
+	/**
+	 * Build a progress response from current run state.
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function build_progress_response() {
+		$run  = $this->run_orchestrator->get_run();
+
+		if ( null === $run ) {
+			$this->mark_step_status( 'failed' );
+
+			return new \WP_Error( 'rms_wizard_landing_run_lost', \__( 'The landing run plan was lost after checkpoint.', 'simple-rms-theme' ), [ 'status' => 500 ] );
+		}
+
+		$completed     = $run['completed'];
+		$total         = $run['total'];
+		$next_item     = $this->run_orchestrator->get_next_item();
+		$current_title = $next_item ? (string) ( $next_item['title'] ?? '' ) : '';
+
+		$this->logger->log(
+			'info',
+			sprintf( 'Landing run progress: %d of %d completed.', $completed, $total ),
+			[ 'run_id' => $run['run_id'], 'completed' => $completed, 'total' => $total ]
+		);
+
+		$state = $this->state_manager->get_state();
+
+		return [
+			'landing_run'   => $this->public_run_view( $run ),
+			'completed'     => $completed,
+			'total'         => $total,
+			'current_title' => $current_title,
+			'landing_pages' => is_array( $state['landing_pages'] ?? null ) ? $state['landing_pages'] : [],
+		];
+	}
+
+	/**
+	 * Reconcile a post that was created before checkpoint (crash recovery).
+	 *
+	 * Verifies the post exists, has landing meta, syncs final state,
+	 * and constructs the entry without duplicate creation.
+	 *
+	 * @param int                 $post_id
+	 * @param array<string,mixed> $row
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function reconcile_post_created_before_checkpoint( int $post_id, array $row ) {
+		if ( $post_id <= 0 || ! $this->page_has_landing_type( $post_id ) ) {
+			return new \WP_Error(
+				'rms_wizard_landing_reconcile_failed',
+				\__( 'Could not reconcile the landing page after an interrupted process.', 'simple-rms-theme' ),
+				[ 'status' => 500, 'post_id' => $post_id ]
+			);
+		}
+
+		$log_context = [
+			'landing_key'  => (string) ( $row['landing_key'] ?? '' ),
+			'slug'         => (string) ( $row['slug'] ?? '' ),
+			'title'        => (string) ( $row['title'] ?? '' ),
+			'landing_type' => (string) ( $row['landing_type'] ?? 'seo' ),
+		];
+
+		$meta_ok = $this->ensure_landing_meta( $post_id, (string) ( $row['landing_type'] ?? 'seo' ), $log_context );
+
+		if ( \is_wp_error( $meta_ok ) ) {
+			return $meta_ok;
+		}
+
+		$final_state = $this->sync_landing_final_state( $post_id, $row, $log_context );
+
+		if ( \is_wp_error( $final_state ) ) {
+			return $final_state;
+		}
+
+		$this->logger->log(
+			'info',
+			'Landing page reconciled after interrupted process (post created before checkpoint).',
+			array_merge( [ 'post_id' => $post_id ], $log_context )
+		);
+
+		return [
+			'id'              => $post_id,
+			'landing_key'     => (string) ( $row['landing_key'] ?? '' ),
+			'title'           => (string) ( $row['title'] ?? '' ),
+			'slug'            => (string) ( $row['slug'] ?? '' ),
+			'landing_type'    => (string) ( $row['landing_type'] ?? 'seo' ),
+			'menu_eligible'   => ! empty( $row['menu_eligible'] ),
+			'primary_keyword' => (string) ( $row['primary_keyword'] ?? '' ),
+			'subkeywords'     => is_array( $row['subkeywords'] ?? null ) ? array_values( $row['subkeywords'] ) : [],
+			'keywords'        => [
+				'primary_keyword' => (string) ( $row['primary_keyword'] ?? '' ),
+				'subkeywords'     => is_array( $row['subkeywords'] ?? null ) ? array_values( $row['subkeywords'] ) : [],
+			],
+			'generated_at'   => \current_time( 'mysql', true ),
+			'reconciled'     => true,
+		];
+	}
+
+	/**
+	 * Finalize a completed run.
+	 *
+	 * Refuses completion unless the orchestrator confirms all items completed
+	 * and no failed/running/pending/interrupted items remain.
+	 *
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function orchestrate_finalize() {
+		// B4: Refuse completion unless truly complete.
+		if ( ! $this->run_orchestrator->is_run_complete() ) {
+			$run = $this->run_orchestrator->get_run();
+
+			$has_failed = false;
+
+			if ( null !== $run ) {
+				foreach ( $run['items'] as $item ) {
+					if ( Landing_Run_Orchestrator::ITEM_FAILED === $item['status'] ) {
+						$has_failed = true;
+						break;
+					}
+				}
+			}
+
+			$this->mark_step_status( $has_failed ? 'failed' : 'running' );
+
+			if ( $has_failed ) {
+				return new \WP_Error(
+					'rms_wizard_landing_run_not_complete',
+					\__( 'The landing run cannot be finalized because one or more items failed.', 'simple-rms-theme' ),
+					[ 'status' => 409 ]
+				);
+			}
+
+			return $this->build_progress_response();
+		}
+
+		$fresh                       = $this->state_manager->get_state();
+		$fresh['canonical_sections'] = $this->canonical_store->summary();
+		$this->state_manager->save_state( $fresh );
 
 		if ( ! $this->mark_step_status( 'complete' ) ) {
 			return new \WP_Error(
 				'rms_wizard_landing_status_persist_failed',
 				\__( 'Landing pages were saved but step status could not be marked complete.', 'simple-rms-theme' ),
-				[ 'status' => 500, 'post_ids' => array_values( array_filter( $built_ids ) ) ]
+				[ 'status' => 500 ]
 			);
 		}
 
 		$this->maybe_mark_completed();
+
+		$run   = $this->run_orchestrator->get_run();
+		$fresh = $this->state_manager->get_state();
+
 		$this->logger->log(
 			'info',
-			'Wizard landing pages built.',
-			[
-				'count'    => count( $built ),
-				'post_ids' => array_values( array_filter( $built_ids ) ),
-			]
+			'Wizard landing run completed.',
+			[ 'run_id' => $run['run_id'] ?? '', 'total' => $run['total'] ?? 0, 'completed' => $run['completed'] ?? 0 ]
 		);
 
 		return [
-			'landing_pages'      => array_values( $landing_pages ),
-			'built'              => $built,
-			'canonical_sections' => $state['canonical_sections'],
+			'landing_run'   => $this->public_run_view( $run ?? [] ),
+			'completed'     => $run['completed'] ?? 0,
+			'total'         => $run['total'] ?? 0,
+			'current_title' => '',
+			'landing_pages' => is_array( $fresh['landing_pages'] ?? null ) ? $fresh['landing_pages'] : [],
 		];
+	}
+
+	/**
+	 * Classify a WP_Error into an attribution string for the client.
+	 *
+	 * Preserves provider HTTP errors with provider name/status.
+	 * A client-side empty/non-JSON proxy error is described as an
+	 * interrupted server request, not mislabeled as provider HTTP 405.
+	 */
+	private function classify_error( \WP_Error $error ): string {
+		$code        = $error->get_error_code();
+		$data        = $error->get_error_data();
+		$http_status = is_array( $data ) ? (int) ( $data['status'] ?? 0 ) : 0;
+
+		if ( 502 === $http_status || false !== strpos( $code, 'ai_failed' ) || false !== strpos( $code, 'keyword_' ) ) {
+			$provider = is_array( $data ) ? (string) ( $data['provider'] ?? '' ) : '';
+
+			return '' !== $provider
+				? sprintf( 'provider_error (%s, HTTP %d)', $provider, $http_status )
+				: sprintf( 'provider_error (HTTP %d)', $http_status );
+		}
+
+		if ( false !== strpos( $code, 'exception' ) || false !== strpos( $code, 'build' ) ) {
+			return 'interrupted_server_request';
+		}
+
+		return 'server_error';
+	}
+
+	/**
+	 * Build a public view of the run plan for the frontend.
+	 *
+	 * Exposes safe item fields needed for hydration plus a processing flag.
+	 * Never includes lease_owner.
+	 *
+	 * @param array<string,mixed> $run
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function public_run_view( array $run ): array {
+		return $this->run_orchestrator->public_run_view( $run );
+	}
+
+	/**
+	 * Lease-conflict / already-processing responses must keep the step running.
+	 */
+	private function is_lease_conflict_error( \WP_Error $error ): bool {
+		return in_array(
+			$error->get_error_code(),
+			[
+				'rms_wizard_landing_lease_active',
+				'rms_wizard_landing_run_complete',
+				'rms_wizard_landing_run_active',
+				'rms_wizard_landing_start_fence_active',
+			],
+			true
+		);
+	}
+
+	/**
+	 * Start must not mark the step failed when another starter already owns the plan.
+	 */
+	private function is_start_conflict_error( \WP_Error $error ): bool {
+		return in_array(
+			$error->get_error_code(),
+			[
+				'rms_wizard_landing_run_active',
+				'rms_wizard_landing_start_fence_active',
+			],
+			true
+		);
 	}
 
 	/**
@@ -1456,7 +1942,7 @@ class Step_Landing_Page_Builder {
 						\__( 'Keyword section "%s" could not be generated. Landing was not published with placeholder copy.', 'simple-rms-theme' ),
 						$section_key
 					),
-					array_merge( [ 'status' => 502 ], $context )
+					array_merge( [ 'status' => 502, 'provider' => $provider ], $context )
 				);
 			}
 
@@ -1485,7 +1971,7 @@ class Step_Landing_Page_Builder {
 						\__( 'Keyword section "%s" returned invalid JSON. Landing was not published with placeholder copy.', 'simple-rms-theme' ),
 						$section_key
 					),
-					array_merge( [ 'status' => 502 ], $context )
+					array_merge( [ 'status' => 502, 'provider' => $provider ], $context )
 				);
 			}
 
@@ -1980,84 +2466,6 @@ class Step_Landing_Page_Builder {
 	}
 
 	/**
-	 * Persist wizard state and verify landing_pages post-state when critical.
-	 *
-	 * update_option() can return false for identical values, so we re-read.
-	 *
-	 * @param array<string,mixed> $state
-	 */
-	private function persist_wizard_state( array $state, string $reason ): bool {
-		$expected = is_array( $state['landing_pages'] ?? null ) ? array_values( $state['landing_pages'] ) : [];
-		$saved    = $this->state_manager->save_state( $state );
-
-		if ( $saved ) {
-			return true;
-		}
-
-		$reloaded = $this->state_manager->get_state();
-		$actual   = is_array( $reloaded['landing_pages'] ?? null ) ? array_values( $reloaded['landing_pages'] ) : [];
-
-		if ( $this->landing_pages_equivalent( $expected, $actual ) ) {
-			return true;
-		}
-
-		$this->logger->log(
-			'error',
-			'Wizard landing state persistence failed.',
-			[
-				'reason'           => $reason,
-				'expected_count'   => count( $expected ),
-				'actual_count'     => count( $actual ),
-				'expected_post_ids'=> $this->collect_landing_post_ids( $expected ),
-				'actual_post_ids'  => $this->collect_landing_post_ids( $actual ),
-			]
-		);
-
-		return false;
-	}
-
-	/**
-	 * On multi-landing partial failure: save successful landings, then mark failed.
-	 *
-	 * @param array<string,mixed>               $state
-	 * @param array<string,array<string,mixed>> $landing_pages
-	 * @param int[]                             $built_ids
-	 * @param \WP_Error                         $error
-	 */
-	private function persist_partial_landing_progress( array $state, array $landing_pages, array $built_ids, \WP_Error $error ): void {
-		$successful = array_values( array_filter( $built_ids ) );
-		$state['landing_pages']      = array_values( $landing_pages );
-		$state['canonical_sections'] = $this->canonical_store->summary();
-
-		$persisted = $this->persist_wizard_state( $state, 'partial failure recovery' );
-
-		$this->logger->log(
-			$persisted ? 'warning' : 'error',
-			$persisted
-				? 'Wizard landing run failed after partial success; successful landings persisted.'
-				: 'Wizard landing run failed after partial success; could not persist successful landings.',
-			[
-				'successful_count' => count( $successful ),
-				'post_ids'         => $successful,
-				'error_code'       => $error->get_error_code(),
-				'error_message'    => $error->get_error_message(),
-			]
-		);
-
-		// Mark failed only after persistence is attempted.
-		if ( ! $this->mark_step_status( 'failed' ) ) {
-			$this->logger->log(
-				'error',
-				'Wizard landing could not mark step status failed after partial failure.',
-				[
-					'post_ids'   => $successful,
-					'error_code' => $error->get_error_code(),
-				]
-			);
-		}
-	}
-
-	/**
 	 * @param string $status pending|running|complete|failed
 	 */
 	private function mark_step_status( string $status ): bool {
@@ -2321,77 +2729,6 @@ class Step_Landing_Page_Builder {
 	}
 
 	/**
-	 * Compare meaningful persisted landing state (not only identity fields).
-	 *
-	 * Used when save_state() returns false so identical-but-unordered or
-	 * stale/partial snapshots are not treated as successful persistence.
-	 *
-	 * @param array<int,array<string,mixed>> $left
-	 * @param array<int,array<string,mixed>> $right
-	 */
-	private function landing_pages_equivalent( array $left, array $right ): bool {
-		if ( count( $left ) !== count( $right ) ) {
-			return false;
-		}
-
-		$normalize = function ( array $rows ): array {
-			$map = [];
-
-			foreach ( $rows as $row ) {
-				if ( ! is_array( $row ) ) {
-					continue;
-				}
-
-				$key = \sanitize_key( (string) ( $row['landing_key'] ?? '' ) );
-
-				if ( '' === $key ) {
-					$key = 'id_' . (int) ( $row['id'] ?? 0 );
-				}
-
-				$keywords       = is_array( $row['keywords'] ?? null ) ? $row['keywords'] : [];
-				$primary        = (string) ( $row['primary_keyword'] ?? ( $keywords['primary_keyword'] ?? '' ) );
-				$subkeywords    = is_array( $row['subkeywords'] ?? null )
-					? $row['subkeywords']
-					: ( is_array( $keywords['subkeywords'] ?? null ) ? $keywords['subkeywords'] : [] );
-				$subkeywords    = array_values(
-					array_filter(
-						array_map(
-							static function ( $value ): string {
-								return \sanitize_text_field( (string) $value );
-							},
-							$subkeywords
-						),
-						static function ( string $value ): bool {
-							return '' !== $value;
-						}
-					)
-				);
-				// Order-insensitive keyword bag — payload order is not meaningful state.
-				sort( $subkeywords, SORT_STRING );
-
-				$map[ $key ] = [
-					'id'              => (int) ( $row['id'] ?? 0 ),
-					'landing_key'     => \sanitize_key( (string) ( $row['landing_key'] ?? '' ) ),
-					'title'           => \sanitize_text_field( (string) ( $row['title'] ?? '' ) ),
-					'slug'            => \sanitize_title( (string) ( $row['slug'] ?? '' ) ),
-					'landing_type'    => \sanitize_key( (string) ( $row['landing_type'] ?? '' ) ),
-					'menu_eligible'   => ! empty( $row['menu_eligible'] ),
-					'primary_keyword' => \sanitize_text_field( $primary ),
-					'subkeywords'     => $subkeywords,
-					'generated_at'    => \sanitize_text_field( (string) ( $row['generated_at'] ?? '' ) ),
-					'preserved'       => ! empty( $row['preserved'] ),
-				];
-			}
-
-			ksort( $map );
-
-			return $map;
-		};
-
-		return $normalize( $left ) === $normalize( $right );
-	}
-
-	/**
 	 * Best-effort post ID recovery when build_page throws after create/update.
 	 */
 	private function recover_build_page_post_id( int $existing_id, string $slug ): int {
@@ -2412,29 +2749,6 @@ class Step_Landing_Page_Builder {
 		}
 
 		return 0;
-	}
-
-	/**
-	 * @param array<int,array<string,mixed>> $landings
-	 *
-	 * @return int[]
-	 */
-	private function collect_landing_post_ids( array $landings ): array {
-		$ids = [];
-
-		foreach ( $landings as $landing ) {
-			if ( ! is_array( $landing ) ) {
-				continue;
-			}
-
-			$id = (int) ( $landing['id'] ?? 0 );
-
-			if ( $id > 0 ) {
-				$ids[] = $id;
-			}
-		}
-
-		return $ids;
 	}
 }
 

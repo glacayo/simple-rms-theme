@@ -44,13 +44,21 @@ class Step_Home_Page_Builder {
 		$section_rows = $this->selected_section_rows( $payload );
 		$sections     = array_column( $section_rows, 'layout' );
 
-		if ( [] === $sections ) {
-			$this->state_manager->set_step_status( self::STEP, 'failed' );
+			if ( [] === $sections ) {
+				$this->state_manager->set_step_status( self::STEP, 'failed' );
 
-			return new \WP_Error( 'rms_wizard_home_sections_required', \__( 'Select at least one section for the Home page', 'simple-rms-theme' ), [ 'status' => 400 ] );
-		}
+				return new \WP_Error( 'rms_wizard_home_sections_required', \__( 'Select at least one section for the Home page', 'simple-rms-theme' ), [ 'status' => 400 ] );
+			}
 
-		$state     = $this->state_manager->get_state();
+			$seo_intent = $this->harness->normalize_home_seo_intent( $payload );
+
+			if ( \is_wp_error( $seo_intent ) ) {
+				$this->state_manager->set_step_status( self::STEP, 'failed' );
+
+				return $seo_intent;
+			}
+
+			$state     = $this->state_manager->get_state();
 		$ai_config = is_array( $state['ai_config'] ?? null ) ? $state['ai_config'] : [];
 
 		if ( ! $this->has_ai_config( $ai_config ) ) {
@@ -88,17 +96,17 @@ class Step_Home_Page_Builder {
 		$prepared_sections      = [];
 		$prior_section_payloads = [];
 
-		foreach ( $section_rows as $row ) {
-			$section_key         = (string) $row['layout'];
-			$item_count          = (int) $row['item_count'];
-			$overrides           = $this->generate_section_overrides( $section_key, $item_count, $client_context, $ai_config, $prior_section_payloads );
-			$prepared_sections[] = $this->content_builder->prepare_image_fallbacks( $this->section_data( $section_key, $client_data, $overrides, $item_count ) );
-			$prior_section_payloads[] = [
-				'layout'     => $section_key,
-				'item_count' => $item_count,
-				'payload'    => $overrides,
-			];
-		}
+			foreach ( $section_rows as $row ) {
+				$section_key         = (string) $row['layout'];
+				$item_count          = (int) $row['item_count'];
+				$overrides           = $this->generate_section_overrides( $section_key, $item_count, $client_context, $ai_config, $prior_section_payloads, $seo_intent );
+				$prepared_sections[] = $this->content_builder->prepare_image_fallbacks( $this->section_data( $section_key, $client_data, $overrides, $item_count ) );
+				$prior_section_payloads[] = [
+					'layout'     => $section_key,
+					'item_count' => $item_count,
+					'payload'    => $overrides,
+				];
+			}
 
 		$post_id = $this->content_builder->build_page(
 			[
@@ -114,18 +122,21 @@ class Step_Home_Page_Builder {
 			return new \WP_Error( 'rms_wizard_home_page_save_failed', \__( 'Home page sections could not be saved.', 'simple-rms-theme' ), [ 'status' => 500 ] );
 		}
 
-		$state['selected_home_sections'] = $sections;
-		$state['home_section_rows']      = $section_rows;
-		$state['home_sections']          = $prepared_sections;
-		$state['canonical_sections']     = $this->first_write_canonical_sections( $prepared_sections );
+			$seo_state = $this->harness->persist_home_seo_intent( $seo_intent );
+			$fresh     = $this->state_manager->get_state();
+			$fresh['selected_home_sections'] = $sections;
+			$fresh['home_section_rows']      = $section_rows;
+			$fresh['home_sections']          = $prepared_sections;
+			$fresh['home_seo_targeting']     = $seo_state;
+			$fresh['canonical_sections']     = $this->first_write_canonical_sections( $prepared_sections );
 
-		$this->state_manager->save_state( $state );
-		$this->state_manager->set_step_status( self::STEP, 'complete' );
-		$this->maybe_mark_completed();
-		$this->logger->log( 'info', 'Wizard Home page sections built.', [ 'post_id' => $post_id, 'sections' => $sections ] );
+			$this->state_manager->save_state( $fresh );
+			$this->state_manager->set_step_status( self::STEP, 'complete' );
+			$this->maybe_mark_completed();
+			$this->logger->log( 'info', 'Wizard Home page sections built.', [ 'post_id' => $post_id, 'sections' => $sections ] );
 
-		return [ 'post_id' => $post_id, 'sections' => $sections ];
-	}
+			return [ 'post_id' => $post_id, 'sections' => $sections, 'seo_targeting' => $seo_state ];
+		}
 
 	/**
 	 * First-write reusable prepared rows into the canonical store.
@@ -257,59 +268,67 @@ class Step_Home_Page_Builder {
 		return $post ? (int) $post->ID : 0;
 	}
 
-	private function generate_section_overrides( string $section_key, int $item_count, array $client_context, array $ai_config, array $prior_section_payloads = [] ): array {
-		$fillable = $this->harness->get_fillable_fields( $section_key );
+		private function generate_section_overrides( string $section_key, int $item_count, array $client_context, array $ai_config, array $prior_section_payloads = [], array $seo_intent = [] ): array {
+			$fillable = $this->harness->get_fillable_fields( $section_key );
 
-		// Layouts with no AI-editable text fields intentionally skip the provider call.
-		if ( [] === $fillable ) {
-			$this->logger->log( 'info', 'Skipping AI generation for layout with no fillable fields.', [ 'section' => $section_key ] );
+			// Layouts with no AI-editable text fields intentionally skip the provider call.
+			if ( [] === $fillable ) {
+				$this->logger->log( 'info', 'Skipping AI generation for layout with no fillable fields.', [ 'section' => $section_key ] );
 
-			return [];
+				return [];
+			}
+
+			$keywords      = $this->harness->home_seo_keywords_for_layout( $seo_intent, $section_key );
+			$review_priors = $this->harness->is_keyword_layout( $section_key )
+				? $prior_section_payloads
+				: $this->harness->filter_neutral_priors( $prior_section_payloads );
+			$provider      = \sanitize_key( (string) $ai_config['provider'] );
+			$model         = \sanitize_text_field( (string) $ai_config['model'] );
+			$system        = $this->harness->get_layer1() . "\n\n" . $this->harness->get_layer2( AI_Content_Harness::PAGE_HOME );
+			$prompt        = $this->harness->get_layer3( $section_key, $item_count, $client_context, AI_Content_Harness::PAGE_HOME, $keywords );
+			$result        = AI_Provider_Registry::make_provider( $provider )->generate(
+				$model,
+				$prompt,
+				[
+					'section_key' => $section_key,
+					'client_data' => $client_context,
+					'item_count'  => $item_count,
+				],
+				$system
+			);
+
+			if ( empty( $result['success'] ) || empty( $result['content'] ) ) {
+				$this->logger->log( 'warning', 'Wizard Home section AI generation failed; fallback content used.', [ 'section' => $section_key, 'error' => $result['error'] ?? '' ] );
+
+				return [];
+			}
+
+			$decoded = $this->decode_json_content( (string) $result['content'] );
+
+			if ( [] === $decoded ) {
+				return [];
+			}
+
+			$reviewed = $this->review_section_content( $section_key, $decoded, $review_priors, $ai_config, $client_context, $item_count, $keywords );
+
+			return $this->harness->validate_fields( $section_key, $reviewed );
 		}
 
-		$provider = \sanitize_key( (string) $ai_config['provider'] );
-		$model    = \sanitize_text_field( (string) $ai_config['model'] );
-		$system   = $this->harness->get_layer1() . "\n\n" . $this->harness->get_layer2( AI_Content_Harness::PAGE_HOME );
-		$prompt   = $this->harness->get_layer3( $section_key, $item_count, $client_context );
-		$result   = AI_Provider_Registry::make_provider( $provider )->generate(
-			$model,
-			$prompt,
-			[
-				'section_key' => $section_key,
-				'client_data' => $client_context,
-				'item_count'  => $item_count,
-			],
-			$system
-		);
+		private function review_section_content( string $section_key, array $decoded, array $prior_section_payloads, array $ai_config, array $client_context, int $item_count, array $keywords = [] ): array {
+			if ( ! $this->is_review_enabled() ) {
+				return $decoded;
+			}
 
-		if ( empty( $result['success'] ) || empty( $result['content'] ) ) {
-			$this->logger->log( 'warning', 'Wizard Home section AI generation failed; fallback content used.', [ 'section' => $section_key, 'error' => $result['error'] ?? '' ] );
+			$review_config                   = $ai_config;
+			$review_config['client_context'] = $client_context;
+			$review_config['item_count']     = $item_count;
 
-			return [];
-		}
+			if ( '' !== trim( (string) ( $keywords['primary_keyword'] ?? '' ) ) ) {
+				$review_config['keyword_intent'] = $keywords;
+			}
 
-		$decoded = $this->decode_json_content( (string) $result['content'] );
-
-		if ( [] === $decoded ) {
-			return [];
-		}
-
-		$reviewed = $this->review_section_content( $section_key, $decoded, $prior_section_payloads, $ai_config, $client_context, $item_count );
-
-		return $this->harness->validate_fields( $section_key, $reviewed );
-	}
-
-	private function review_section_content( string $section_key, array $decoded, array $prior_section_payloads, array $ai_config, array $client_context, int $item_count ): array {
-		if ( ! $this->is_review_enabled() ) {
-			return $decoded;
-		}
-
-		$review_config                   = $ai_config;
-		$review_config['client_context'] = $client_context;
-		$review_config['item_count']     = $item_count;
-
-		try {
-			$result = $this->reviewer()->review( $section_key, $decoded, $prior_section_payloads, $review_config );
+			try {
+				$result = $this->reviewer()->review( $section_key, $decoded, $prior_section_payloads, $review_config );
 		} catch ( \Throwable $error ) {
 			unset( $error );
 			$this->log_review_result(

@@ -161,8 +161,9 @@ class Step_Menu_Setup {
 			'landing_reconcile'  => $landing_reconcile,
 		];
 
-		$state['menu_config'] = $menu_config;
-		$this->state_manager->save_state( $state );
+		$fresh                = $this->state_manager->get_state();
+		$fresh['menu_config'] = $menu_config;
+		$this->state_manager->save_state( $fresh );
 		$this->state_manager->set_step_status( self::STEP, 'complete' );
 		$this->logger->log( 'info', 'Wizard menus configured.', $menu_config );
 

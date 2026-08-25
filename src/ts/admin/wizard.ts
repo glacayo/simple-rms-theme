@@ -1,3 +1,30 @@
+import {
+  isIncompleteLandingRunStatus,
+  mergeLandingRowsByKey,
+  resolveLandingClientRequest,
+  sectionsFromPlanItem,
+  shouldOfferLandingResume,
+  type LandingClientIntent,
+  type LandingHydrationRow,
+} from './landing-run-helpers';
+import {
+  applyApiKeyInputSafety,
+  presentStepOutcome,
+  summarizeDependencyResult,
+} from './wizard-helpers';
+import {
+  applyHomeSeoTargetingUi,
+  clearHomeSeoDirty,
+  collectHomeSeoTargetingFromForm,
+  createHomeSeoValidationError,
+  hydrateHomeSeoTargeting,
+  isHomeSeoValidationError,
+  markHomeSeoDirty,
+  presentHomeSeoCollectionResult,
+  shouldReloadWizardStateOnStepFinish,
+  shouldReplaceHomeSeoOnStepFinish,
+} from './wizard-home-seo';
+
 type StepStatus = 'pending' | 'running' | 'complete' | 'failed';
 
 export {};
@@ -35,6 +62,34 @@ interface LandingPageState {
   };
 }
 
+interface LandingRunItem {
+  key?: string;
+  landing_key?: string;
+  id?: number;
+  title?: string;
+  slug?: string;
+  landing_type?: string;
+  menu_eligible?: boolean;
+  primary_keyword?: string;
+  subkeywords?: string[];
+  sections?: Array<{ layout?: string; override_canonical?: boolean; item_count?: number }>;
+  status?: 'pending' | 'running' | 'completed' | 'interrupted' | 'failed' | string;
+  post_id?: number;
+  error_code?: string;
+  error_message?: string;
+}
+
+interface LandingRunPlan {
+  run_id?: string;
+  status?: string;
+  total?: number;
+  completed?: number;
+  current_index?: number;
+  processing_active?: boolean;
+  lease_expires_at?: number | null;
+  items?: LandingRunItem[];
+}
+
 interface WizardPageTemplate {
   title?: string;
   slug?: string;
@@ -69,6 +124,7 @@ interface HomeSectionPayload {
 interface LandingSectionPayload {
   layout: string;
   override_canonical: boolean;
+  item_count?: number;
 }
 
 interface LandingPayloadItem {
@@ -105,7 +161,13 @@ interface WizardState {
     configured_at?: string;
   };
   generated_pages?: GeneratedPage[];
+  home_seo_targeting?: {
+    enabled?: boolean;
+    primary_keyword?: string;
+    secondary_keywords?: string[];
+  };
   landing_pages?: LandingPageState[];
+  landing_run?: LandingRunPlan | null;
   locked?: boolean;
   unlocked?: boolean;
   completed_flag?: boolean;
@@ -346,7 +408,10 @@ declare global {
 
     [...runButtons, ...retryButtons].forEach((button) => {
       const step = button.dataset.wizardRunStep || button.dataset.wizardRetryStep || '';
-      button.disabled = isHydrating || isLocked || runningStep !== null || statusFor(step) === 'running';
+      const processingBlocks = step === 'landing-page-builder' && isProcessingActive();
+      const incompleteLandingRun = step === 'landing-page-builder' && isIncompleteLandingRunStatus(state.landing_run?.status ?? '');
+      button.hidden = incompleteLandingRun;
+      button.disabled = isHydrating || isLocked || runningStep !== null || statusFor(step) === 'running' || processingBlocks || incompleteLandingRun;
     });
 
     loadModelButtons.forEach((button) => {
@@ -367,7 +432,7 @@ declare global {
     });
 
     if (refreshButton) {
-      refreshButton.disabled = isHydrating || runningStep !== null;
+      refreshButton.disabled = isHydrating;
     }
 
     if (completeButton) {
@@ -376,17 +441,35 @@ declare global {
     }
 
     syncLandingSkipAllUi();
+
+    // Disable landing builder editing controls while a run is active/interrupted.
+    const landingRunActive = isLandingRunActive();
+
+    root.querySelectorAll<HTMLButtonElement>('[data-wizard-add-landing], [data-wizard-duplicate-landing], [data-wizard-remove-landing]').forEach((button) => {
+      button.disabled = isHydrating || isLocked || landingRunActive || runningStep !== null;
+    });
+
+    root.querySelectorAll<HTMLInputElement>('[data-wizard-landing-title], [data-wizard-landing-slug], [data-wizard-landing-type], [data-wizard-landing-primary-keyword], [data-wizard-landing-subkeywords]').forEach((field) => {
+      field.disabled = isHydrating || isLocked || landingRunActive || runningStep !== null;
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-wizard-landing-toggle]').forEach((button) => {
+      // Toggle (expand/collapse) stays enabled — it's read-only navigation.
+      button.disabled = isHydrating;
+    });
   };
 
-  const render = (): void => {
+  const render = (options?: { replaceHomeSeo?: boolean }): void => {
     const nextStep = state.current_step && steps.some((step) => step.slug === state.current_step)
       ? state.current_step
       : activeStep;
 
     renderGeneratedPageControls();
     hydrateIaGenerationForm();
+    hydrateHomeSeoTargetingForm(options?.replaceHomeSeo);
     hydrateLandingRowsFromState();
     renderLandingReplaceOptions();
+    renderLandingRunProgressFromState();
     syncGuidedControlState();
     setActiveStep(nextStep);
     updateNav();
@@ -435,11 +518,20 @@ declare global {
     throw lastError ?? new Error('Request failed.');
   };
 
-  const loadState = async (): Promise<void> => {
+  const loadState = async (options?: { replaceHomeSeo?: boolean }): Promise<void> => {
     setHydrating(true);
     try {
       state = await request<WizardState>('state', { method: 'GET' }, 1);
-      render();
+
+      if (options?.replaceHomeSeo) {
+        const form = root.querySelector<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          clearHomeSeoDirty(form);
+        }
+      }
+
+      render({ replaceHomeSeo: Boolean(options?.replaceHomeSeo) });
     } catch (error) {
       handleStateLoadError(error);
     } finally {
@@ -462,11 +554,59 @@ declare global {
     }
   };
 
-  const runStep = async (step: string): Promise<void> => {
+  const applyStepOutcomePresentation = (step: string, response: StepResponse, successNotice?: string): void => {
+    const stepStatus = statusFor(step);
+    const responseSuccess = response.success !== false;
+    const outcome = presentStepOutcome(stepStatus, responseSuccess);
+
+    if (outcome === 'success') {
+      /*
+       * Clear the API key input immediately after a successful IA Generation
+       * save so the plaintext does not linger in the DOM between the
+       * response and the state re-hydration. The saved-key status element
+       * already shows masked metadata.
+       */
+      if (step === 'ia-generation') {
+        clearApiKeyInput();
+      }
+
+      const nextStep = nextStepFor(step);
+      setStepActionStatus(step, 'Step completed.', 'success');
+      setNotice(
+        successNotice
+          ?? (nextStep
+            ? `${labelFor(step)} completed successfully. Continue to ${labelFor(nextStep)} when ready.`
+            : `${labelFor(step)} completed successfully.`),
+        'success'
+      );
+      return;
+    }
+
+    if (outcome === 'progress') {
+      /*
+       * Issue #27 merge invariant: a healthy landing-page-builder request
+       * may finish still `running`. Do not paint that as "Step completed"
+       * and do not paint it as a failure.
+       */
+      const progressMessage = `${labelFor(step)} is still in progress.`;
+      setStepActionStatus(step, progressMessage, 'info');
+      setNotice(progressMessage, 'info');
+      return;
+    }
+
+    const summary = stepResultSummary(step, response.result);
+    setStepActionStatus(step, summary, 'error');
+    setNotice(summary, 'error');
+  };
+
+  const runStep = async (step: string, intent: LandingClientIntent = 'run'): Promise<void> => {
     runningStep = step;
     setActiveStep(step);
     setStepActionStatus(step, 'Running step...', 'info');
     setNotice('Running setup wizard step. Keep this page open.', 'info');
+
+    let persisted = false;
+    let validationBlocked = false;
 
     try {
       const payload = collectPayload(step);
@@ -479,6 +619,42 @@ declare global {
 
       render();
 
+      if (step === 'landing-page-builder') {
+        const decision = resolveLandingClientRequest({
+          intent,
+          skipAll: Boolean(payload.skip_all),
+          incompleteRun: isIncompleteLandingRunStatus(state.landing_run?.status ?? ''),
+        });
+
+        if (decision.kind === 'blocked') {
+          setStepActionStatus(step, 'An incomplete landing run already exists. Use Resume.', 'error');
+          setNotice('An incomplete landing run already exists. Use Resume to continue from the last checkpoint.', 'info');
+          return;
+        }
+
+        if (decision.kind === 'skip') {
+          const response = await request<StepResponse>(`steps/${step}/run`, {
+            method: 'POST',
+            body: JSON.stringify({ ...payload, ...decision.body }),
+          }, 1);
+
+          if (response.state) {
+            state = response.state;
+          }
+
+          setStepResult(step, response.result ?? response);
+          applyStepOutcomePresentation(step, response, 'Landing step completed with skip-all.');
+          return;
+        }
+
+        if (decision.kind === 'start') {
+          await runLandingStepOrchestrated(payload, decision.body);
+          return;
+        }
+
+        return;
+      }
+
       const response = await request<StepResponse>(`steps/${step}/run`, {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -488,17 +664,12 @@ declare global {
         state = response.state;
       }
 
+      persisted = true;
       setStepResult(step, response.result ?? response);
-      setStepActionStatus(step, 'Step completed.', 'success');
-      const nextStep = nextStepFor(step);
-      setNotice(
-        nextStep
-          ? `${labelFor(step)} completed successfully. Continue to ${labelFor(nextStep)} when ready.`
-          : `${labelFor(step)} completed successfully.`,
-        'success'
-      );
+      applyStepOutcomePresentation(step, response);
     } catch (error) {
       const message = errorMessage(error);
+      validationBlocked = isHomeSeoValidationError(error);
 
       if (step === 'home-page-builder' && message.includes('Missing required client data:')) {
         setHomeHarnessWarning(message, 'error');
@@ -508,8 +679,414 @@ declare global {
       setNotice(message, 'error');
     } finally {
       runningStep = null;
+
+      if (shouldReloadWizardStateOnStepFinish({ validationBlocked })) {
+        await loadState({
+          replaceHomeSeo: shouldReplaceHomeSeoOnStepFinish({
+            step,
+            persisted,
+            validationBlocked,
+          }),
+        });
+      } else {
+        updateButtons();
+      }
+    }
+  };
+
+  const runLandingStepOrchestrated = async (
+    payload: StepPayload,
+    actionBody: { landing_action: 'start' }
+  ): Promise<void> => {
+    const step = 'landing-page-builder';
+
+    setStepActionStatus(step, 'Starting landing run...', 'info');
+    setNotice('Starting landing run. Each landing is processed one at a time.', 'info');
+
+    try {
+      // Start the run plan (persist before AI work). attempts=1 — no retry on non-idempotent start.
+      const startPayload = { ...payload, ...actionBody };
+      const startResponse = await request<StepResponse>(`steps/${step}/run`, {
+        method: 'POST',
+        body: JSON.stringify(startPayload),
+      }, 1);
+
+      if (startResponse.state) {
+        state = startResponse.state;
+      }
+
+      const result = startResponse.result as { landing_run?: LandingRunPlan; completed?: number; total?: number; current_title?: string } | undefined;
+
+      if (result?.landing_run) {
+        renderLandingRunProgress(result.landing_run, result.current_title ?? '');
+      }
+
+      // If the run is already complete after start (all unchanged), finish.
+      if (result?.landing_run && result.landing_run.status === 'completed') {
+        setStepActionStatus(step, `All ${result.total ?? 0} landings are already complete.`, 'success');
+        setNotice(`Landing run complete: ${result.completed ?? 0} of ${result.total ?? 0} landings.`, 'success');
+        return;
+      }
+
+      // Process items one at a time.
+      await processLandingItems(step);
+    } catch (error) {
+      const message = errorMessage(error);
+      setStepActionStatus(step, message, 'error');
+      setNotice(message, 'error');
+      // On network/HTTP error, load persisted state and offer Resume.
       await loadState();
     }
+  };
+
+  const processLandingItems = async (
+    step: string,
+    actionBody: { landing_action: 'process' } = { landing_action: 'process' }
+  ): Promise<void> => {
+    const maxIterations = 100; // Safety bound.
+    let iteration = 0;
+
+    while (iteration < maxIterations) {
+      iteration += 1;
+
+      // attempts=1 — no retry on non-idempotent process. Each request advances at most one item.
+      let processResponse: StepResponse;
+
+      try {
+        processResponse = await request<StepResponse>(`steps/${step}/run`, {
+          method: 'POST',
+          body: JSON.stringify(actionBody),
+        }, 1);
+      } catch (error) {
+        // Network/HTTP error: load persisted state once, offer Resume/Retry explicitly.
+        const message = errorMessage(error);
+        setStepActionStatus(step, message, 'error');
+        if (isAlreadyProcessingMessage(message)) {
+          setNotice('Landing processing is already active. Refresh state to update.', 'info');
+        } else {
+          setNotice(`${message} Click Resume to continue from the last checkpoint.`, 'error');
+        }
+        await loadState();
+        return;
+      }
+
+      if (processResponse.state) {
+        state = processResponse.state;
+      }
+
+      const result = processResponse.result as { landing_run?: LandingRunPlan; completed?: number; total?: number; current_title?: string } | undefined;
+
+      if (!result?.landing_run) {
+        break;
+      }
+
+      renderLandingRunProgress(result.landing_run, result.current_title ?? '');
+
+      if (result.landing_run.status === 'completed') {
+        setStepActionStatus(step, `Landing run complete: ${result.completed ?? 0} of ${result.total ?? 0} landings.`, 'success');
+        setNotice(`Landing run complete: ${result.completed ?? 0} of ${result.total ?? 0} landings.`, 'success');
+        return;
+      }
+
+      if (result.landing_run.status === 'interrupted' || result.landing_run.status === 'failed') {
+        const failedItem = result.landing_run.items?.find((item) => item.status === 'failed' || item.status === 'interrupted');
+        const message = failedItem?.error_message ?? 'The landing run was interrupted.';
+        setStepActionStatus(step, message, 'error');
+        setNotice(`${message} Click Resume to retry from the last checkpoint.`, 'error');
+        return;
+      }
+
+      const completed = result.completed ?? 0;
+      const total = result.total ?? 0;
+
+      setStepActionStatus(step, `Processing: ${completed} of ${total} completed.`, 'info');
+      setNotice(`Landing run in progress: ${completed} of ${total} completed. Current: ${result.current_title ?? ''}.`, 'info');
+    }
+
+    setStepActionStatus(step, 'Landing run reached maximum iterations.', 'error');
+    setNotice('Landing run reached maximum iterations without completing.', 'error');
+  };
+
+  const resumeLandingRun = async (): Promise<void> => {
+    const step = 'landing-page-builder';
+    const decision = resolveLandingClientRequest({
+      intent: 'resume',
+      skipAll: false,
+      incompleteRun: isIncompleteLandingRunStatus(state.landing_run?.status ?? ''),
+    });
+
+    if (decision.kind !== 'process') {
+      setStepActionStatus(step, 'No incomplete landing run is available to resume.', 'info');
+      setNotice('No incomplete landing run is available to resume.', 'info');
+      return;
+    }
+
+    runningStep = step;
+    setActiveStep(step);
+    setStepActionStatus(step, 'Resuming landing run...', 'info');
+    setNotice('Resuming landing run from the last checkpoint.', 'info');
+
+    try {
+      await processLandingItems(step, decision.body);
+    } catch (error) {
+      const message = errorMessage(error);
+      setStepActionStatus(step, message, 'error');
+      setNotice(message, 'error');
+      await loadState();
+    } finally {
+      runningStep = null;
+      await loadState();
+    }
+  };
+
+  const isLandingRunActive = (): boolean => {
+    const run = state.landing_run;
+    if (!run) {
+      return false;
+    }
+    return run.status === 'running' || run.status === 'pending' || run.status === 'interrupted' || isProcessingActive();
+  };
+
+  const isProcessingActive = (): boolean => {
+    const run = state.landing_run;
+    if (!run) {
+      return false;
+    }
+    if (run.processing_active === true) {
+      return true;
+    }
+    return typeof run.lease_expires_at === 'number' && run.lease_expires_at > Math.floor(Date.now() / 1000);
+  };
+
+  const isAlreadyProcessingMessage = (message: string): boolean => (
+    message.includes('already running') || message.includes('already active')
+  );
+
+  const renderLandingRunProgress = (run: LandingRunPlan, currentTitle: string): void => {
+    const progressContainer = root.querySelector<HTMLElement>('[data-wizard-landing-run-progress]');
+    const progressText = root.querySelector<HTMLElement>('[data-wizard-landing-run-progress-text]');
+    const currentTitleEl = root.querySelector<HTMLElement>('[data-wizard-landing-run-current-title]');
+    const resumeButton = root.querySelector<HTMLButtonElement>('[data-wizard-landing-resume]');
+
+    if (!progressContainer) {
+      return;
+    }
+
+    const completed = run.completed ?? 0;
+    const total = run.total ?? 0;
+    const processingActive = run.processing_active === true || isProcessingActive();
+    const isInterrupted = !processingActive && (run.status === 'interrupted' || run.status === 'failed');
+    const canResume = shouldOfferLandingResume({
+      processingActive,
+      runningStep,
+      runStatus: run.status ?? '',
+    });
+
+    progressContainer.hidden = false;
+
+    if (progressText) {
+      progressText.textContent = processingActive
+        ? `${completed} of ${total} completed. Processing is active. Refresh state to update.`
+        : `${completed} of ${total} completed`;
+    }
+
+    if (currentTitleEl) {
+      currentTitleEl.textContent = currentTitle ? `Current: ${currentTitle}` : '';
+    }
+
+    if (resumeButton) {
+      resumeButton.hidden = !canResume;
+      resumeButton.disabled = !canResume;
+      resumeButton.setAttribute(
+        'aria-label',
+        processingActive
+          ? `Landing processing is active (${completed} of ${total} completed)`
+          : isInterrupted
+            ? `Resume interrupted landing run (${completed} of ${total} completed)`
+            : `Continue landing run (${completed} of ${total} completed)`
+      );
+    }
+  };
+
+  const renderLandingRunProgressFromState = (): void => {
+    const run = state.landing_run;
+
+    if (!run) {
+      const progressContainer = root.querySelector<HTMLElement>('[data-wizard-landing-run-progress]');
+
+      if (progressContainer) {
+        progressContainer.hidden = true;
+      }
+
+      return;
+    }
+
+    // Find current item title from items (first pending/interrupted/running).
+    const currentTitle = run.items?.find((item) => item.status === 'running' || item.status === 'pending' || item.status === 'interrupted')?.title ?? '';
+
+    renderLandingRunProgress(run, currentTitle);
+
+    // Hydrate all persisted plan rows (including pending/interrupted/failed).
+    hydrateLandingRowsFromRunPlan(run);
+  };
+
+  /**
+   * Hydrate all persisted run plan rows into the landing builder.
+   *
+   * Full reload/Refresh must restore all plan rows — including
+   * pending/interrupted/failed definitions — not only completed landing_pages.
+   * Merge/upsert by stable landing key so completed rows keep post IDs
+   * while pending plan rows and sections are restored without duplicates.
+   */
+  const hydrateLandingRowsFromRunPlan = (run: LandingRunPlan): void => {
+    const rows = getLandingRowsContainer();
+
+    if (!rows) {
+      return;
+    }
+
+    const items = Array.isArray(run.items) ? run.items : [];
+
+    if (items.length === 0) {
+      return;
+    }
+
+    const existingByKey = new Map<string, HTMLElement>();
+    const existingRows: LandingHydrationRow[] = [];
+
+    rows.querySelectorAll<HTMLElement>('[data-wizard-landing-row]').forEach((row) => {
+      const snapshot = readLandingRowHydration(row);
+      const key = (snapshot.landing_key || '').trim();
+
+      if (!key) {
+        return;
+      }
+
+      existingByKey.set(key, row);
+      existingRows.push(snapshot);
+    });
+
+    const merged = mergeLandingRowsByKey(existingRows, items);
+
+    merged.forEach((item) => {
+      const key = (item.landing_key || item.key || '').trim();
+      if (!key) {
+        return;
+      }
+
+      const existing = existingByKey.get(key);
+      if (existing) {
+        upsertLandingRowFromPlanItem(existing, item);
+        return;
+      }
+
+      const rawId = item.id ?? item.post_id;
+      const parsedId = typeof rawId === 'number'
+        ? rawId
+        : (typeof rawId === 'string' ? Number.parseInt(rawId, 10) : NaN);
+
+      addLandingRow({
+        id: Number.isFinite(parsedId) && parsedId > 0 ? parsedId : null,
+        landing_key: key,
+        title: item.title || '',
+        slug: item.slug || '',
+        landing_type: item.landing_type === 'ads' ? 'ads' : 'seo',
+        primary_keyword: item.primary_keyword || '',
+        subkeywords: Array.isArray(item.subkeywords) ? item.subkeywords : [],
+        sections: sectionsFromPlanItem(item).map((section) => ({
+          layout: section.layout || '',
+          override_canonical: Boolean(section.override_canonical),
+          ...(typeof section.item_count === 'number' ? { item_count: section.item_count } : {}),
+        })),
+      }, { focus: false });
+    });
+  };
+
+  const readLandingRowHydration = (row: HTMLElement): LandingHydrationRow => {
+    const sections = [...row.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')].map((sectionRow) => {
+      const rawCount = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-item-count]')?.value ?? '';
+      const parsedCount = Number.parseInt(rawCount, 10);
+
+      return {
+        layout: sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value ?? '',
+        override_canonical: Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked),
+        ...(Number.isFinite(parsedCount) ? { item_count: parsedCount } : {}),
+      };
+    });
+
+    return {
+      landing_key: row.querySelector<HTMLInputElement>('[data-wizard-landing-key]')?.value.trim() ?? '',
+      id: row.querySelector<HTMLInputElement>('[data-wizard-landing-id]')?.value ?? '',
+      title: row.querySelector<HTMLInputElement>('[data-wizard-landing-title]')?.value ?? '',
+      slug: row.querySelector<HTMLInputElement>('[data-wizard-landing-slug]')?.value ?? '',
+      landing_type: row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]')?.value ?? 'seo',
+      primary_keyword: row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]')?.value ?? '',
+      subkeywords: (row.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]')?.value ?? '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+      sections,
+    };
+  };
+
+  const replaceLandingRowSections = (row: HTMLElement, sections: LandingHydrationRow['sections']): void => {
+    const container = row.querySelector<HTMLElement>('[data-wizard-landing-section-rows]');
+
+    if (!container || !Array.isArray(sections) || sections.length === 0) {
+      return;
+    }
+
+    container.replaceChildren();
+    sections.forEach((section) => {
+      const layout = typeof section === 'object' && section !== null ? section.layout ?? '' : '';
+
+      if (layout) {
+        addLandingSectionRow(row, layout, Boolean(section.override_canonical), section.item_count);
+      }
+    });
+  };
+
+  const upsertLandingRowFromPlanItem = (row: HTMLElement, item: LandingHydrationRow): void => {
+    const idInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-id]');
+    const titleInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-title]');
+    const slugInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-slug]');
+    const keywordInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-primary-keyword]');
+    const subkeywordsInput = row.querySelector<HTMLInputElement>('[data-wizard-landing-subkeywords]');
+    const typeSelect = row.querySelector<HTMLSelectElement>('[data-wizard-landing-type]');
+    const rawId = item.id ?? item.post_id;
+    const parsedId = typeof rawId === 'number'
+      ? rawId
+      : (typeof rawId === 'string' ? Number.parseInt(rawId, 10) : NaN);
+
+    if (idInput && (!idInput.value || Number.parseInt(idInput.value, 10) <= 0) && Number.isFinite(parsedId) && parsedId > 0) {
+      idInput.value = String(parsedId);
+    }
+
+    if (titleInput && !titleInput.value.trim() && item.title) {
+      titleInput.value = item.title;
+    }
+
+    if (slugInput && !slugInput.value.trim() && item.slug) {
+      slugInput.value = item.slug;
+    }
+
+    if (keywordInput && !keywordInput.value.trim() && item.primary_keyword) {
+      keywordInput.value = item.primary_keyword;
+    }
+
+    if (subkeywordsInput && !subkeywordsInput.value.trim() && Array.isArray(item.subkeywords) && item.subkeywords.length > 0) {
+      subkeywordsInput.value = item.subkeywords.join(', ');
+    }
+
+    if (typeSelect && item.landing_type) {
+      typeSelect.value = item.landing_type === 'ads' ? 'ads' : 'seo';
+    }
+
+    if (Array.isArray(item.sections) && item.sections.length > 0) {
+      replaceLandingRowSections(row, item.sections);
+    }
+
+    syncLandingRowSummary(row);
   };
 
   const completeWizard = async (): Promise<void> => {
@@ -709,7 +1286,19 @@ declare global {
 
     setHomeHarnessWarning('', 'info');
 
-    return { sections };
+    markHomeSeoDirty(form);
+    const seoResult = collectHomeSeoTargetingFromForm(form);
+    presentHomeSeoCollectionResult(form, seoResult);
+
+    if ('error' in seoResult && seoResult.error) {
+      setHomeHarnessWarning(seoResult.message, 'error');
+      throw createHomeSeoValidationError(seoResult.message);
+    }
+
+    return {
+      sections,
+      seo_targeting: seoResult.payload,
+    };
   };
 
   const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
@@ -823,12 +1412,18 @@ declare global {
       row.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]').forEach((sectionRow) => {
         const layout = sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value.trim() ?? '';
         const override = Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked);
+        const rawCount = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-item-count]')?.value ?? '';
+        const parsedCount = Number.parseInt(rawCount, 10);
 
         if (!layout) {
           return;
         }
 
-        sections.push({ layout, override_canonical: override });
+        sections.push({
+          layout,
+          override_canonical: override,
+          ...(Number.isFinite(parsedCount) ? { item_count: parsedCount } : {}),
+        });
       });
 
       if (sections.length === 0) {
@@ -1249,7 +1844,7 @@ declare global {
 
     sectionLayouts.forEach((layout, sectionIndex) => {
       const override = Boolean(data.sections?.[sectionIndex]?.override_canonical);
-      addLandingSectionRow(row, layout, override);
+      addLandingSectionRow(row, layout, override, data.sections?.[sectionIndex]?.item_count);
     });
 
     reindexLandingRows();
@@ -1263,7 +1858,7 @@ declare global {
     return row;
   };
 
-  const addLandingSectionRow = (landingRow: HTMLElement, layout = '', override = false): void => {
+  const addLandingSectionRow = (landingRow: HTMLElement, layout = '', override = false, itemCount?: number): void => {
     const container = landingRow.querySelector<HTMLElement>('[data-wizard-landing-section-rows]');
     const template = getLandingSectionRowTemplate();
 
@@ -1284,6 +1879,7 @@ declare global {
 
     const select = sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]');
     const overrideInput = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]');
+    const countInput = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-item-count]');
     const options = readLandingSectionOptions();
 
     if (select) {
@@ -1311,6 +1907,10 @@ declare global {
 
     if (overrideInput) {
       overrideInput.checked = override;
+    }
+
+    if (countInput && typeof itemCount === 'number' && Number.isFinite(itemCount)) {
+      countInput.value = String(itemCount);
     }
 
     container.append(sectionRow);
@@ -1350,10 +1950,16 @@ declare global {
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean);
-    const sections: LandingSectionPayload[] = Array.from(source.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')).map((sectionRow) => ({
-      layout: sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value.trim() ?? '',
-      override_canonical: Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked),
-    })).filter((section) => section.layout);
+    const sections: LandingSectionPayload[] = Array.from(source.querySelectorAll<HTMLElement>('[data-wizard-landing-section-row]')).map((sectionRow) => {
+      const rawCount = sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-item-count]')?.value ?? '';
+      const parsedCount = Number.parseInt(rawCount, 10);
+
+      return {
+        layout: sectionRow.querySelector<HTMLSelectElement>('[data-wizard-landing-section-layout]')?.value.trim() ?? '',
+        override_canonical: Boolean(sectionRow.querySelector<HTMLInputElement>('[data-wizard-landing-section-override]')?.checked),
+        ...(Number.isFinite(parsedCount) ? { item_count: parsedCount } : {}),
+      };
+    }).filter((section) => section.layout);
 
     // Duplicate must clear id and mint a new landing_key.
     addLandingRow({
@@ -1887,6 +2493,16 @@ declare global {
     }
   };
 
+  const hydrateHomeSeoTargetingForm = (replace = false): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+    if (!form) {
+      return;
+    }
+
+    hydrateHomeSeoTargeting(form, state.home_seo_targeting, { force: replace });
+  };
+
   const setHomeHarnessWarning = (message: string, tone: 'info' | 'error'): void => {
     const warning = root.querySelector<HTMLElement>('[data-wizard-home-harness-warning]');
     const target = warning?.querySelector<HTMLElement>('p') ?? warning;
@@ -1953,6 +2569,32 @@ declare global {
     return defaults[normalized] ?? 1;
   };
 
+  const clearApiKeyInput = (): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-ia-generation-form]');
+    const apiKeyInput = form?.querySelector<HTMLInputElement>('input[name="api_key"]');
+
+    if (apiKeyInput) {
+      applyApiKeyInputSafety(apiKeyInput, { clear: true, hasSavedCredential: true });
+    }
+  };
+
+  /**
+   * Build a truthful per-step summary from the response result.
+   *
+   * For the dependencies step, renders a per-plugin status line from the
+   * authoritative installed/active flags and diagnostic `action` labels so
+   * the user sees which plugins failed and why. For other steps, returns a
+   * generic incomplete message. Only the final step status (checked by the
+   * caller) decides whether success copy is shown.
+   */
+  const stepResultSummary = (step: string, result: unknown): string => {
+    if (step === 'dependencies') {
+      return summarizeDependencyResult(result);
+    }
+
+    return `${labelFor(step)} did not complete. Check the result details and retry.`;
+  };
+
   const hydrateIaGenerationForm = (): void => {
     const form = root.querySelector<HTMLFormElement>('[data-wizard-ia-generation-form]');
     const aiConfig = state.ai_config;
@@ -1974,8 +2616,20 @@ declare global {
       providerSelect.value = provider;
     }
 
-    if (apiKeyInput && (aiConfig.has_credentials || aiConfig.credential?.has_key)) {
-      apiKeyInput.placeholder = '************';
+    if (apiKeyInput) {
+      const hasSavedCredential = Boolean(aiConfig.has_credentials || aiConfig.credential?.has_key);
+
+      /*
+       * When a saved credential exists, clear any residual value from the
+       * input so a plaintext key cannot survive a render triggered by a
+       * state reload (e.g. after a successful save or on re-opening the
+       * wizard). When no credential is saved (error/correction path), the
+       * user's typed value is retained so they can fix and retry.
+       */
+      applyApiKeyInputSafety(apiKeyInput, {
+        clear: false,
+        hasSavedCredential,
+      });
     }
 
     if (credentialStatus) {
@@ -2039,6 +2693,16 @@ declare global {
 
       if (credentialStatus && response.credential?.status) {
         credentialStatus.textContent = response.credential.status;
+      }
+
+      /*
+       * After a successful provider test with a newly entered key, the
+       * credential is persisted server-side. Clear the plaintext from the
+       * input value so it does not linger in the DOM or any accessibility
+       * snapshot. The saved-key placeholder/status is shown instead.
+       */
+      if (apiKeyInput) {
+        applyApiKeyInputSafety(apiKeyInput, { clear: true, hasSavedCredential: true });
       }
 
       setInlineStatus(
@@ -2447,6 +3111,21 @@ declare global {
         }
       }
 
+      if (
+        target instanceof HTMLInputElement
+        && target.matches('[data-wizard-home-seo-primary], [data-wizard-home-seo-secondary]')
+      ) {
+        const form = target.closest<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          markHomeSeoDirty(form);
+
+          if (target.matches('[data-wizard-home-seo-primary]') && target.value.trim() !== '') {
+            presentHomeSeoCollectionResult(form, collectHomeSeoTargetingFromForm(form), { focus: false });
+          }
+        }
+      }
+
       if (target instanceof HTMLInputElement && target.matches('[data-wizard-landing-primary-keyword]')) {
         const row = target.closest<HTMLElement>('[data-wizard-landing-row]');
 
@@ -2492,6 +3171,17 @@ declare global {
 
       if (target instanceof HTMLSelectElement && target.matches('[data-wizard-home-section-select]')) {
         syncGuidedControlState();
+        return;
+      }
+
+      if (target instanceof HTMLInputElement && target.matches('[data-wizard-home-seo-enabled]')) {
+        const form = target.closest<HTMLFormElement>('[data-wizard-home-page-builder-form]');
+
+        if (form) {
+          markHomeSeoDirty(form);
+          applyHomeSeoTargetingUi(form, target.checked);
+        }
+
         return;
       }
 
@@ -2667,14 +3357,14 @@ declare global {
   runButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const step = button.dataset.wizardRunStep;
-      if (step) void runStep(step);
+      if (step) void runStep(step, 'run');
     });
   });
 
   retryButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const step = button.dataset.wizardRetryStep;
-      if (step) void runStep(step);
+      if (step) void runStep(step, 'retry');
     });
   });
 
@@ -2711,7 +3401,11 @@ declare global {
   });
 
   refreshButton?.addEventListener('click', () => {
-    void loadState();
+    void loadState({ replaceHomeSeo: true });
+  });
+
+  root.querySelector<HTMLButtonElement>('[data-wizard-landing-resume]')?.addEventListener('click', () => {
+    void resumeLandingRun();
   });
 
   completeButton?.addEventListener('click', () => {
@@ -2719,7 +3413,7 @@ declare global {
   });
 
   render();
-  void loadState();
+  void loadState({ replaceHomeSeo: true });
 })();
 
 function getSettings(root: HTMLElement | null): WizardSettings | undefined {

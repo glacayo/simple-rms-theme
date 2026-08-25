@@ -81,6 +81,7 @@ export default defineConfig({
         // Internal page breadcrumbs
         'breadcrumb': path.resolve(__dirname, 'src/scss/templates/breadcrumb.scss'),
         // Footer
+        'footer-v1': path.resolve(__dirname, 'src/scss/layout/footer-v1.scss'),
         'footer-v2': path.resolve(__dirname, 'src/scss/layout/footer-v2.scss'),
         // Layout CSS
         'header-one': path.resolve(__dirname, 'src/scss/layout/header-one.scss'),

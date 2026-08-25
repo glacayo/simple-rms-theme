@@ -67,7 +67,24 @@ class Logger {
     }
 
     /**
+     * Context keys that must never be persisted in wizard logs.
+     *
+     * @var string[]
+     */
+    private const SECRET_CONTEXT_KEYS = [
+        'api_key',
+        'apikey',
+        'api-key',
+        'authorization',
+        'x-api-key',
+        'secret',
+        'password',
+        'token',
+    ];
+
+    /**
      * Sanitize nested log context without losing scalar structure.
+     * Secret-bearing keys are replaced with a boolean/masked sentinel.
      *
      * @param array $context Raw context.
      *
@@ -78,6 +95,11 @@ class Logger {
 
         foreach ( $context as $key => $value ) {
             $safe_key = \sanitize_key( (string) $key );
+
+            if ( $this->is_secret_context_key( $safe_key ) ) {
+                $sanitized[ $safe_key ] = '[redacted]';
+                continue;
+            }
 
             if ( is_array( $value ) ) {
                 $sanitized[ $safe_key ] = $this->sanitize_context( $value );
@@ -93,5 +115,9 @@ class Logger {
         }
 
         return $sanitized;
+    }
+
+    private function is_secret_context_key( string $key ): bool {
+        return in_array( $key, self::SECRET_CONTEXT_KEYS, true );
     }
 }

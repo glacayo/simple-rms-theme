@@ -56,6 +56,104 @@ function rms_get_option(string $field_name, $default = null) {
 }
 
 /**
+ * Map stored footer version values to canonical slugs.
+ *
+ * Offered choices are footer-v1 and footer-v2. Legacy aliases remain
+ * readable so existing option rows still resolve after the rename.
+ *
+ * @return array<string,string>
+ */
+function rms_get_footer_version_aliases(): array {
+    return [
+        'footer-v1'  => 'footer-v1',
+        'footer-v2'  => 'footer-v2',
+        'footer-one' => 'footer-v1',
+        'footer-two' => 'footer-v2',
+    ];
+}
+
+/**
+ * Whether a footer slug has both a PHP template and an authored stylesheet.
+ */
+function rms_footer_version_assets_exist(string $slug, string $theme_root = ''): bool {
+    if ($slug === '') {
+        return false;
+    }
+
+    $root = $theme_root !== ''
+        ? $theme_root
+        : (function_exists('get_template_directory') ? get_template_directory() : '');
+
+    if ($root === '') {
+        return false;
+    }
+
+    $template = $root . '/templates/' . $slug . '.php';
+    $styles   = $root . '/src/scss/layout/' . $slug . '.scss';
+
+    return is_readable($template) && is_readable($styles);
+}
+
+/**
+ * Normalize a stored footer version to a verified, renderable slug.
+ *
+ * Empty, unknown, or incomplete assets fall back to footer-v2. The fallback
+ * is returned only when its own PHP + SCSS exist; otherwise the resolver
+ * fails closed with an empty string so callers can skip rendering.
+ */
+function rms_resolve_footer_version(?string $raw, string $theme_root = ''): string {
+    $fallback  = 'footer-v2';
+    $aliases   = rms_get_footer_version_aliases();
+    $candidate = $raw ? sanitize_key($raw) : '';
+
+    if ($candidate !== '' && isset($aliases[$candidate])) {
+        $candidate = $aliases[$candidate];
+    } else {
+        $candidate = $fallback;
+    }
+
+    if (rms_footer_version_assets_exist($candidate, $theme_root)) {
+        return $candidate;
+    }
+
+    if ($candidate !== $fallback && rms_footer_version_assets_exist($fallback, $theme_root)) {
+        return $fallback;
+    }
+
+    return rms_footer_version_assets_exist($fallback, $theme_root) ? $fallback : '';
+}
+
+/**
+ * Resolve the active footer version for header and footer dispatch.
+ */
+function rms_get_footer_version(): string {
+    $raw = rms_get_option('company_footer_version');
+
+    return rms_resolve_footer_version(is_string($raw) ? $raw : '');
+}
+
+/**
+ * Present legacy footer aliases as the current ACF choices without changing the field key.
+ *
+ * @param mixed $value
+ * @return mixed
+ */
+function rms_migrate_footer_version_value($value) {
+    if (!is_string($value) || $value === '') {
+        return $value;
+    }
+
+    $aliases = rms_get_footer_version_aliases();
+    $key     = sanitize_key($value);
+
+    return $aliases[$key] ?? $value;
+}
+
+if (function_exists('add_filter')) {
+    add_filter('acf/load_value/key=field_rms_company_footer_version', 'rms_migrate_footer_version_value');
+}
+
+/**
  * Get the primary phone number from theme options.
  *
  * @return string
@@ -125,3 +223,142 @@ function rms_get_social_links(): array {
 
     return $active;
 }
+
+// ─── Company Palette → CSS Custom Properties Bridge ────────────────────────
+
+/**
+ * Compiled per-field palette defaults.
+ *
+ * These match the shipped CSS literals so empty or invalid ACF values stay
+ * visually inert:
+ *   1 -> #0f172a (slate-900, body text + dark surface backgrounds)
+ *   2 -> #2563eb (blue-600, primary CTA / button accent)
+ *   3 -> #f59e0b (amber-500, review stars + secondary highlights)
+ *   4 -> #ffffff (white, light surfaces + on-dark foreground)
+ *
+ * @return array{0:string,1:string,2:string,3:string}
+ */
+function rms_get_palette_defaults(): array {
+    return ['#0f172a', '#2563eb', '#f59e0b', '#ffffff'];
+}
+
+/**
+ * Sanitize a palette value to a strict hex color.
+ *
+ * Accepts only #RGB or #RRGGBB after trim. Invalid, empty, non-string, and
+ * malicious values return null so callers can apply the stable default.
+ * The raw input is never logged or echoed.
+ *
+ * @param mixed $value Candidate color from ACF/options.
+ */
+function rms_sanitize_palette_hex($value): ?string {
+    if (!is_string($value)) {
+        return null;
+    }
+
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+
+    if (function_exists('sanitize_hex_color')) {
+        $sanitized = sanitize_hex_color($value);
+        if (!is_string($sanitized) || $sanitized === '') {
+            return null;
+        }
+        $value = $sanitized;
+    }
+
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}){1,2}$/', $value)) {
+        return null;
+    }
+
+    return $value;
+}
+
+/**
+ * Resolve the four ACF company_palette_color_* fields to sanitized hex values.
+ *
+ * Values are read through rms_get_option() and accepted only when they are
+ * strict hex. Each field falls back independently to its compiled default.
+ *
+ * @return array{0:string,1:string,2:string,3:string} Four sanitized hex colors.
+ */
+function rms_get_palette_colors(): array {
+    $defaults = rms_get_palette_defaults();
+
+    return [
+        rms_sanitize_palette_hex(rms_get_option('company_palette_color_1')) ?? $defaults[0],
+        rms_sanitize_palette_hex(rms_get_option('company_palette_color_2')) ?? $defaults[1],
+        rms_sanitize_palette_hex(rms_get_option('company_palette_color_3')) ?? $defaults[2],
+        rms_sanitize_palette_hex(rms_get_option('company_palette_color_4')) ?? $defaults[3],
+    ];
+}
+
+/**
+ * Build the root custom-property block from sanitized palette colors.
+ *
+ * Only already-validated hex values are interpolated. This string is safe to
+ * attach with wp_add_inline_style().
+ */
+function rms_get_palette_inline_css(): string {
+    $defaults = rms_get_palette_defaults();
+    $colors   = rms_get_palette_colors();
+    $safe     = [];
+
+    foreach ($defaults as $i => $fallback) {
+        $candidate = is_string($colors[$i] ?? null) ? $colors[$i] : $fallback;
+        $safe[$i]  = rms_sanitize_palette_hex($candidate) ?? $fallback;
+    }
+
+    return sprintf(
+        ':root{--rms-color-primary:%s;--rms-color-accent:%s;--rms-color-accent-2:%s;--rms-color-surface:%s;}',
+        $safe[0],
+        $safe[1],
+        $safe[2],
+        $safe[3]
+    );
+}
+
+/**
+ * Enqueue the authored palette bridge stylesheet and emit sanitized root tokens.
+ *
+ * The bridge file (assets/css/rms-palette.css) is authored, non-generated
+ * source. It is enqueued with the active header handle as a dependency so it
+ * lands in <head> after the compiled theme CSS, letting source order and
+ * equal specificity win for the targeted semantic overrides. No database writes.
+ *
+ * When ACF is unavailable the setup-safe shell does not call wp_head, and this
+ * consumer also refuses to read palette settings or enqueue the bridge.
+ */
+function rms_enqueue_palette_bridge(): void {
+    if (!function_exists('get_field')) {
+        return;
+    }
+
+    $handle   = 'rms-palette';
+    $css_uri  = get_template_directory_uri() . '/assets/css/rms-palette.css';
+    $css_path = get_template_directory() . '/assets/css/rms-palette.css';
+
+    if (!is_readable($css_path)) {
+        return;
+    }
+
+    // The active header stylesheet is enqueued in header.php under a handle
+    // matching its version slug (e.g. "header-two"). Declaring it as a
+    // dependency guarantees our bridge prints after it. Invalid/empty values
+    // fall back to header-one so the dependency list never contains junk.
+    $header_raw     = rms_get_option('company_header_version');
+    $header_version = is_string($header_raw) ? sanitize_key($header_raw) : '';
+    if ($header_version === '') {
+        $header_version = 'header-one';
+    }
+
+    $version = filemtime($css_path);
+    $version = $version ? (string) $version : null;
+
+    wp_enqueue_style($handle, $css_uri, [$header_version], $version);
+    wp_add_inline_style($handle, rms_get_palette_inline_css());
+}
+
+add_action('wp_enqueue_scripts', 'rms_enqueue_palette_bridge', 20);

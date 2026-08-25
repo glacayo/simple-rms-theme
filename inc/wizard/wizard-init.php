@@ -779,6 +779,29 @@ function rms_wizard_render_home_page_builder_form(): void {
 				<?php esc_html_e( 'Add Home page sections from the available ACF Flexible Content layouts. The wizard will use saved Client Data and the IA Generation configuration to draft the section copy.', 'simple-rms-theme' ); ?>
 			</p>
 
+			<fieldset class="rms-wizard-home-seo-targeting">
+				<legend><?php esc_html_e( 'Homepage SEO targeting', 'simple-rms-theme' ); ?></legend>
+				<label class="rms-wizard-home-seo-targeting__toggle" for="rms-wizard-home-seo-enabled">
+					<input id="rms-wizard-home-seo-enabled" type="checkbox" value="1" data-wizard-home-seo-enabled aria-controls="rms-wizard-home-seo-fields" aria-expanded="false">
+					<span><?php esc_html_e( 'Target this homepage for a search query', 'simple-rms-theme' ); ?></span>
+				</label>
+				<p class="rms-wizard-field__instructions" id="rms-wizard-home-seo-help">
+					<?php esc_html_e( 'Optional. Keywords are editorial intent for the Hero and SEO Content sections only. They do not write Yoast fields, change rankings, or authorize invented services, locations, credentials, guarantees, or statistics.', 'simple-rms-theme' ); ?>
+				</p>
+				<div id="rms-wizard-home-seo-fields" class="rms-wizard-home-seo-targeting__fields" data-wizard-home-seo-fields hidden>
+					<div class="rms-wizard-field">
+						<label for="rms-wizard-home-seo-primary"><?php esc_html_e( 'Primary keyword', 'simple-rms-theme' ); ?></label>
+						<input id="rms-wizard-home-seo-primary" type="text" name="seo_targeting[primary_keyword]" data-wizard-home-seo-primary disabled aria-required="false" aria-invalid="false" aria-describedby="rms-wizard-home-seo-help" placeholder="<?php esc_attr_e( 'deck builder near me', 'simple-rms-theme' ); ?>">
+						<p id="rms-wizard-home-seo-primary-error" class="rms-wizard-home-seo-targeting__error" data-wizard-home-seo-primary-error hidden role="alert"></p>
+					</div>
+					<div class="rms-wizard-field">
+						<label for="rms-wizard-home-seo-secondary"><?php esc_html_e( 'Secondary keywords (comma-separated, optional, max 10)', 'simple-rms-theme' ); ?></label>
+						<input id="rms-wizard-home-seo-secondary" type="text" name="seo_targeting[secondary_keywords]" data-wizard-home-seo-secondary disabled aria-describedby="rms-wizard-home-seo-help rms-wizard-home-seo-secondary-notice" placeholder="<?php esc_attr_e( 'custom decks, composite decking', 'simple-rms-theme' ); ?>">
+						<p id="rms-wizard-home-seo-secondary-notice" class="rms-wizard-home-seo-targeting__notice" data-wizard-home-seo-secondary-notice hidden role="status" aria-live="polite"></p>
+					</div>
+				</div>
+			</fieldset>
+
 			<div class="notice notice-warning inline rms-wizard-home-harness-warning" data-wizard-home-harness-warning hidden>
 				<p><?php esc_html_e( 'Home Page Builder requires saved Client Data before AI content can be generated.', 'simple-rms-theme' ); ?></p>
 			</div>
@@ -882,6 +905,12 @@ function rms_wizard_render_landing_page_builder_form(): void {
 				<?php esc_html_e( 'Create one or more SEO or Ads landing pages. Only Hero and SEO Content receive keywords; reusable sections stay neutral and pull from the canonical store. Ads landings are noindex and never auto-added to menus.', 'simple-rms-theme' ); ?>
 			</p>
 
+			<div class="rms-wizard-landing-run-progress" data-wizard-landing-run-progress hidden>
+				<p class="rms-wizard-landing-run-progress__text" data-wizard-landing-run-progress-text aria-live="polite"></p>
+				<p class="rms-wizard-landing-run-progress__current" data-wizard-landing-run-current-title aria-live="polite"></p>
+				<button type="button" class="button button-primary" data-wizard-landing-resume><?php esc_html_e( 'Resume run', 'simple-rms-theme' ); ?></button>
+			</div>
+
 			<label class="rms-wizard-landing-skip-all">
 				<input type="checkbox" name="skip_all" value="1" data-wizard-landing-skip-all>
 				<span><?php esc_html_e( 'Skip landing pages for now (complete this step with zero landings)', 'simple-rms-theme' ); ?></span>
@@ -963,6 +992,7 @@ function rms_wizard_render_landing_page_builder_form(): void {
 
 			<template data-wizard-landing-section-row-template>
 				<div class="rms-wizard-landing-section-row" data-wizard-landing-section-row>
+					<input type="hidden" name="landings[__LINDEX__][sections][__SINDEX__][item_count]" value="" data-wizard-landing-section-item-count>
 					<select name="landings[__LINDEX__][sections][__SINDEX__][layout]" data-wizard-landing-section-layout></select>
 					<label class="rms-wizard-landing-section-override">
 						<input type="checkbox" name="landings[__LINDEX__][sections][__SINDEX__][override_canonical]" value="1" data-wizard-landing-section-override>

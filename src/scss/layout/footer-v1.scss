@@ -1,0 +1,148 @@
+// ============================================
+// Footer V1 — compact identity rail
+// ============================================
+@use '../base/variables' as *;
+@use '../base/mixins' as *;
+
+@mixin footer-v1-focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--footer-v1-accent, var(--rms-color-accent, #{$color-primary}));
+    outline-offset: 2px;
+  }
+}
+
+.footer-v1 {
+  --footer-v1-bg: var(--rms-color-primary, #{$color-gray-900});
+  --footer-v1-ink: var(--rms-color-surface, #{$color-gray-300});
+  --footer-v1-accent: var(--rms-color-accent, #{$color-primary});
+  --footer-v1-rule: var(--rms-color-primary-muted, #{$color-gray-700});
+
+  background-color: var(--footer-v1-bg);
+  color: var(--footer-v1-ink);
+  border-top: 3px solid var(--footer-v1-accent);
+}
+
+.footer-v1__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $space-4;
+  padding-block: $space-5;
+
+  @include breakpoint($breakpoint-md) {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand contact social"
+      "copy copy copy";
+    align-items: center;
+    column-gap: $space-6;
+    row-gap: $space-3;
+    padding-block: $space-4;
+  }
+}
+
+.footer-v1__brand {
+  grid-area: brand;
+  min-width: 0;
+
+  .custom-logo-link,
+  .footer-v1__logo-link {
+    display: inline-flex;
+    align-items: center;
+    @include footer-v1-focus-ring;
+  }
+
+  img,
+  .custom-logo {
+    display: block;
+    width: auto;
+    max-width: 9rem;
+    height: 2.5rem;
+    object-fit: contain;
+  }
+}
+
+.footer-v1__wordmark {
+  color: var(--footer-v1-ink);
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  @include footer-v1-focus-ring;
+
+  &:hover {
+    color: var(--rms-color-surface, #{$color-white});
+  }
+}
+
+.footer-v1__contact {
+  grid-area: contact;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2 $space-4;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: $font-size-sm;
+
+  @include breakpoint($breakpoint-md) {
+    justify-content: center;
+  }
+}
+
+.footer-v1__contact-link,
+.footer-v1__address {
+  color: var(--footer-v1-ink);
+  text-decoration: none;
+}
+
+.footer-v1__contact-link {
+  @include footer-v1-focus-ring;
+
+  &:hover {
+    color: var(--footer-v1-accent);
+  }
+}
+
+.footer-v1__social {
+  grid-area: social;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.footer-v1__social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--footer-v1-rule);
+  border-radius: $radius-sm;
+  color: var(--footer-v1-ink);
+  transition: border-color $transition-fast, color $transition-fast, background-color $transition-fast;
+  @include footer-v1-focus-ring;
+
+  &:hover {
+    border-color: var(--footer-v1-accent);
+    color: var(--rms-color-surface, #{$color-white});
+    background-color: transparent;
+  }
+}
+
+.footer-v1__copyright {
+  grid-area: copy;
+  margin: 0;
+  padding-top: $space-3;
+  border-top: 1px solid var(--footer-v1-rule);
+  color: var(--footer-v1-ink);
+  font-size: $font-size-xs;
+  letter-spacing: 0.02em;
+  width: 100%;
+}
+
+.footer-v1__sr-only {
+  @include sr-only;
+}

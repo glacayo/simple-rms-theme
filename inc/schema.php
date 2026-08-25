@@ -183,8 +183,9 @@ function rms_schema_local_business(): array {
         ];
     }
 
-    // Payment methods — pull from ACF
-    $payment_methods = get_field('company_payment_methods', 'option');
+    // Payment methods — pulled from ACF via the guarded option helper so the
+    // schema path never fatals when ACF Pro is inactive (returns null → fallback below).
+    $payment_methods = rms_get_option('company_payment_methods');
     $payment_labels = [];
     if (!empty($payment_methods) && is_array($payment_methods)) {
         foreach ($payment_methods as $pm) {
@@ -655,6 +656,12 @@ function rms_schema_testimonials_page(): void {
  * These schemas appear on every page: LocalBusiness, Organization, WebSite.
  */
 function rms_schema_header(): void {
+    // Omit schema when ACF is inactive so wp_head cannot emit fallback
+    // client/demo facts or call missing ACF APIs.
+    if (!function_exists('get_field')) {
+        return;
+    }
+
     // LocalBusiness + HomeAndConstructionBusiness
     rms_schema_output(rms_schema_local_business());
 
