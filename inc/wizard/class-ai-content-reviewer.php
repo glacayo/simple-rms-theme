@@ -274,25 +274,55 @@ PROMPT;
 	private function json_prompt( string $instruction, string $layout, array $payload, array $prior_sections, array $ai_config, array $directives ): string {
 		$client_context = is_array( $ai_config['client_context'] ?? null ) ? $ai_config['client_context'] : [];
 
-		$data = [
-			'instruction'          => $instruction,
-			'layout'               => $layout,
-			'allowed_keys'         => $this->harness->get_fillable_fields( $layout ),
-			'harness_rules'        => AI_Content_Harness::get_editorial_rules( $layout ),
-			'trusted_client_context' => $client_context,
-			'current_payload'      => $payload,
-			'prior_sections'       => array_values( $prior_sections ),
-			'rewrite_directives'   => $directives,
-			'output_contract'      => 'Return one JSON object using only allowed_keys. Preserve valid fields unless a directive requires change.',
-			'negative_constraints' => 'Do not invent facts, URLs, media, credentials, years, guarantees, brands, licenses, bilingual service, special equipment, statistics, service areas, reviews, keys, repeater subfields, or services absent from trusted_client_context.company_services.',
-		];
+			$data = [
+				'instruction'          => $instruction,
+				'layout'               => $layout,
+				'allowed_keys'         => $this->harness->get_fillable_fields( $layout ),
+				'harness_rules'        => AI_Content_Harness::get_editorial_rules( $layout ),
+				'trusted_client_context' => $client_context,
+				'current_payload'      => $payload,
+				'prior_sections'       => array_values( $prior_sections ),
+				'rewrite_directives'   => $directives,
+				'output_contract'      => 'Return one JSON object using only allowed_keys. Preserve valid fields unless a directive requires change.',
+				'negative_constraints' => 'Do not invent facts, URLs, media, credentials, years, guarantees, brands, licenses, bilingual service, special equipment, statistics, service areas, reviews, keys, repeater subfields, or services absent from trusted_client_context.company_services.',
+			];
+
+			$keyword_intent = $this->declared_keyword_intent( $ai_config );
+
+			if ( [] !== $keyword_intent ) {
+				$data['declared_keyword_intent'] = $keyword_intent;
+			}
 
 		$json = \wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 
 		return false === $json ? '{}' : $json;
 	}
 
-	private function decode_json( string $content ): array {
+		/**
+		 * @param array<string,mixed> $ai_config Review config.
+		 *
+		 * @return array<string,mixed>
+		 */
+		private function declared_keyword_intent( array $ai_config ): array {
+			$raw = is_array( $ai_config['keyword_intent'] ?? null ) ? $ai_config['keyword_intent'] : [];
+			$primary = trim( (string) ( $raw['primary_keyword'] ?? '' ) );
+
+			if ( '' === $primary ) {
+				return [];
+			}
+
+			$secondary = is_array( $raw['secondary_keywords'] ?? null )
+				? $raw['secondary_keywords']
+				: ( is_array( $raw['subkeywords'] ?? null ) ? $raw['subkeywords'] : [] );
+
+			return [
+				'primary_keyword'     => $primary,
+				'secondary_keywords'  => array_values( array_map( 'strval', $secondary ) ),
+				'role'                => 'Editorial search intent for this homepage section only. Not evidence. Distinguish natural target-keyword usage from keyword stuffing and flag intent mismatch. Do not invent services, locations, credentials, guarantees, statistics, or business facts.',
+			];
+		}
+
+		private function decode_json( string $content ): array {
 		$content = trim( preg_replace( '/^```(?:json)?|```$/m', '', $content ) ?? $content );
 		$data    = json_decode( $content, true );
 

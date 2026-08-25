@@ -380,7 +380,7 @@ PROMPT;
 	}
 
 	/**
-	 * Whether a layout may consume landing keyword placeholders.
+	 * Whether a layout may consume declared keyword intent (Hero / SEO Content only).
 	 */
 	public function is_keyword_layout( string $layout ): bool {
 		return in_array( $this->normalize_layout_key( $layout ), self::KEYWORD_LAYOUTS, true );
@@ -426,6 +426,56 @@ PROMPT;
 			}
 		}
 
+			return [
+			'primary_keyword' => $primary,
+			'subkeywords'     => $subkeywords,
+		];
+	}
+
+	/**
+	 * Normalize homepage SEO keywords: collapse whitespace, drop empties,
+	 * case-insensitive de-dupe (first wins), and clamp secondaries to 0–10.
+	 *
+	 * @param array<string,mixed> $keywords Raw keyword payload.
+	 *
+	 * @return array{primary_keyword:string,subkeywords:string[]}
+	 */
+	public function normalize_home_seo_keywords( array $keywords ): array {
+		$primary = $this->collapse_keyword( (string) ( $keywords['primary_keyword'] ?? $keywords['keyword'] ?? '' ) );
+		$raw     = $keywords['secondary_keywords'] ?? $keywords['subkeywords'] ?? $keywords['sub_keywords'] ?? [];
+
+		if ( is_string( $raw ) ) {
+			$raw = preg_split( '/[\n,]+/', $raw ) ?: [];
+		}
+
+		$subkeywords = [];
+		$seen        = [];
+
+		if ( '' !== $primary ) {
+			$seen[ $this->keyword_identity( $primary ) ] = true;
+		}
+
+		foreach ( is_array( $raw ) ? $raw : [] as $item ) {
+			$item = $this->collapse_keyword( (string) $item );
+
+			if ( '' === $item ) {
+				continue;
+			}
+
+			$identity = $this->keyword_identity( $item );
+
+			if ( isset( $seen[ $identity ] ) ) {
+				continue;
+			}
+
+			$seen[ $identity ] = true;
+			$subkeywords[]     = $item;
+
+			if ( count( $subkeywords ) >= 10 ) {
+				break;
+			}
+		}
+
 		return [
 			'primary_keyword' => $primary,
 			'subkeywords'     => $subkeywords,
@@ -433,8 +483,121 @@ PROMPT;
 	}
 
 	/**
+	 * Parse the Home Page Builder SEO-targeting payload.
+	 *
+	 * Disabled mode returns only `{ enabled: false }` so stale keywords cannot persist.
+	 *
+	 * @param array<string,mixed> $payload Step payload or nested seo_targeting object.
+	 *
+	 * @return array{enabled:bool,primary_keyword?:string,secondary_keywords?:string[]}|\WP_Error
+	 */
+	public function normalize_home_seo_intent( array $payload ) {
+		$raw     = is_array( $payload['seo_targeting'] ?? null ) ? $payload['seo_targeting'] : $payload;
+		$enabled = $this->is_truthy( $raw['enabled'] ?? $payload['seo_targeting_enabled'] ?? false );
+
+		if ( ! $enabled ) {
+			return [ 'enabled' => false ];
+		}
+
+		$normalized = $this->normalize_home_seo_keywords(
+			[
+				'primary_keyword'     => $raw['primary_keyword'] ?? $payload['primary_keyword'] ?? '',
+				'secondary_keywords'  => $raw['secondary_keywords'] ?? $raw['subkeywords'] ?? $payload['secondary_keywords'] ?? $payload['subkeywords'] ?? [],
+			]
+		);
+
+		if ( '' === $normalized['primary_keyword'] ) {
+			return new \WP_Error(
+				'rms_wizard_home_seo_primary_required',
+				\__( 'Enter a primary keyword before generating with SEO targeting enabled.', 'simple-rms-theme' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		return [
+			'enabled'             => true,
+			'primary_keyword'     => $normalized['primary_keyword'],
+			'secondary_keywords'  => $normalized['subkeywords'],
+		];
+	}
+
+	/**
+	 * Persistable homepage SEO intent. Disabled mode stores no keyword values.
+	 *
+	 * @param array<string,mixed> $intent Normalized intent from normalize_home_seo_intent().
+	 *
+	 * @return array{enabled:bool,primary_keyword?:string,secondary_keywords?:string[]}
+	 */
+	public function persist_home_seo_intent( array $intent ): array {
+		if ( empty( $intent['enabled'] ) ) {
+			return [ 'enabled' => false ];
+		}
+
+		return [
+			'enabled'            => true,
+			'primary_keyword'    => (string) ( $intent['primary_keyword'] ?? '' ),
+			'secondary_keywords' => array_values( is_array( $intent['secondary_keywords'] ?? null ) ? $intent['secondary_keywords'] : [] ),
+		];
+	}
+
+	/**
+	 * Keyword payload for one homepage layout, or empty when targeting is off / out of scope.
+	 *
+	 * @param array<string,mixed> $intent Normalized homepage SEO intent.
+	 *
+	 * @return array{primary_keyword:string,subkeywords:string[]}|array{}
+	 */
+	public function home_seo_keywords_for_layout( array $intent, string $layout ): array {
+		if ( empty( $intent['enabled'] ) || ! $this->is_keyword_layout( $layout ) ) {
+			return [];
+		}
+
+		$primary = trim( (string) ( $intent['primary_keyword'] ?? '' ) );
+
+		if ( '' === $primary ) {
+			return [];
+		}
+
+		$secondary = is_array( $intent['secondary_keywords'] ?? null ) ? $intent['secondary_keywords'] : [];
+
+		return [
+			'primary_keyword' => $primary,
+			'subkeywords'     => array_values( array_map( 'strval', $secondary ) ),
+		];
+	}
+
+	/**
+	 * Drop keyword-driven layouts from prior-section context used by neutral sections.
+	 *
+	 * @param array<int,mixed> $priors Prior section payloads.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function filter_neutral_priors( array $priors ): array {
+		$neutral = [];
+
+		foreach ( $priors as $prior ) {
+			if ( ! is_array( $prior ) ) {
+				continue;
+			}
+
+			$layout = $this->normalize_layout_key( (string) ( $prior['layout'] ?? '' ) );
+
+			if ( '' === $layout || $this->is_keyword_layout( $layout ) ) {
+				continue;
+			}
+
+			$neutral[] = $prior;
+		}
+
+		return $neutral;
+	}
+
+	/**
 	 * @param array<string,mixed> $client_context Approved client context.
-	 * @param array<string,mixed> $keywords       Optional landing keywords (PAGE_LANDING only).
+	 * @param array<string,mixed> $keywords       Optional keywords. Landing uses PAGE_LANDING + keyword layouts.
+	 *                                            Homepage injects only when PAGE_HOME, layout is keyword-eligible,
+	 *                                            and a primary keyword is present.
 	 */
 	public function get_layer3( string $layout, int $item_count, array $client_context, string $page_type = self::PAGE_HOME, array $keywords = [] ): string {
 		$layout        = $this->normalize_layout_key( $layout );
@@ -444,19 +607,35 @@ PROMPT;
 		$client_json   = false === $client_json ? '{}' : $client_json;
 		$service_rules = isset( self::SERVICE_DESCRIPTION_FIELDS[ $layout ] ) ? sprintf( ' For service repeaters, preserve the order of client_json.company_services. Service names/titles and service-specific benefits must come only from company_services[].service_name and service_short_description; return descriptions only in %s.', (string) self::SERVICE_DESCRIPTION_FIELDS[ $layout ]['description'] ) : '';
 		$layout_rules  = $this->layout_rules( $layout, $item_count );
-		$normalized    = $this->normalize_keywords( $keywords );
-		$inject_kw     = self::PAGE_LANDING === $page_type && $this->is_keyword_layout( $layout );
-		$primary       = $inject_kw ? $normalized['primary_keyword'] : '';
-		$subkeywords   = $inject_kw ? implode( ', ', $normalized['subkeywords'] ) : '';
-		$keyword_block = '';
+		$inject_landing = self::PAGE_LANDING === $page_type && $this->is_keyword_layout( $layout );
+		$home_keywords  = $this->normalize_home_seo_keywords( $keywords );
+		$inject_home    = self::PAGE_HOME === $page_type && $this->is_keyword_layout( $layout ) && '' !== $home_keywords['primary_keyword'];
+		$normalized     = [ 'primary_keyword' => '', 'subkeywords' => [] ];
+		$primary        = '';
+		$subkeywords    = '';
+		$keyword_block  = '';
 
-		if ( $inject_kw ) {
+		if ( $inject_landing ) {
+			$normalized    = $this->normalize_keywords( $keywords );
+			$primary       = $normalized['primary_keyword'];
+			$subkeywords   = implode( ', ', $normalized['subkeywords'] );
 			$keyword_block = "\n\nKEYWORD CONTEXT (mandatory for this section only):\n"
 				. '- Primary keyword: {{primary_keyword}}' . "\n"
 				. '- Subkeywords: {{subkeywords}}' . "\n"
 				. "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n"
 				. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
 				. "- Do not invent services, locations, or proof to force keyword usage.";
+		} elseif ( $inject_home ) {
+			$normalized    = $home_keywords;
+			$primary       = $normalized['primary_keyword'];
+			$subkeywords   = implode( ', ', $normalized['subkeywords'] );
+			$keyword_block = "\n\nKEYWORD INTENT (editorial only, this section only):\n"
+				. '- Primary keyword: ' . ( '' !== $primary ? $primary : '(none provided)' ) . "\n"
+				. '- Secondary keywords: ' . ( '' !== $subkeywords ? $subkeywords : '(none)' ) . "\n"
+				. "- Keywords are editorial search intent, never evidence.\n"
+				. "- Do not invent services, locations, credentials, guarantees, statistics, or other business facts to force keyword usage.\n"
+				. "- Naturally incorporate the primary keyword in headlines and body copy only where it fits trusted client facts.\n"
+				. "- Use secondary keywords sparingly and only when natural. Do not keyword-stuff.";
 		}
 
 		$template = "Layout: {{layout}}\nRequested item count: {{item_count}}\nAllowed JSON keys: {{fillable_fields}}\nBlocked JSON keys: {{blocked_fields}}\nClient JSON: {{client_json}}\nReturn one compact JSON object using only allowed keys. Do not include blocked or unknown keys.{{service_rules}}\n\n{{layout_rules}}{{keyword_block}}";
@@ -884,5 +1063,37 @@ RULES,
 
 	private function log_warning( string $message ): void {
 		\error_log( '[Simple RMS Wizard] ' . $message );
+	}
+
+	private function collapse_keyword( string $value ): string {
+		$value = preg_replace( '/\s+/u', ' ', $value );
+		$value = is_string( $value ) ? $value : '';
+
+		return trim( \sanitize_text_field( $value ) );
+	}
+
+	private function keyword_identity( string $value ): string {
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+	}
+
+	/**
+	 * @param mixed $value Raw flag.
+	 */
+	private function is_truthy( $value ): bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			return 0 !== $value;
+		}
+
+		if ( is_string( $value ) ) {
+			$value = strtolower( trim( $value ) );
+
+			return in_array( $value, [ '1', 'true', 'on', 'yes' ], true );
+		}
+
+		return ! empty( $value );
 	}
 }
