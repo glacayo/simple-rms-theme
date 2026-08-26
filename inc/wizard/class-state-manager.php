@@ -18,6 +18,21 @@ class State_Manager {
     public const COMPLETED_OPTION = 'rms_wizard_completed';
 
     /**
+     * Default per-page entry stored under state.internal_pages.
+     *
+     * Status is one of pending, complete, failed, or skipped.
+     *
+     * @var array{post_id:int,layouts:array<int,string>,status:string,reason:string,updated_at:string}
+     */
+    public const INTERNAL_PAGE_ENTRY = [
+        'post_id'    => 0,
+        'layouts'    => [],
+        'status'     => 'pending',
+        'reason'     => '',
+        'updated_at' => '',
+    ];
+
+    /**
      * Return the default state shape.
      *
      * @return array<string,mixed>
@@ -39,6 +54,7 @@ class State_Manager {
             'home_seo_targeting'     => [ 'enabled' => false ],
             'landing_pages'          => [],
             'landing_run'             => null,
+            'internal_pages'         => [],
             'canonical_sections'     => [],
             'logs'                   => self::LOG_OPTION,
             'locks'                  => [],
