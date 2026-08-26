@@ -41,6 +41,7 @@ use Inc\Wizard\State_Manager;
 use Inc\Wizard\Step_Internal_Page_Builder;
 class RMS_Internal_Fake_Builder extends Content_Builder {
 	public function build_page( array $page ): int {
+		if ( ! empty( $GLOBALS['_fail_build'] ) ) { return 0; }
 		$id = absint( $page['id'] ?? 0 ); $GLOBALS['_build_log'][] = $page;
 		if ( $id > 0 && isset( $page['sections'] ) ) { $GLOBALS['_post_meta'][ $id ]['page_sections'] = $page['sections']; }
 		if ( $id > 0 && isset( $page['meta_input']['_wp_page_template'] ) ) { $GLOBALS['_post_meta'][ $id ]['_wp_page_template'] = $page['meta_input']['_wp_page_template']; }
@@ -48,7 +49,7 @@ class RMS_Internal_Fake_Builder extends Content_Builder {
 	}
 }
 function rms_ipb_assert( $c, string $m ): void { if ( ! $c ) { fwrite( STDERR, $m . "\n" ); exit( 1 ); } }
-function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); }
+function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); $GLOBALS['_fail_build'] = false; }
 function rms_ipb_builder(): Step_Internal_Page_Builder {
 	$l = new Logger(); $s = new State_Manager();
 	return new Step_Internal_Page_Builder( $l, $s, new RMS_Internal_Fake_Builder( $l, $s ), new AI_Content_Harness(), new Canonical_Section_Store() );
@@ -90,4 +91,24 @@ $st['internal_pages']['about'] = array_merge( State_Manager::INTERNAL_PAGE_ENTRY
 $noop = rms_ipb_builder()->run( array( 'action' => 'process' ) );
 rms_ipb_assert( array() === $GLOBALS['_build_log'] && 'complete' === ( $noop['status'] ?? '' ) && 'Editor edit' === ( $GLOBALS['_post_meta'][12]['page_sections'][0]['about_headline'] ?? '' ), 'preserve' );
 echo "PASS preserve-edit-and-complete-noop\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about();
+$GLOBALS['_post_meta'][12]['page_sections'] = array( array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Editor edit' ) );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['internal_pages']['about'] = array_merge( State_Manager::INTERNAL_PAGE_ENTRY, array( 'post_id' => 12, 'status' => 'complete' ) ); $sm->save_state( $st );
+$over = rms_ipb_builder()->run( array( 'action' => 'process', 'overwrite' => array( 'about' ) ) );
+rms_ipb_assert( 1 === count( $GLOBALS['_build_log'] ) && 'complete' === ( $over['status'] ?? '' ), 'overwrite' );
+echo "PASS explicit-overwrite-regenerates\n"; ++$passed;
+rms_ipb_reset(); $GLOBALS['_posts'][12] = new WP_Post( 12 ); $GLOBALS['_posts'][12]->post_content = 'Legacy about body';
+$sm = new State_Manager(); $st = $sm->get_state(); $st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'role' => '' ) ); $sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $legacy = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'skipped' === ( $legacy['status'] ?? '' ) && array() === $GLOBALS['_build_log'], 'legacy skip' );
+$conv = $b->run( array( 'action' => 'process', 'convert_legacy' => array( 'about' ) ) );
+rms_ipb_assert( 'complete' === ( $conv['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'legacy convert' );
+echo "PASS legacy-unconfirmed-then-convert\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about(); $GLOBALS['_fail_build'] = true;
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $fail = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'failed' === ( $fail['status'] ?? '' ) && 'persist_failed' === ( $fail['reason'] ?? '' ) && ! is_wp_error( $fail ), 'isolated fail' );
+$GLOBALS['_fail_build'] = false; $retried = $b->run( array( 'action' => 'process', 'retry_failed' => true ) );
+rms_ipb_assert( 'complete' === ( $retried['status'] ?? '' ), 'retry' );
+echo "PASS failure-isolation-and-retry\n"; ++$passed;
 echo 'Harness passed: ' . $passed . " scenarios.\n";

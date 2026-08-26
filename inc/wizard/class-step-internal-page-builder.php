@@ -52,11 +52,11 @@ class Step_Internal_Page_Builder {
 		$action = \sanitize_key( (string) ( $payload['action'] ?? '' ) );
 
 		if ( 'start' === $action ) {
-			return $this->start();
+			return $this->start( $payload );
 		}
 
 		if ( 'process' === $action ) {
-			return $this->process();
+			return $this->process( $payload );
 		}
 
 		return new \WP_Error(
@@ -91,11 +91,12 @@ class Step_Internal_Page_Builder {
 	}
 
 	/**
+	 * @param array<string,mixed> $payload
 	 * @return array<string,mixed>
 	 */
-	private function start(): array {
+	private function start( array $payload ): array {
 		$fresh = $this->state_manager->get_state();
-		$plan  = $this->ensure_about_plan( $fresh );
+		$plan  = $this->ensure_about_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$fresh['internal_pages'] = $plan;
 		$this->state_manager->save_state( $fresh );
 		$pending = $this->is_pending( $plan );
@@ -105,11 +106,12 @@ class Step_Internal_Page_Builder {
 	}
 
 	/**
+	 * @param array<string,mixed> $payload
 	 * @return array<string,mixed>
 	 */
-	private function process(): array {
+	private function process( array $payload ): array {
 		$fresh = $this->state_manager->get_state();
-		$plan  = $this->ensure_about_plan( $fresh );
+		$plan  = $this->ensure_about_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$entry = is_array( $plan[ self::SCOPE_TYPE ] ?? null ) ? $plan[ self::SCOPE_TYPE ] : null;
 
 		if ( null === $entry ) {
@@ -120,7 +122,11 @@ class Step_Internal_Page_Builder {
 			return [ 'internal_pages' => $plan, 'status' => 'complete', 'unavailable' => true ];
 		}
 
-		$entry                    = $this->process_about( $entry );
+		$entry                    = $this->process_about(
+			$entry,
+			$this->type_requested( $payload['overwrite'] ?? [], self::SCOPE_TYPE ),
+			$this->type_requested( $payload['convert_legacy'] ?? [], self::SCOPE_TYPE )
+		);
 		$plan[ self::SCOPE_TYPE ] = $entry;
 		$fresh                    = $this->state_manager->get_state();
 		$fresh['internal_pages']  = $plan;
@@ -141,7 +147,7 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,mixed> $state
 	 * @return array<string,array<string,mixed>>
 	 */
-	private function ensure_about_plan( array $state ): array {
+	private function ensure_about_plan( array $state, bool $retry_failed = false ): array {
 		$plan  = is_array( $state['internal_pages'] ?? null ) ? $state['internal_pages'] : [];
 		$shell = $this->find_about_shell( is_array( $state['generated_pages'] ?? null ) ? $state['generated_pages'] : [] );
 		$entry = is_array( $plan[ self::SCOPE_TYPE ] ?? null )
@@ -159,6 +165,10 @@ class Step_Internal_Page_Builder {
 		}
 
 		$entry['post_id'] = (int) $shell['id'];
+		if ( $retry_failed && 'failed' === (string) ( $entry['status'] ?? '' ) ) {
+			$entry['status'] = 'pending';
+			$entry['reason'] = '';
+		}
 		if ( '' === (string) ( $entry['status'] ?? '' ) ) {
 			$entry['status'] = 'pending';
 		}
@@ -198,7 +208,7 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,mixed> $entry
 	 * @return array<string,mixed>
 	 */
-	private function process_about( array $entry ): array {
+	private function process_about( array $entry, bool $overwrite = false, bool $convert = false ): array {
 		$post_id = \absint( $entry['post_id'] ?? 0 );
 		$now     = \current_time( 'mysql', true );
 
@@ -210,16 +220,28 @@ class Step_Internal_Page_Builder {
 			return $entry;
 		}
 
-		if ( 'complete' === (string) ( $entry['status'] ?? '' ) ) {
+		if ( 'complete' === (string) ( $entry['status'] ?? '' ) && ! $overwrite ) {
 			$entry['reason']     = 'unchanged';
 			$entry['updated_at'] = $now;
 
 			return $entry;
 		}
 
-		if ( [] !== $this->current_sections( $post_id ) ) {
+		$sections = $this->current_sections( $post_id );
+		$post     = \get_post( $post_id );
+		$content  = $post ? (string) $post->post_content : '';
+
+		if ( [] !== $sections && ! $overwrite ) {
 			$entry['status']     = 'complete';
 			$entry['reason']     = 'preserved';
+			$entry['updated_at'] = $now;
+
+			return $entry;
+		}
+
+		if ( [] === $sections && '' !== trim( $content ) && ! $convert ) {
+			$entry['status']     = 'skipped';
+			$entry['reason']     = 'legacy_unconfirmed';
 			$entry['updated_at'] = $now;
 
 			return $entry;
@@ -237,6 +259,10 @@ class Step_Internal_Page_Builder {
 		);
 
 		if ( $saved <= 0 ) {
+			$entry['status']     = 'failed';
+			$entry['reason']     = 'persist_failed';
+			$entry['updated_at'] = $now;
+
 			return $entry;
 		}
 
@@ -298,7 +324,25 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,array<string,mixed>> $plan
 	 */
 	private function is_pending( array $plan ): bool {
-		return 'pending' === (string) ( ( is_array( $plan[ self::SCOPE_TYPE ] ?? null ) ? $plan[ self::SCOPE_TYPE ] : [] )['status'] ?? '' );
+		$status = (string) ( ( is_array( $plan[ self::SCOPE_TYPE ] ?? null ) ? $plan[ self::SCOPE_TYPE ] : [] )['status'] ?? '' );
+
+		return in_array( $status, [ 'pending', 'failed' ], true );
+	}
+
+	/**
+	 * @param mixed $list
+	 */
+	private function type_requested( $list, string $type ): bool {
+		if ( ! is_array( $list ) ) {
+			return false;
+		}
+		foreach ( $list as $item ) {
+			if ( $type === \sanitize_key( (string) $item ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private function truthy( $value ): bool {
