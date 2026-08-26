@@ -15,7 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', $theme_root . '/' );
 }
 
-$GLOBALS['_options'] = array();
+$GLOBALS['_options']          = array();
+$GLOBALS['_option_autoloads'] = array();
 
 if ( ! function_exists( 'sanitize_key' ) ) {
 	function sanitize_key( $key ) {
@@ -45,8 +46,8 @@ if ( ! function_exists( 'get_option' ) ) {
 }
 if ( ! function_exists( 'update_option' ) ) {
 	function update_option( $name, $value, $autoload = null ) {
-		unset( $autoload );
-		$GLOBALS['_options'][ $name ] = $value;
+		$GLOBALS['_options'][ $name ]          = $value;
+		$GLOBALS['_option_autoloads'][ $name ] = $autoload;
 		return true;
 	}
 }
@@ -89,6 +90,11 @@ $ids = array_values( array_unique( array_map( static function ( $row ) { return 
 sort( $ids );
 rms_prov_assert( array( 21, 22 ) === $ids, 'queue names both pages' );
 echo "PASS provenance-queue\n";
+++$passed;
+
+$autoload = $GLOBALS['_option_autoloads'][ Placeholder_Provenance_Store::OPTION_KEY ] ?? null;
+rms_prov_assert( false === $autoload, 'provenance option must be written with autoload=false' );
+echo "PASS provenance-option-autoload-false\n";
 ++$passed;
 
 echo 'Harness passed: ' . $passed . " scenarios.\n";
