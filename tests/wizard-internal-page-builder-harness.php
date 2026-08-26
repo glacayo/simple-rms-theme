@@ -1,0 +1,93 @@
+<?php
+/**
+ * About core builder proofs.
+ * Usage: php tests/wizard-internal-page-builder-harness.php
+ */
+if ( PHP_SAPI !== 'cli' ) { fwrite( STDERR, "CLI only.\n" ); exit( 1 ); }
+$theme_root = dirname( __DIR__ );
+if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', $theme_root . '/' ); }
+if ( ! class_exists( 'WP_Error', false ) ) {
+	class WP_Error { public $code; public $message; public $data; public function __construct( $c = '', $m = '', $d = '' ) { $this->code = $c; $this->message = $m; $this->data = $d; } }
+}
+if ( ! class_exists( 'WP_Post', false ) ) {
+	class WP_Post { public $ID; public $post_type = 'page'; public $post_content = ''; public function __construct( $id = 0 ) { $this->ID = (int) $id; } }
+}
+$GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array();
+if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( preg_replace( '/\s+/', ' ', (string) $s ) ); } }
+if ( ! function_exists( 'sanitize_key' ) ) { function sanitize_key( $k ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $k ) ) ); } }
+if ( ! function_exists( 'sanitize_title' ) ) { function sanitize_title( $v ) { return strtolower( preg_replace( '/[^a-z0-9-]+/', '-', (string) $v ) ); } }
+if ( ! function_exists( '__' ) ) { function __( $t, $d = null ) { unset( $d ); return $t; } }
+if ( ! function_exists( 'wp_kses_post' ) ) { function wp_kses_post( $v ) { return (string) $v; } }
+if ( ! function_exists( 'wp_json_encode' ) ) { function wp_json_encode( $d, $o = 0 ) { return json_encode( $d, $o ); } }
+if ( ! function_exists( 'absint' ) ) { function absint( $v ) { return abs( (int) $v ); } }
+if ( ! function_exists( 'current_time' ) ) { function current_time( $t, $g = false ) { unset( $t, $g ); return '2026-08-26 00:00:00'; } }
+if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = false ) { return $GLOBALS['_options'][ $n ] ?? $d; } }
+if ( ! function_exists( 'update_option' ) ) { function update_option( $n, $v, $a = null ) { unset( $a ); $GLOBALS['_options'][ $n ] = $v; return true; } }
+if ( ! function_exists( 'get_post' ) ) { function get_post( $id ) { return $GLOBALS['_posts'][ (int) $id ] ?? null; } }
+if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k, $s = false ) { unset( $s ); return $GLOBALS['_post_meta'][ (int) $id ][ $k ] ?? ''; } }
+if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $t ) { return $t instanceof WP_Error; } }
+if ( ! function_exists( 'get_template_directory_uri' ) ) { function get_template_directory_uri() { return 'https://example.test/theme'; } }
+if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $v ) { return rtrim( (string) $v, '/\\' ) . '/'; } }
+foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php' ) as $f ) {
+	require_once $theme_root . '/inc/wizard/' . $f;
+}
+use Inc\Wizard\AI_Content_Harness;
+use Inc\Wizard\Canonical_Section_Store;
+use Inc\Wizard\Content_Builder;
+use Inc\Wizard\Internal_Page_Blueprints;
+use Inc\Wizard\Logger;
+use Inc\Wizard\Placeholder_Provenance_Store;
+use Inc\Wizard\State_Manager;
+use Inc\Wizard\Step_Internal_Page_Builder;
+class RMS_Internal_Fake_Builder extends Content_Builder {
+	public function build_page( array $page ): int {
+		$id = absint( $page['id'] ?? 0 ); $GLOBALS['_build_log'][] = $page;
+		if ( $id > 0 && isset( $page['sections'] ) ) { $GLOBALS['_post_meta'][ $id ]['page_sections'] = $page['sections']; }
+		if ( $id > 0 && isset( $page['meta_input']['_wp_page_template'] ) ) { $GLOBALS['_post_meta'][ $id ]['_wp_page_template'] = $page['meta_input']['_wp_page_template']; }
+		return $id;
+	}
+}
+function rms_ipb_assert( $c, string $m ): void { if ( ! $c ) { fwrite( STDERR, $m . "\n" ); exit( 1 ); } }
+function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); }
+function rms_ipb_builder(): Step_Internal_Page_Builder {
+	$l = new Logger(); $s = new State_Manager();
+	return new Step_Internal_Page_Builder( $l, $s, new RMS_Internal_Fake_Builder( $l, $s ), new AI_Content_Harness(), new Canonical_Section_Store() );
+}
+function rms_ipb_seed_about(): void {
+	$GLOBALS['_posts'][12] = new WP_Post( 12 ); $sm = new State_Manager(); $st = $sm->get_state();
+	$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'role' => '' ), array( 'id' => 99, 'slug' => 'home', 'role' => 'home' ) );
+	$sm->save_state( $st );
+}
+$passed = 0;
+$src = file_get_contents( $theme_root . '/inc/wizard/class-step-internal-page-builder.php' );
+rms_ipb_assert( is_string( $src ) && false === strpos( $src, '->replace(' ) && false === strpos( $src, 'acquire_lock' ), 'no replace/lock' );
+echo "PASS source-about-only-no-replace-no-fence-acquire\n"; ++$passed;
+rms_ipb_reset(); $skip = rms_ipb_builder()->run( array( 'skip_all' => true ) );
+rms_ipb_assert( ! is_wp_error( $skip ) && ! empty( $skip['skipped'] ) && array() === $GLOBALS['_build_log'], 'skip-all' );
+echo "PASS skip-all-no-mutation\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about(); $b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $built = $b->run( array( 'action' => 'process' ) );
+$page = $GLOBALS['_build_log'][0];
+rms_ipb_assert( 'complete' === ( $built['status'] ?? '' ) && 'pages/about-us.php' === ( $page['meta_input']['_wp_page_template'] ?? '' ), 'happy path' );
+rms_ipb_assert( array( 'about-us', 'vision-mission-v2' ) === array_column( $page['sections'], 'acf_fc_layout' ), 'layouts' );
+rms_ipb_assert( AI_Content_Harness::PAGE_ABOUT === Internal_Page_Blueprints::all()['about']['page_type'], 'PAGE_ABOUT' );
+echo "PASS about-happy-path-blueprint\n"; ++$passed;
+rms_ipb_reset(); ( new State_Manager() )->save_state( array( 'generated_pages' => array( array( 'id' => 99, 'slug' => 'home', 'role' => 'home' ) ) ) );
+$GLOBALS['_posts'][99] = new WP_Post( 99 ); $missing = rms_ipb_builder()->run( array( 'action' => 'process' ) );
+rms_ipb_assert( array() === $GLOBALS['_build_log'] && ( 'unavailable' === ( $missing['reason'] ?? '' ) || 'skipped' === ( $missing['status'] ?? '' ) ), 'missing shell' );
+echo "PASS missing-shell-not-created\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about(); $c = new Canonical_Section_Store();
+$c->set_if_empty( 'about-us', array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Canonical About' ) ); $before = $c->get( 'about-us' );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( $before === ( new Canonical_Section_Store() )->get( 'about-us' ) && 'Canonical About' === ( $GLOBALS['_build_log'][0]['sections'][0]['about_headline'] ?? '' ), 'canonical copy' );
+echo "PASS canonical-copy-unchanged\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about(); $b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( false === ( new Canonical_Section_Store() )->has( 'about-us' ) && count( ( new Placeholder_Provenance_Store() )->query( 12 ) ) >= 1, 'placeholders' );
+echo "PASS placeholders-provenance-not-canonical\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about();
+$GLOBALS['_post_meta'][12]['page_sections'] = array( array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Editor edit' ) );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['internal_pages']['about'] = array_merge( State_Manager::INTERNAL_PAGE_ENTRY, array( 'post_id' => 12, 'status' => 'complete' ) ); $sm->save_state( $st );
+$noop = rms_ipb_builder()->run( array( 'action' => 'process' ) );
+rms_ipb_assert( array() === $GLOBALS['_build_log'] && 'complete' === ( $noop['status'] ?? '' ) && 'Editor edit' === ( $GLOBALS['_post_meta'][12]['page_sections'][0]['about_headline'] ?? '' ), 'preserve' );
+echo "PASS preserve-edit-and-complete-noop\n"; ++$passed;
+echo 'Harness passed: ' . $passed . " scenarios.\n";
