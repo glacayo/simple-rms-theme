@@ -1,13 +1,13 @@
 <?php
-/*
+/**
  * Template Name: Services
+ *
+ * @package Simple_RMS_Theme
  */
 
 get_header();
-?>
 
-<?php get_template_part('templates/breadcrumb'); ?>
-<?php get_template_part('templates/services-page'); ?>
-<?php get_template_part('templates/cta-v2'); ?>
+get_template_part( 'templates/breadcrumb' );
+get_template_part( 'templates/page-sections-loop' );
 
-<?php get_footer(); ?>
+get_footer();

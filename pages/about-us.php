@@ -1,12 +1,13 @@
 <?php
-/*
+/**
  * Template Name: About Us
+ *
+ * @package Simple_RMS_Theme
  */
 
-get_header(); ?>
+get_header();
 
-<?php get_template_part( 'templates/breadcrumb' ); ?>
-<?php get_template_part('templates/about-us');?>
-<?php get_template_part('templates/vision-mission-v2');?>
+get_template_part( 'templates/breadcrumb' );
+get_template_part( 'templates/page-sections-loop' );
 
-<?php get_footer(); ?>
+get_footer();
