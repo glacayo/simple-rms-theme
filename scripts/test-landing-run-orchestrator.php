@@ -555,6 +555,7 @@ namespace {
 	require_once __DIR__ . '/../inc/wizard/class-yoast-meta-writer.php';
 	require_once __DIR__ . '/../inc/wizard/class-menu-builder.php';
 	require_once __DIR__ . '/../inc/wizard/class-content-builder.php';
+	require_once __DIR__ . '/../inc/wizard/class-section-assembler.php';
 
 	// Stubs for AI/provider classes that are needed but not included.
 	if ( ! class_exists( 'Inc\Wizard\AI_Provider_Registry' ) ) {
