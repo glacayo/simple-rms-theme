@@ -35,8 +35,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Section Assembler Extraction
 
-- [ ] 2.1 Create `inc/wizard/class-section-assembler.php` from identical Home (`:423`)/Landing (`:2158`) assembly logic.
-- [ ] 2.2 Modify `class-step-home-page-builder.php`, `class-step-landing-page-builder.php`: delegate; verify zero diff.
+- [x] 2.1 Create `inc/wizard/class-section-assembler.php` from identical Home (`:423`)/Landing (`:2158`) assembly logic.
+- [x] 2.2 Modify `class-step-home-page-builder.php`, `class-step-landing-page-builder.php`: delegate; verify zero diff.
 
 ## Phase 3: Internal Builder Backend — About
 

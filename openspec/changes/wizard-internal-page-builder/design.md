@@ -2,20 +2,20 @@
 
 ## Technical Approach
 
-One optional 9th step (`internal-page-builder`) drives a static blueprint registry, reusing `Content_Builder::build_page()` in `section_only` mode. Its `META_INPUT_WHITELIST` already accepts `_wp_page_template`, so template assignment needs no builder change, and `page_sections` is already located on `page == all`, so no ACF field or `acf-json` sync is required. Five templates convert to the proven `pages/landing-page.php` loop; `home.php` is added for `page_for_posts`.
+One optional 9th step (`internal-page-builder`) drives a blueprint registry and reuses `Content_Builder::build_page()` in `section_only` mode. Template meta is already whitelisted and `page_sections` already covers `page == all`. Five templates use the landing loop; `home.php` covers `page_for_posts`.
 
 ## Architecture Decisions
 
 | # | Decision | Rejected | Rationale |
 |---|---|---|---|
-| 1 | One `Internal_Page_Blueprints` registry + one `Step_Internal_Page_Builder` | Six builders | Product intent; a Landing clone (~2294 lines) breaks the 400-line budget |
-| 2 | Extract `Section_Assembler` from the identical `section_data`/`placeholder_copy`/`service_rows` pair in Home (`:423`) and Landing (`:2158`); both delegate | Copy a third time | Already byte-identical, so delegation is behavior-preserving and destabilizes neither builder |
-| 3 | Plan in `state.internal_pages`; one page per `process`; plain `execute_step` under the global fence | Clone/parameterize `Landing_Run_Orchestrator` (1042 lines, open verify task 4.1) | One page ≤ Home's existing single-request AI load, so no lease is needed; `response_success_from_status()` already treats `running` as success |
-| 4 | No fence exception: acquire the legacy lock like Home/Generate/IA | Landing's start/process bypass | Bounded work cannot outlive the lock; the existing `finally` releases lock before fence |
-| 5 | Provenance in non-autoloaded option `rms_wizard_placeholder_provenance` | Store in `rms_wizard_state` | Mirrors `Canonical_Section_Store`; `State_Manager`'s `array_replace_recursive` corrupts list data |
-| 6 | Contact map stays chrome outside the loop, gated on `company_google_maps_url` | Invent a map layout | `contact-map` is not one of the 27 `page_sections` layouts; it already renders "Map unavailable" |
-| 7 | Services uses real `services-v1` + `cta-v2`; `services-page` kept but unreferenced | Make the demo ACF-driven | Meets the spec with existing layouts; retaining the file keeps rollback trivial |
-| 8 | Per-page Yoast excluded — no `seo` key passed to `build_page()` | Reuse `Yoast_Meta_Writer` | No approved spec requires it; adding it would silently expand scope |
+| 1 | One `Internal_Page_Blueprints` registry + one `Step_Internal_Page_Builder` | Six builders | Product intent; a Landing clone blows the 400-line budget |
+| 2 | Extract `Section_Assembler` from the Home (`:423`) / Landing (`:2158`) `section_data`/`placeholder_copy`/`service_rows` pair; both delegate | Copy a third time | Semantically equivalent, not byte-identical. Landing lacked Home's no-fillable comment and inlined `(string)` casts in `placeholder_repeater_rows`. Assembler uses the Home form; runtime output is preserved |
+| 3 | Plan in `state.internal_pages`; one page per `process`; plain `execute_step` under the global fence | Clone `Landing_Run_Orchestrator` (1042 lines, open verify 4.1) | One page ≤ Home's AI load, so no lease; `running` already counts as success |
+| 4 | No fence exception: acquire the legacy lock like Home/Generate/IA | Landing start/process bypass | Work cannot outlive the lock; `finally` still releases lock before fence |
+| 5 | Provenance in non-autoloaded option `rms_wizard_placeholder_provenance` | Store in `rms_wizard_state` | Same as canonical store; `array_replace_recursive` corrupts lists |
+| 6 | Contact map stays chrome outside the loop, gated on `company_google_maps_url` | Invent a map layout | Not a `page_sections` layout; already renders "Map unavailable" |
+| 7 | Services uses real `services-v1` + `cta-v2`; `services-page` kept but unreferenced | Make the demo ACF-driven | Existing layouts meet the spec; keep the file for rollback |
+| 8 | Per-page Yoast excluded — no `seo` key passed to `build_page()` | Reuse `Yoast_Meta_Writer` | No approved spec; adding it would expand scope |
 
 ## Data Flow
 
@@ -34,28 +34,26 @@ One optional 9th step (`internal-page-builder`) drives a static blueprint regist
 
 ## File Changes
 
-All PHP classes live in `inc/wizard/`.
-
 | File | Action | Description |
 |---|---|---|
-| `class-internal-page-blueprints.php` | Create | Fixed map: type → template, layouts, `PAGE_*`, canonical policy |
-| `class-step-internal-page-builder.php` | Create | Plan, one-page process, retry, skip-all, legacy/overwrite gates |
-| `class-section-assembler.php` | Create | Shared assembly extracted from Home/Landing |
-| `class-placeholder-provenance-store.php` | Create | Record, query, queue, `sync()`, `is_placeholder_payload()` |
-| `class-step-home-page-builder.php`, `class-step-landing-page-builder.php` | Modify | Delegate to `Section_Assembler` |
-| `class-step-controller.php` | Modify | Step added to `REQUIRED_STEPS` + `DISPATCHABLE_STEPS`, dispatch case |
+| `class-internal-page-blueprints.php` | Create | Type → template, layouts, `PAGE_*`, canonical policy |
+| `class-step-internal-page-builder.php` | Create | Plan, one-page process, retry, skip-all, gates |
+| `class-section-assembler.php` | Create | Shared Home/Landing assembly |
+| `class-placeholder-provenance-store.php` | Create | Record, query, queue, `sync()` |
+| `class-step-home-page-builder.php`, `class-step-landing-page-builder.php` | Modify | Delegate to assembler |
+| `class-step-controller.php` | Modify | `REQUIRED_STEPS` + `DISPATCHABLE_STEPS` + dispatch |
 | `class-state-manager.php` | Modify | `internal_pages` default |
-| `class-step-generate-pages.php` | Modify | Blueprint `_wp_page_template` at shell creation; no sections |
-| `class-ai-content-harness.php` | Modify | Layer 2 for ABOUT/SERVICE/CONTACT/BLOG; add `PAGE_PROJECTS`/`PAGE_TESTIMONIALS` |
-| `wizard-init.php` | Modify | Step label, description, panel; `acf/save_post` → `sync()` |
+| `class-step-generate-pages.php` | Modify | Blueprint template at shell create; no sections |
+| `class-ai-content-harness.php` | Modify | Layer 2 ABOUT/SERVICE/CONTACT/BLOG; add PROJECTS/TESTIMONIALS |
+| `wizard-init.php` | Modify | Step copy; `acf/save_post` → `sync()` |
 | `templates/page-sections-loop.php` | Create | Shared loop partial |
-| `pages/{about-us,services,contact-us,projects}.php` | Modify | Chrome + loop partial |
-| `pages/testimonials.php` | Modify | Repaired valid PHP + loop |
-| `home.php` | Create | Posts-index chrome + WP loop + empty state |
-| `header.php` | Modify | Defer `src/scss/templates/{layout}.scss` from stored rows |
-| `src/ts/admin/wizard.ts`, `src/scss/admin/` | Modify | Step config, cards, re-dispatch, styles |
+| `pages/{about-us,services,contact-us,projects}.php` | Modify | Chrome + loop |
+| `pages/testimonials.php` | Modify | Valid PHP + loop |
+| `home.php` | Create | Index chrome + WP loop + empty state |
+| `header.php` | Modify | Defer layout SCSS from stored rows |
+| `src/ts/admin/wizard.ts`, `src/scss/admin/` | Modify | Step UI |
 
-**CSS strategy**: breadcrumb stays inline critical; `header.php` replaces its hardcoded per-template lists with a loop over the page's stored `page_sections` layouts, deferring `section-{layout}` async — otherwise generated rows render unstyled. No new Vite entry points; per-layout SCSS already exists.
+**CSS**: breadcrumb stays inline critical; `header.php` defers `section-{layout}` from stored rows. No new Vite entry.
 
 ## Interfaces / Contracts
 
@@ -74,30 +72,30 @@ All PHP classes live in `inc/wizard/`.
     'value_hash'=>'sha1', 'written_at'=>'UTC' ] ] ]
 ```
 
-Payload: `{ action: 'start'|'process', skip_all?, retry_failed?, overwrite[], convert_legacy[] }`. Empty `page_sections` plus non-empty `post_content` is `legacy`; unconfirmed → `skipped`. `sync()` runs on `acf/save_post` (priority 20), dropping entries whose current value no longer hashes to `value_hash` — replacement needs no rerun and never touches siblings. `is_placeholder_payload()` gates `set_if_empty()` and factual-context composition, so placeholders never become canonical or client facts.
+Payload: `{ action: 'start'|'process', skip_all?, retry_failed?, overwrite[], convert_legacy[] }`. Empty `page_sections` plus body is `legacy`; unconfirmed → `skipped`. `acf/save_post`(20) `sync()` clears stale hashes. Placeholders never become canonical or client facts.
 
 ## Testing Strategy
 
-No unit runner exists (`testing.runner.available: false`); custom harnesses are the pattern.
+No unit runner; custom harnesses.
 
 | Layer | What | Approach |
 |---|---|---|
-| Unit-equivalent | Blueprint contract, plan transitions, provenance record/query/clear, canonical copy vs first-write | New `tests/wizard-internal-page-builder-harness.php` and `tests/wizard-placeholder-provenance-harness.php`, stubs per `wizard-mutation-fence-harness.php` |
-| Contract | Template assignment, no post generation | Source assertions in the same harness |
-| Integration | Lock release on failure, resume, retry, failure isolation, `running` re-dispatch | Extend `scripts/test-landing-run-orchestrator.php` fakes |
-| Render | Loop order, unknown layout skipped, empty sections/index | `php -l` all templates + manual audit |
+| Unit-equivalent | Blueprint, plan, provenance, canonical copy vs first-write | New builder/provenance harnesses, fence-harness stubs |
+| Contract | Template assignment, no post generation | Source assertions in those harnesses |
+| Integration | Lock release, resume, retry, isolation, `running` re-dispatch | Extend landing-orchestrator fakes |
+| Render | Loop order, unknown layout skip, empty index | `php -l` + manual audit |
 | Types | Admin step flow | `tsc --noEmit` |
 
 ## Threat Matrix
 
-N/A — no shell, subprocess, VCS/PR automation, executable-file classification, or process-integration boundary. All five rows (documentation-like paths, repository selection, commit state, push state, PR commands) are N/A: this adds one REST-dispatched step, already guarded by `manage_options`, nonce, and the mutation fence.
+N/A. REST step already gated by `manage_options`, nonce, and mutation fence.
 
 ## Migration / Rollout
 
-No data migration. Completed sites keep `rms_wizard_completed`; the step is reachable only through `Wizard_Unlock_Controller`, and skip-all satisfies it. Delivery is `force-chained` in ~8 slices under 400 lines: templates → registry/state → About backend → remaining blueprints → Testimonials → `home.php` → admin UI → harness Layer 2 and tests.
+No migration. Completed sites keep `rms_wizard_completed`; unlock + skip-all cover the new step. `force-chained` in ~8 slices under 400 lines.
 
-**Rollback**: revert slices newest-first — drop the step from both step lists, discard `state.internal_pages`, delete the provenance option, restore `pages/*.php`, delete `home.php`. Stored rows are inert once templates revert; the canonical store is never written by a rollback path.
+**Rollback**: newest-first — drop the step, discard `state.internal_pages`, delete provenance, restore `pages/*.php`, delete `home.php`. Canonical store untouched.
 
 ## Open Questions
 
-- [ ] None blocking. Ordering: `wizard-user-friendly-content-flow` and `wizard-landing-page-builder` must archive first — the `wizard-page-generation`, `wizard-canonical-sections`, and `wizard-controlled-unlock` deltas lack a published baseline.
+- [ ] None blocking. Archive sibling content-flow and landing-builder changes first; those deltas lack published baseline.

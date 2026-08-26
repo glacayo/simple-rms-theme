@@ -2,85 +2,108 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Work unit**: PR1 Blueprint Registry & State Shape
+**Latest work unit**: PR2C Landing section-assembler delegation
 **Date**: 2026-08-26
-**Branch**: `feat/internal-page-blueprints` (from `origin/main` @ 552030bc)
 **Delivery**: auto-chain / feature-branch-chain
-**Assigned tasks**: 1.1, 1.2
-**Cumulative**: 2/18 tasks complete
-**Independent validation**: PASS WITH WARNINGS — no production correction. Warning was missing this OpenSpec apply-progress file; resolved by this artifact.
+**Cumulative**: 4/18 tasks complete
+
+Phase 2 was split locally into three chained work units after the full extraction was validated, so each review slice stays under 400 authored lines.
+
+## Local chain
+
+| Unit | Branch | Commit | Base |
+|---|---|---|---|
+| PR2A | `refactor/wizard-section-assembler-core` | `f8e8fc35ea305053c2a3a7ccec852003ebe8cb5c` | `origin/feat/internal-page-builder` `d437909` |
+| PR2B | `refactor/home-section-assembler` | `451e79eac7bbd32f0a675e1ea5573d4dbbe09fed` | PR2A `f8e8fc3` |
+| PR2C | `refactor/landing-section-assembler` | `2f79d3b658f8888581e475dcc1eaca2acea880cc` | PR2B `451e79e` |
+
+Scratch branch `refactor/wizard-section-assembler` remains at `d437909` with the original uncommitted full extraction preserved.
 
 ## Completed Tasks (cumulative)
 
 ### Phase 1: Blueprint Registry & State Shape
-- [x] 1.1 Create `inc/wizard/class-internal-page-blueprints.php`: `all()` map (about/services/contact/projects/testimonials/blog) → template/layouts/`PAGE_*`/canonical-policy.
-- [x] 1.2 Modify `inc/wizard/class-state-manager.php`: add `internal_pages` default (`post_id/layouts/status/reason`); no dispatch-wiring yet.
+- [x] 1.1 Create `inc/wizard/class-internal-page-blueprints.php`
+- [x] 1.2 Modify `inc/wizard/class-state-manager.php`: `internal_pages` default
+
+### Phase 2: Section Assembler Extraction (split)
+- [x] 2.1 Create `inc/wizard/class-section-assembler.php` — delivered in PR2A
+- [x] 2.2 Home + Landing delegate — Home in PR2B, Landing in PR2C
 
 ## Remaining Tasks
 
-- [ ] 2.1–2.2 Section Assembler extraction
-- [ ] 3.1–8.3 later phases (builder, templates, harness L2, UI)
-
-## Files Changed (PR1 production)
-
-| File | Action | What Was Done |
-|------|--------|---------------|
-| `inc/wizard/class-internal-page-blueprints.php` | Created | Static `all()` registry for six internal types |
-| `inc/wizard/class-state-manager.php` | Modified | `INTERNAL_PAGE_ENTRY` shape + `internal_pages` default `[]` |
-
-Production authored diff: **80 lines** (+64 registry, +16 state). Under 400-line budget.
-
-This persistence-only follow-up does not change production bytes, specs, proposal, design, config, or task checkboxes.
+- [ ] 3.1–8.3 later phases
 
 ## Work Unit Evidence (PR1) — independently revalidated
 
 | Evidence | Result |
 |---|---|
-| Focused test command and exact result | PHP lint both touched production files, **2/2 pass**, PHP 8.2.29. `php -l inc/wizard/class-internal-page-blueprints.php` → exit 0, `No syntax errors detected`. `php -l inc/wizard/class-state-manager.php` → exit 0, `No syntax errors detected`. |
-| Runtime harness command/scenario and exact result | **N/A as a new runtime boundary** — original PR1 work unit: `N/A — no runtime`. No REST/step dispatch and no live WordPress. Recorded separately below: existing relevant regression `php tests/wizard-integration-truth-harness.php` → **8 scenarios pass**. |
-| Rollback boundary | Delete `inc/wizard/class-internal-page-blueprints.php`. Revert `INTERNAL_PAGE_ENTRY` and the empty `'internal_pages' => []` default in `inc/wizard/class-state-manager.php`. Home/Landing keys untouched. |
+| Focused test | PHP lint both PR1 production files, **2/2 pass**, PHP 8.2.29 |
+| Runtime harness | **N/A** — no runtime boundary. Existing regression `php tests/wizard-integration-truth-harness.php` → **8 scenarios pass** |
+| Rollback | Delete blueprint registry; revert `INTERNAL_PAGE_ENTRY` and empty `internal_pages` default |
 
-Threat-matrix RED tests: N/A (design threat matrix is N/A).
+## Work Unit Evidence (PR2A)
 
-### Existing relevant regression (not a new PR1 runtime boundary)
+| Evidence | Result |
+|---|---|
+| Diff vs tracker | `inc/wizard/class-section-assembler.php` only; **+169 / −0 = 169** (<400) |
+| Focused test | `php -l inc/wizard/class-section-assembler.php` → exit 0, `No syntax errors detected`, PHP 8.2.29 |
+| Runtime harness | **N/A** — assembler is unused until PR2B/PR2C; no runtime boundary |
+| Rollback | Delete `inc/wizard/class-section-assembler.php` |
 
-- Command: `php tests/wizard-integration-truth-harness.php`
-- Result: 8 scenarios pass
-- Note: this is an existing harness rerun for regression confidence. It does not introduce a runtime boundary for the registry/state-shape slice.
+## Work Unit Evidence (PR2B)
 
-## Blueprint Map (1.1)
+| Evidence | Result |
+|---|---|
+| Diff vs PR2A | `inc/wizard/class-step-home-page-builder.php` only; **+5 / −134 = 139** (<400) |
+| Focused test | `php -l inc/wizard/class-step-home-page-builder.php` → exit 0 |
+| Runtime / equivalence | Home-vs-assembler `section_data` **10/10 PASS**. `php tests/wizard-home-seo-targeting-harness.php` → **9 scenarios pass**, exit 0 |
+| Rollback | Revert Home builder delegation; restore inlined Home assembly methods |
 
-| Type | Template | Layouts | PAGE_* | Canonical |
-|---|---|---|---|---|
-| about | pages/about-us.php | about-us, vision-mission-v2 | PAGE_ABOUT | copy |
-| services | pages/services.php | services-v1, cta-v2 | PAGE_SERVICE | copy |
-| contact | pages/contact-us.php | contact-info | PAGE_CONTACT | copy |
-| projects | pages/projects.php | gallery-grid | PAGE_PROJECTS (string; constant in Phase 7) | copy |
-| testimonials | pages/testimonials.php | testimonials-v1 | PAGE_TESTIMONIALS (string; constant in Phase 7) | copy |
-| blog | home.php | blog-v1 | PAGE_BLOG | copy |
+## Work Unit Evidence (PR2C)
 
-## State Shape (1.2)
+| Evidence | Result |
+|---|---|
+| Diff vs PR2B | `inc/wizard/class-step-landing-page-builder.php` + `scripts/test-landing-run-orchestrator.php` (one require line); **+32 / −158 = 190** (<400) |
+| Focused test | `php -l` Landing builder and landing harness → exit 0 both |
+| Runtime / equivalence | Landing-vs-assembler `section_data` **10/10 PASS**. `php scripts/test-landing-run-orchestrator.php` → **293 passed, 0 failed**. `php tests/wizard-integration-truth-harness.php` → **8 scenarios pass** |
+| Rollback | Revert Landing builder delegation and the one harness loader line |
 
-- `defaults()['internal_pages']` = `[]` (same empty-map pattern as `landing_pages`; avoids `array_replace_recursive` resurrecting pending shells).
-- `State_Manager::INTERNAL_PAGE_ENTRY` = `{ post_id: 0, layouts: [], status: 'pending', reason: '', updated_at: '' }`.
-- No dispatch wiring, no `REQUIRED_STEPS` change, no builder class.
+## Cumulative production parity
+
+These SHA256 values are of the **current working-tree bytes** (Windows checkout may be CRLF). They are **not** Git blob SHA1s. Blob SHA1s identify the committed LF objects and must not be mixed with working-tree SHA256.
+
+Working-tree SHA256 (recomputed 2026-08-26 on `refactor/landing-section-assembler`):
+
+| File | Working-tree SHA256 |
+|---|---|
+| `inc/wizard/class-section-assembler.php` | `3E825526117F03791F6DCF6BC88441AC5770B5E53C11ABC887BB1C10C1F1BB0D` |
+| `inc/wizard/class-step-home-page-builder.php` | `2CB41F318061977D9376B79C34F18F0462E297A61CAAC71B0CB830A1823B41BC` |
+| `inc/wizard/class-step-landing-page-builder.php` | `6583681B223956C15EBF90CAC0F09EFDF21EBB1E54232280D97EAB3514256B98` |
+| `scripts/test-landing-run-orchestrator.php` | `52816E3544265D3D3D1BD549B1EDD4ED950CA319FFFFCAC09219D9C830F65194` |
+
+Committed Git blob SHA1 (`git hash-object` == `HEAD:<path>`, LF in the object store):
+
+| File | Git blob SHA1 |
+|---|---|
+| `inc/wizard/class-section-assembler.php` | `24d1fb0a4a5c3cac48abe7e5da9cc2f8ae6fb389` |
+| `inc/wizard/class-step-home-page-builder.php` | `70d52fdd1f88bbfa7264fffab7204afbd6e1c1db` |
+| `inc/wizard/class-step-landing-page-builder.php` | `8d986cb3c6935a5947f594bb0aadf6cae5f42591` |
+| `scripts/test-landing-run-orchestrator.php` | `e0e3fe3dd2ac92f9030e3958936de804e07f2938` |
+
+Home and orchestrator working-tree SHA256 match the prior record. Assembler and Landing working-tree SHA256 were stale (LF goldens vs CRLF checkout) and are corrected above.
+
+Cumulative vs tracker: **+206 / −292 = 498** across the three slices. Each slice is independently under 400.
 
 ## Deviations from Design
 
-None for assigned scope. Intentional Phase-7 deferral: `PAGE_PROJECTS` / `PAGE_TESTIMONIALS` stored as string identifiers matching future harness constants; existing types use `AI_Content_Harness::PAGE_*`. Blog template is `home.php` per design/exploration (`page_for_posts` ignores `pages/blog.php`).
-
-## Issues Found
-
-Independent validation: **PASS WITH WARNINGS**. No production correction required. Warning (missing OpenSpec apply-progress file) is resolved by this artifact.
+None in product behavior. Constructors unchanged. Assembler is constructed from the existing harness. `placeholder_repeater_rows` Home/Landing were semantically identical; assembler uses the Home form.
 
 ## Workload / PR Boundary
 
-- Mode: chained PR slice (feature-branch-chain)
-- Current work unit: PR1 Blueprint Registry & State Shape
-- Boundary: starts at origin/main; ends after registry + `internal_pages` default. Tracker `feat/internal-page-builder`.
-- Estimated review budget impact: 80 authored production lines (Low for this slice)
-- No commit, push, PR, or issue actions performed.
+- Mode: chained PR slices (feature-branch-chain)
+- No push, PR, issue, merge, amend, or force
+- This apply-progress file is uncommitted on PR2C
 
 ## Status
 
-2/18 tasks complete. PR1 ready for independent SDD verification of this work unit. Next apply batch is Phase 2 (2.1–2.2).
+4/18 tasks complete. PR2A, PR2B, and PR2C are independently ready for read-only validation/publication.
