@@ -2,108 +2,59 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: PR2C Landing section-assembler delegation
+**Latest work unit**: Phase 3 About backend split (PR3A/B/C) + autoload test commit
 **Date**: 2026-08-26
-**Delivery**: auto-chain / feature-branch-chain
-**Cumulative**: 4/18 tasks complete
-
-Phase 2 was split locally into three chained work units after the full extraction was validated, so each review slice stays under 400 authored lines.
+**Delivery**: auto-chain / force-chained
+**Cumulative**: 6/18 tasks complete
 
 ## Local chain
 
-| Unit | Branch | Commit | Base |
+| Unit | Branch | Tip | Parent |
 |---|---|---|---|
-| PR2A | `refactor/wizard-section-assembler-core` | `5d3d99cf3b9cd3832fde86404f0dec41fee9b4b3` | `origin/feat/internal-page-builder` `3d5947fd64b85d79749c902590d72fe21b6c2c52` |
-| PR2B | `refactor/home-section-assembler` | `4c58330979f615f38595105b4aafaf02834c5d4c` | PR2A `5d3d99cf3b9cd3832fde86404f0dec41fee9b4b3` |
-| PR2C | `refactor/landing-section-assembler` | `c0bf57c0c4b9eccfb20c4a04a54c44278aefbf6d` | PR2B `4c58330979f615f38595105b4aafaf02834c5d4c` |
+| PR3A | `feat/internal-page-placeholder-provenance` | `ffe3d957e7d99c90b16447047a87e3a8d20a5fd3` | tracker `4b8b717` |
+| PR3B | `feat/internal-page-about-core` | `842376aefb4976f56ec72f85d54fc3c1e9a9df1d` | PR3A `ffe3d95` |
+| PR3C | `feat/internal-page-about-recovery` | `a3c5b8aad368149093bfa85e5c411454d3563d4a` | PR3B `842376a` |
 
-Scratch branch `refactor/wizard-section-assembler` remains at `d437909` with the original uncommitted full extraction preserved.
+PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
 ## Completed Tasks (cumulative)
 
-### Phase 1: Blueprint Registry & State Shape
-- [x] 1.1 Create `inc/wizard/class-internal-page-blueprints.php`
-- [x] 1.2 Modify `inc/wizard/class-state-manager.php`: `internal_pages` default
-
-### Phase 2: Section Assembler Extraction (split)
-- [x] 2.1 Create `inc/wizard/class-section-assembler.php` — delivered in PR2A
-- [x] 2.2 Home + Landing delegate — Home in PR2B, Landing in PR2C
+- [x] 1.1–1.2 Blueprint registry + `internal_pages` default
+- [x] 2.1–2.2 Section assembler + Home/Landing delegate
+- [x] 3.1 About builder + harness (core PR3B, recovery PR3C). Builder does **not** acquire the mutation fence; Phase 8 controller/dispatch owns it.
+- [x] 3.2 Provenance `record`/`query`/`queue` (PR3A)
 
 ## Remaining Tasks
 
-- [ ] 3.1–8.3 later phases
+- [ ] 4.1–8.3 (5.1 extends existing provenance harness for sync/replacement; 8.2 owns the global fence)
 
-## Work Unit Evidence (PR1) — independently revalidated
-
-| Evidence | Result |
-|---|---|
-| Focused test | PHP lint both PR1 production files, **2/2 pass**, PHP 8.2.29 |
-| Runtime harness | **N/A** — no runtime boundary. Existing regression `php tests/wizard-integration-truth-harness.php` → **8 scenarios pass** |
-| Rollback | Delete blueprint registry; revert `INTERNAL_PAGE_ENTRY` and empty `internal_pages` default |
-
-## Work Unit Evidence (PR2A)
+## Work Unit Evidence (PR3A)
 
 | Evidence | Result |
 |---|---|
-| Diff vs tracker | `inc/wizard/class-section-assembler.php` only; **+169 / −0 = 169** (<400) |
-| Focused test | `php -l inc/wizard/class-section-assembler.php` → exit 0, `No syntax errors detected`, PHP 8.2.29 |
-| Runtime harness | **N/A** — assembler is unused until PR2B/PR2C; no runtime boundary |
-| Rollback | Delete `inc/wizard/class-section-assembler.php` |
+| Diff vs tracker (both commits) | store + harness; **+255 / −0 = 255** |
+| Focused test | `php -l` store and harness, 2/2 pass, PHP 8.2.29 |
+| Runtime | `php tests/wizard-placeholder-provenance-harness.php` → **4 scenarios pass** (record, query-by-page, queue, **autoload=false**) |
+| Rollback | Revert/delete those two files |
 
-## Work Unit Evidence (PR2B)
-
-| Evidence | Result |
-|---|---|
-| Diff vs PR2A | `inc/wizard/class-step-home-page-builder.php` only; **+5 / −134 = 139** (<400) |
-| Focused test | `php -l inc/wizard/class-step-home-page-builder.php` → exit 0 |
-| Runtime / equivalence | Home-vs-assembler `section_data` **10/10 PASS**. `php tests/wizard-home-seo-targeting-harness.php` → **9 scenarios pass**, exit 0 |
-| Rollback | Revert Home builder delegation; restore inlined Home assembly methods |
-
-## Work Unit Evidence (PR2C)
+## Work Unit Evidence (PR3B)
 
 | Evidence | Result |
 |---|---|
-| Diff vs PR2B | `inc/wizard/class-step-landing-page-builder.php` + `scripts/test-landing-run-orchestrator.php` (one require line); **+32 / −158 = 190** (<400) |
-| Focused test | `php -l` Landing builder and landing harness → exit 0 both |
-| Runtime / equivalence | Landing-vs-assembler `section_data` **10/10 PASS**. `php scripts/test-landing-run-orchestrator.php` → **293 passed, 0 failed**. `php tests/wizard-integration-truth-harness.php` → **8 scenarios pass** |
-| Rollback | Revert Landing builder delegation and the one harness loader line |
+| Diff vs PR3A | builder + builder harness; **+400 / −0 = 400** |
+| Runtime | builder harness **7 core scenarios**; Home SEO **9/9** |
+| Rollback | Delete builder + builder harness |
 
-## Cumulative production parity
+## Work Unit Evidence (PR3C)
 
-These SHA256 values are of the **current working-tree bytes** (Windows checkout may be CRLF). They are **not** Git blob SHA1s. Blob SHA1s identify the committed LF objects and must not be mixed with working-tree SHA256.
-
-Working-tree SHA256 (recomputed 2026-08-26 on `refactor/landing-section-assembler`):
-
-| File | Working-tree SHA256 |
+| Evidence | Result |
 |---|---|
-| `inc/wizard/class-section-assembler.php` | `3E825526117F03791F6DCF6BC88441AC5770B5E53C11ABC887BB1C10C1F1BB0D` |
-| `inc/wizard/class-step-home-page-builder.php` | `2CB41F318061977D9376B79C34F18F0462E297A61CAAC71B0CB830A1823B41BC` |
-| `inc/wizard/class-step-landing-page-builder.php` | `6583681B223956C15EBF90CAC0F09EFDF21EBB1E54232280D97EAB3514256B98` |
-| `scripts/test-landing-run-orchestrator.php` | `52816E3544265D3D3D1BD549B1EDD4ED950CA319FFFFCAC09219D9C830F65194` |
+| Diff vs PR3B | **+78 / −13 = 91** |
+| Runtime | builder **10/10**; provenance **4/4**; Home SEO **9/9**; integration **8/8**; Landing **N/A** (shared Home/Landing/assembler untouched) |
+| Rollback | Revert overwrite/convert/retry/fail isolation |
 
-Committed Git blob SHA1 (`git hash-object` == `HEAD:<path>`, LF in the object store):
-
-| File | Git blob SHA1 |
-|---|---|
-| `inc/wizard/class-section-assembler.php` | `24d1fb0a4a5c3cac48abe7e5da9cc2f8ae6fb389` |
-| `inc/wizard/class-step-home-page-builder.php` | `70d52fdd1f88bbfa7264fffab7204afbd6e1c1db` |
-| `inc/wizard/class-step-landing-page-builder.php` | `8d986cb3c6935a5947f594bb0aadf6cae5f42591` |
-| `scripts/test-landing-run-orchestrator.php` | `e0e3fe3dd2ac92f9030e3958936de804e07f2938` |
-
-Home and orchestrator working-tree SHA256 match the prior record. Assembler and Landing working-tree SHA256 were stale (LF goldens vs CRLF checkout) and are corrected above.
-
-Cumulative vs tracker: **+206 / −292 = 498** across the three slices. Each slice is independently under 400.
-
-## Deviations from Design
-
-None in product behavior. Constructors unchanged. Assembler is constructed from the existing harness. `placeholder_repeater_rows` Home/Landing were semantically identical; assembler uses the Home form.
-
-## Workload / PR Boundary
-
-- Mode: chained PR slices (feature-branch-chain)
-- No push, PR, issue, merge, amend, or force
-- This apply-progress file is uncommitted on PR2C
+Production bytes were not changed by the autoload correction (test stub instrumentation only).
 
 ## Status
 
-4/18 tasks complete. PR2A, PR2B, and PR2C are independently ready for read-only validation/publication.
+6/18 complete. PR3A/B/C independently ready for publication. This apply-progress file is recorded on the tracker.

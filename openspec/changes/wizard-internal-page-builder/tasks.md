@@ -40,8 +40,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Internal Builder Backend — About
 
-- [ ] 3.1 Create `inc/wizard/class-step-internal-page-builder.php`: plan-states/one-page-per-process/retry/skip-all/overwrite-gate/fence, About only; add `tests/wizard-internal-page-builder-harness.php`.
-- [ ] 3.2 Create `inc/wizard/class-placeholder-provenance-store.php`: `record/query/queue` (no `sync()` yet).
+- [x] 3.1 Create `inc/wizard/class-step-internal-page-builder.php`: plan-states/one-page-per-process/retry/skip-all/overwrite-gate, About only (global mutation fence is owned by Phase 8 controller/dispatch wiring); add `tests/wizard-internal-page-builder-harness.php`.
+- [x] 3.2 Create `inc/wizard/class-placeholder-provenance-store.php`: `record/query/queue` (no `sync()` yet).
 
 ## Phase 4: Template Conversion (About/Services/Contact/Projects)
 
@@ -51,7 +51,7 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Remaining Backends + Testimonials Repair
 
-- [ ] 5.1 Extend `class-step-internal-page-builder.php` plan/process to Services, Contact, Projects, Testimonials; add `tests/wizard-placeholder-provenance-harness.php`.
+- [ ] 5.1 Extend `class-step-internal-page-builder.php` plan/process to Services, Contact, Projects, Testimonials; extend existing `tests/wizard-placeholder-provenance-harness.php` for later sync/replacement behavior.
 - [ ] 5.2 Modify `pages/testimonials.php`: valid-PHP-opener + loop partial; drop `services-page` reference.
 
 ## Phase 6: Blog Index Chrome
@@ -67,5 +67,5 @@ Chain strategy: feature-branch-chain
 ## Phase 8: Admin UI, Activation, Regression
 
 - [ ] 8.1 Modify `wizard-init.php`, `src/ts/admin/wizard.ts`, `src/scss/admin/wizard.scss`: step label, config, cards, re-dispatch, skip-all.
-- [ ] 8.2 Modify `class-step-controller.php`: add step to `REQUIRED_STEPS`+`DISPATCHABLE_STEPS`+dispatch-case, atomic with 8.1.
+- [ ] 8.2 Modify `class-step-controller.php`: add step to `REQUIRED_STEPS`+`DISPATCHABLE_STEPS`+dispatch-case (owns the global mutation fence), atomic with 8.1.
 - [ ] 8.3 Regression: rerun Home+Landing, diff `page_sections` vs baseline; `php -l` changed PHP; `tsc --noEmit`.
