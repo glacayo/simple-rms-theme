@@ -13,9 +13,9 @@ Phase 2 was split locally into three chained work units after the full extractio
 
 | Unit | Branch | Commit | Base |
 |---|---|---|---|
-| PR2A | `refactor/wizard-section-assembler-core` | `f8e8fc35ea305053c2a3a7ccec852003ebe8cb5c` | `origin/feat/internal-page-builder` `d437909` |
-| PR2B | `refactor/home-section-assembler` | `451e79eac7bbd32f0a675e1ea5573d4dbbe09fed` | PR2A `f8e8fc3` |
-| PR2C | `refactor/landing-section-assembler` | `2f79d3b658f8888581e475dcc1eaca2acea880cc` | PR2B `451e79e` |
+| PR2A | `refactor/wizard-section-assembler-core` | `5d3d99cf3b9cd3832fde86404f0dec41fee9b4b3` | `origin/feat/internal-page-builder` `3d5947fd64b85d79749c902590d72fe21b6c2c52` |
+| PR2B | `refactor/home-section-assembler` | `4c58330979f615f38595105b4aafaf02834c5d4c` | PR2A `5d3d99cf3b9cd3832fde86404f0dec41fee9b4b3` |
+| PR2C | `refactor/landing-section-assembler` | `c0bf57c0c4b9eccfb20c4a04a54c44278aefbf6d` | PR2B `4c58330979f615f38595105b4aafaf02834c5d4c` |
 
 Scratch branch `refactor/wizard-section-assembler` remains at `d437909` with the original uncommitted full extraction preserved.
 
