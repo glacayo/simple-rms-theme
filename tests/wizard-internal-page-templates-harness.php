@@ -128,7 +128,10 @@ rms_tpl_assert( array( 'services-v1', 'cta-v2' ) === $all['services']['layouts']
 rms_tpl_assert( 'pages/contact-us.php' === $all['contact']['template'], 'contact registry template' );
 rms_tpl_assert( 'pages/projects.php' === $all['projects']['template'], 'projects registry template' );
 $ready = \Inc\Wizard\Internal_Page_Blueprints::shell_ready_types();
-rms_tpl_assert( array( 'about', 'services', 'contact', 'projects' ) === $ready && ! in_array( 'testimonials', $ready, true ) && ! in_array( 'blog', $ready, true ), 'shell-ready types' );
+rms_tpl_assert( array( 'about', 'services', 'contact', 'projects', 'testimonials' ) === $ready && ! in_array( 'blog', $ready, true ), 'shell-ready types' );
+$testimonials = file_get_contents( dirname( __DIR__ ) . '/pages/testimonials.php' );
+rms_tpl_assert( is_string( $testimonials ) && 0 === strpos( ltrim( $testimonials ), '<?php' ), 'testimonials php opener' );
+rms_tpl_assert( false === strpos( $testimonials, 'services-page' ) && false !== strpos( $testimonials, 'page-sections-loop' ), 'testimonials uses loop' );
 echo "PASS blueprint-templates-and-shell-ready\n";
 ++$passed;
 
@@ -204,7 +207,8 @@ $by_slug = array();
 foreach ( $spy->calls as $call ) { $by_slug[ (string) ( $call['slug'] ?? '' ) ] = $call; }
 rms_tpl_assert( 'pages/about-us.php' === ( $by_slug['about-us']['meta_input']['_wp_page_template'] ?? '' ), 'about-us slug gets About template' );
 rms_tpl_assert( ! isset( $by_slug['about-us']['sections'] ), 'about shell has no sections key' );
-rms_tpl_assert( ! isset( $by_slug['testimonials']['meta_input']['_wp_page_template'] ) && ! isset( $by_slug['blog']['meta_input']['_wp_page_template'] ) && ! isset( $by_slug['home']['meta_input']['_wp_page_template'] ), 'deferred and unblueprinted' );
+rms_tpl_assert( 'pages/testimonials.php' === ( $by_slug['testimonials']['meta_input']['_wp_page_template'] ?? '' ), 'testimonials shell assigned' );
+rms_tpl_assert( ! isset( $by_slug['blog']['meta_input']['_wp_page_template'] ) && ! isset( $by_slug['home']['meta_input']['_wp_page_template'] ), 'blog and home unblueprinted' );
 echo "PASS generate-pages-runtime-template-and-no-sections\n";
 ++$passed;
 

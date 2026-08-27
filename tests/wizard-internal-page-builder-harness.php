@@ -1,6 +1,7 @@
 <?php
 /**
- * About core builder proofs.
+ * Internal page builder proofs.
+ *
  * Usage: php tests/wizard-internal-page-builder-harness.php
  */
 if ( PHP_SAPI !== 'cli' ) { fwrite( STDERR, "CLI only.\n" ); exit( 1 ); }
@@ -135,7 +136,7 @@ rms_ipb_assert( 'complete' === ( $proc['status'] ?? '' ) && 1 === count( $GLOBAL
 echo "PASS our-company-type-about-generate-and-build\n"; ++$passed;
 rms_ipb_reset(); $GLOBALS['_posts'][12] = new WP_Post( 12 );
 $sm = new State_Manager(); $st = $sm->get_state();
-$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'type' => 'services', 'role' => '' ) ); $sm->save_state( $st );
+$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'type' => 'evil', 'role' => '' ) ); $sm->save_state( $st );
 $coerced = rms_ipb_builder()->run( array( 'action' => 'process' ) );
 rms_ipb_assert( array() === $GLOBALS['_build_log'] && ( 'unavailable' === ( $coerced['reason'] ?? '' ) || 'skipped' === ( $coerced['status'] ?? '' ) ), 'unknown type not coerced' );
 echo "PASS unknown-type-not-coerced\n"; ++$passed;
@@ -145,4 +146,66 @@ $st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about-us', 'role' 
 $b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $legacy_alias = $b->run( array( 'action' => 'process' ) );
 rms_ipb_assert( 'complete' === ( $legacy_alias['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'legacy about-us alias' );
 echo "PASS legacy-about-us-alias\n"; ++$passed;
+rms_ipb_reset();
+foreach ( array( 12 => 'about', 13 => 'services', 14 => 'contact', 15 => 'projects', 16 => 'testimonials' ) as $id => $type ) {
+	$GLOBALS['_posts'][ $id ] = new WP_Post( $id );
+}
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array(
+	array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ),
+	array( 'id' => 13, 'slug' => 'what-we-do', 'type' => 'services' ),
+	array( 'id' => 14, 'slug' => 'contact', 'type' => 'contact' ),
+	array( 'id' => 15, 'slug' => 'our-work', 'type' => 'projects' ),
+	array( 'id' => 16, 'slug' => 'reviews', 'type' => 'testimonials' ),
+);
+$sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) );
+$got = array();
+for ( $i = 0; $i < 5; $i++ ) {
+	$r = $b->run( array( 'action' => 'process' ) );
+	$got[ (string) ( $r['processed'] ?? '' ) ] = $r;
+}
+rms_ipb_assert( array( 'about', 'services', 'contact', 'projects', 'testimonials' ) === array_keys( $got ), 'five types processed' );
+$by_id = array();
+foreach ( $GLOBALS['_build_log'] as $call ) { $by_id[ (int) ( $call['id'] ?? 0 ) ] = $call; }
+rms_ipb_assert( 'pages/services.php' === ( $by_id[13]['meta_input']['_wp_page_template'] ?? '' ), 'services custom slug' );
+rms_ipb_assert( array( 'services-v1', 'cta-v2' ) === array_column( $by_id[13]['sections'] ?? array(), 'acf_fc_layout' ), 'services layouts' );
+rms_ipb_assert( 'pages/contact-us.php' === ( $by_id[14]['meta_input']['_wp_page_template'] ?? '' ), 'contact template' );
+rms_ipb_assert( array( 'gallery-grid' ) === array_column( $by_id[15]['sections'] ?? array(), 'acf_fc_layout' ), 'projects layouts' );
+rms_ipb_assert( 'pages/testimonials.php' === ( $by_id[16]['meta_input']['_wp_page_template'] ?? '' ), 'testimonials template' );
+rms_ipb_assert( array( 'testimonials-v1' ) === array_column( $by_id[16]['sections'] ?? array(), 'acf_fc_layout' ), 'testimonials layouts' );
+echo "PASS remaining-ready-types-and-custom-slugs\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][13] = new WP_Post( 13 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 13, 'slug' => 'services', 'type' => 'services' ) ); $sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+$st = ( new State_Manager() )->get_state();
+rms_ipb_assert( 'skipped' === ( $st['internal_pages']['testimonials']['status'] ?? '' ) && 'unavailable' === ( $st['internal_pages']['testimonials']['reason'] ?? '' ), 'unselected testimonials skipped' );
+$GLOBALS['_build_log'] = array();
+$noop = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( array() === $GLOBALS['_build_log'] && 'complete' === ( $noop['status'] ?? '' ), 'complete is no-op' );
+$over = $b->run( array( 'action' => 'process', 'overwrite' => array( 'services' ) ) );
+rms_ipb_assert( 1 === count( $GLOBALS['_build_log'] ) && 'complete' === ( $over['status'] ?? '' ), 'overwrite services' );
+echo "PASS missing-shell-preserve-overwrite-remaining\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][13] = new WP_Post( 13 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 13, 'slug' => 'services', 'type' => 'services' ) );
+$st['client_data'] = array( 'company_name' => 'Acme', 'company_services' => array( array( 'service_name' => 'Roofing', 'service_short_description' => 'We roof.' ) ) );
+$sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+$prov = ( new Placeholder_Provenance_Store() )->query( 13 );
+rms_ipb_assert( ! isset( $prov['0:services_v1_services'] ), 'company services not placeholder' );
+rms_ipb_assert( isset( $prov['0:services_v1_headline'] ), 'placeholder headline recorded' );
+rms_ipb_reset();
+$GLOBALS['_posts'][12] = new WP_Post( 12 );
+( new Canonical_Section_Store() )->set_if_empty( 'about-us', array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Canonical About' ) );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ) ); $sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+$about_prov = ( new Placeholder_Provenance_Store() )->query( 12 );
+rms_ipb_assert( ! isset( $about_prov['0:about_headline'] ), 'canonical row not recorded' );
+rms_ipb_assert( isset( $about_prov['1:vm_v2_headline'] ), 'non-canonical placeholder recorded' );
+echo "PASS real-facts-not-recorded-as-placeholders\n"; ++$passed;
 echo 'Harness passed: ' . $passed . " scenarios.\n";
