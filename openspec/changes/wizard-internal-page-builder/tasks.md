@@ -61,8 +61,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 7: Harness Layer 2 + Provenance Sync
 
-- [ ] 7.1 Modify `class-ai-content-harness.php`: Layer 2 for `PAGE_ABOUT/SERVICE/CONTACT/BLOG`; add `PAGE_PROJECTS`/`PAGE_TESTIMONIALS`, gallery/item fields blocked.
-- [ ] 7.2 Wire existing `Placeholder_Provenance_Store::sync()` / `is_placeholder_payload()` on `acf/save_post`(20) in `wizard-init.php`; extend `test-landing-run-orchestrator.php` fakes. Do not re-add store methods.
+- [x] 7.1 Modify `class-ai-content-harness.php`: Layer 2 for `PAGE_ABOUT/SERVICE/CONTACT/BLOG`; add `PAGE_PROJECTS`/`PAGE_TESTIMONIALS`, gallery/item fields blocked.
+- [x] 7.2 Wire existing `Placeholder_Provenance_Store::sync()` / `is_placeholder_payload()` on `acf/save_post`(20) in `wizard-init.php`; extend `test-landing-run-orchestrator.php` fakes. Do not re-add store methods.
 
 ## Phase 8: Admin UI, Activation, Regression
 
