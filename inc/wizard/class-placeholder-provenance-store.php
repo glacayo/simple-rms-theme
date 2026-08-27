@@ -132,6 +132,84 @@ final class Placeholder_Provenance_Store {
 	}
 
 	/**
+	 * Register the ACF save adapter. Invoked from wizard-init.php.
+	 */
+	public static function register(): void {
+		\add_action( 'acf/save_post', [ self::class, 'handle_acf_save_post' ], 20, 1 );
+	}
+
+	/**
+	 * `acf/save_post` adapter (priority 20). Never syncs without a complete snapshot.
+	 *
+	 * @param mixed $post_id ACF save target (post ID, "options", "user_n", "term_n").
+	 */
+	public static function handle_acf_save_post( $post_id ): bool {
+		static $running = false;
+		if ( $running ) {
+			return false;
+		}
+		if ( ! is_numeric( $post_id ) ) {
+			return false;
+		}
+		$id = \absint( $post_id );
+		if ( $id <= 0 ) {
+			return false;
+		}
+		if ( \defined( 'DOING_AUTOSAVE' ) && \DOING_AUTOSAVE ) {
+			return false;
+		}
+		if ( function_exists( 'wp_is_post_autosave' ) && \wp_is_post_autosave( $id ) ) {
+			return false;
+		}
+		if ( function_exists( 'wp_is_post_revision' ) && \wp_is_post_revision( $id ) ) {
+			return false;
+		}
+		if ( ! function_exists( 'get_field_object' ) || ! function_exists( 'get_post' ) ) {
+			return false;
+		}
+		$post = \get_post( $id );
+		if ( ! $post || 'page' !== ( $post->post_type ?? '' ) ) {
+			return false;
+		}
+		$sections = self::complete_page_sections_snapshot( $id );
+		if ( null === $sections ) {
+			return false;
+		}
+		$running = true;
+		try {
+			return ( new self() )->sync( $id, $sections );
+		} finally {
+			$running = false;
+		}
+	}
+
+	/**
+	 * Formatted `page_sections` snapshot from a complete ACF field object.
+	 *
+	 * `get_field( 'page_sections' )` returns false for both an empty flexible-content
+	 * value and a failed read. A valid field object with loaded/formatted `value === false`
+	 * is a complete empty snapshot and becomes `[]`. Failed/incomplete reads return null.
+	 *
+	 * @return array<int,array<string,mixed>>|null
+	 */
+	private static function complete_page_sections_snapshot( int $post_id ): ?array {
+		$field = \get_field_object( 'page_sections', $post_id, true, true );
+		if ( ! is_array( $field ) || ! array_key_exists( 'value', $field ) ) {
+			return null;
+		}
+
+		$value = $field['value'];
+		if ( false === $value ) {
+			return [];
+		}
+		if ( ! is_array( $value ) ) {
+			return null;
+		}
+
+		return $value;
+	}
+
+	/**
 	 * Reconcile provenance with a complete `page_sections` snapshot.
 	 *
 	 * Compatible with `acf/save_post` (priority 20). Invalid snapshots are a no-op.
