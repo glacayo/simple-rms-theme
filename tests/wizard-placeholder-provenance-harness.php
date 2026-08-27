@@ -97,4 +97,50 @@ rms_prov_assert( false === $autoload, 'provenance option must be written with au
 echo "PASS provenance-option-autoload-false\n";
 ++$passed;
 
+$store = new Placeholder_Provenance_Store();
+rms_prov_assert( $store->is_placeholder_payload( 'Hello', $store->value_hash( 'Hello' ) ), 'hash matches placeholder' );
+rms_prov_assert( ! $store->is_placeholder_payload( 'Real', $store->value_hash( 'Hello' ) ), 'changed value is not placeholder' );
+$assoc_a = array( 'b' => 1, 'a' => 2 );
+$assoc_b = array( 'a' => 2, 'b' => 1 );
+rms_prov_assert( $store->value_hash( $assoc_a ) === $store->value_hash( $assoc_b ), 'assoc key order stable' );
+rms_prov_assert( $store->value_hash( array( 'x', 'y' ) ) !== $store->value_hash( array( 'y', 'x' ) ), 'list order changes hash' );
+$nested = array( array( 'quote' => 'Hi', 'author' => 'A' ) );
+$store->record( 30, 'testimonials-v1', 0, 'testimonials_v1_items', 'missing_client_fact', $nested );
+$store->record( 30, 'about-us', 1, 'about_headline', 'missing_client_fact', 'Hello' );
+$store->record( 30, 'about-us', 1, 'about_text', 'missing_client_fact', 'Body' );
+$store->record( 31, 'contact-info', 0, 'contact_info_headline', 'missing_client_fact', 'Hi' );
+$reordered = array(
+	array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Hello', 'about_text' => 'Body' ),
+	array( 'acf_fc_layout' => 'testimonials-v1', 'testimonials_v1_items' => $nested ),
+);
+rms_prov_assert( $store->sync( 30, $reordered ), 'reorder sync' );
+$page30 = $store->query( 30 );
+rms_prov_assert( isset( $page30['0:about_headline'] ) && 0 === (int) $page30['0:about_headline']['row'] && isset( $page30['1:testimonials_v1_items'] ) && 1 === (int) $page30['1:testimonials_v1_items']['row'], 'reorder reindexes' );
+$before = $page30;
+rms_prov_assert( $store->sync( 30, $reordered ) && $before === $store->query( 30 ), 'sync idempotent' );
+$inserted = array(
+	array( 'acf_fc_layout' => 'cta-v2', 'cta_v2_headline' => 'New' ),
+	array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Hello', 'about_text' => 'Body' ),
+	array( 'acf_fc_layout' => 'testimonials-v1', 'testimonials_v1_items' => $nested ),
+);
+rms_prov_assert( $store->sync( 30, $inserted ), 'insert sync' );
+$page30 = $store->query( 30 );
+rms_prov_assert( isset( $page30['1:about_headline'] ) && isset( $page30['2:testimonials_v1_items'] ) && 3 === count( $page30 ), 'insert shifts rows' );
+$deleted = array(
+	array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Hello', 'about_text' => 'Body' ),
+);
+rms_prov_assert( $store->sync( 30, $deleted ), 'delete sync' );
+$page30 = $store->query( 30 );
+rms_prov_assert( isset( $page30['0:about_headline'] ) && isset( $page30['0:about_text'] ) && ! isset( $page30['1:testimonials_v1_items'] ) && ! isset( $page30['2:testimonials_v1_items'] ), 'deleted layout cleared' );
+$other = $store->query( 31 );
+rms_prov_assert( isset( $other['0:contact_info_headline'] ), 'other page preserved' );
+$snapshot = $store->query( 30 );
+rms_prov_assert( false === $store->sync( 30, array( 'about_headline' => 'Hello' ) ) && $snapshot === $store->query( 30 ), 'malformed assoc no-op' );
+rms_prov_assert( false === $store->sync( 30, array( 'not-a-row' ) ) && $snapshot === $store->query( 30 ), 'malformed scalar row no-op' );
+rms_prov_assert( $store->sync( 30, array() ) && array() === $store->query( 30 ), 'valid empty snapshot clears page' );
+rms_prov_assert( isset( $store->query( 31 )['0:contact_info_headline'] ), 'empty snapshot is page-scoped' );
+rms_prov_assert( false === ( $GLOBALS['_option_autoloads'][ Placeholder_Provenance_Store::OPTION_KEY ] ?? null ), 'sync keeps autoload false' );
+echo "PASS provenance-sync-reorder-hash-malformed-empty\n";
+++$passed;
+
 echo 'Harness passed: ' . $passed . " scenarios.\n";
