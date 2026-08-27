@@ -174,6 +174,12 @@ if (!function_exists('is_front_page')) {
     }
 }
 
+if (!function_exists('is_home')) {
+    function is_home() {
+        return false;
+    }
+}
+
 if (!function_exists('is_page_template')) {
     function is_page_template($template = '') {
         return false;

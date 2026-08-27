@@ -15,7 +15,7 @@ require_once __DIR__ . '/class-placeholder-provenance-store.php';
 /** Start/process under execute_step. Does not acquire the fence. */
 class Step_Internal_Page_Builder {
 	private const STEP        = 'internal-page-builder';
-	private const READY_TYPES = [ 'about', 'services', 'contact', 'projects', 'testimonials' ];
+	private const READY_TYPES = [ 'about', 'services', 'contact', 'projects', 'testimonials', 'blog' ];
 	private const LEGACY_SLUGS = [
 		'about' => [ 'about', 'about-us' ],
 	];

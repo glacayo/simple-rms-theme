@@ -72,3 +72,33 @@ function rms_template_include_acf_boundary( string $template ): string {
     return $template;
 }
 add_filter( 'template_include', 'rms_template_include_acf_boundary' );
+
+/**
+ * Unique kebab-case `page_sections` layout names stored on a page.
+ *
+ * @return string[]
+ */
+function rms_page_section_layouts( int $post_id ): array {
+	if ( $post_id <= 0 ) {
+		return [];
+	}
+
+	$rows = function_exists( 'get_field' ) ? get_field( 'page_sections', $post_id ) : get_post_meta( $post_id, 'page_sections', true );
+	if ( ! is_array( $rows ) ) {
+		return [];
+	}
+
+	$layouts = [];
+	foreach ( $rows as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$layout = sanitize_key( (string) ( $row['acf_fc_layout'] ?? '' ) );
+		if ( '' === $layout || 1 !== preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $layout ) ) {
+			continue;
+		}
+		$layouts[] = $layout;
+	}
+
+	return array_values( array_unique( $layouts ) );
+}
