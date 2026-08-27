@@ -143,4 +143,24 @@ rms_prov_assert( false === ( $GLOBALS['_option_autoloads'][ Placeholder_Provenan
 echo "PASS provenance-sync-reorder-hash-malformed-empty\n";
 ++$passed;
 
+$dup = new Placeholder_Provenance_Store();
+rms_prov_assert( $dup->record( 40, 'about-us', 0, 'about_headline', 'missing_client_fact', 'Dup' ), 'dup row 0' );
+rms_prov_assert( $dup->record( 40, 'about-us', 1, 'about_headline', 'missing_client_fact', 'Dup' ), 'dup row 1' );
+rms_prov_assert( $dup->record( 41, 'contact-info', 0, 'contact_info_headline', 'missing_client_fact', 'Keep' ), 'other page' );
+rms_prov_assert( 2 === count( $dup->query( 40, 'about_headline' ) ), 'two identical occurrences recorded' );
+$dup_snap = array(
+	array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Replaced' ),
+	array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Dup' ),
+);
+rms_prov_assert( $dup->sync( 40, $dup_snap ), 'dup sync' );
+$page40 = $dup->query( 40 );
+rms_prov_assert( 1 === count( $page40 ) && isset( $page40['1:about_headline'] ) && 1 === (int) $page40['1:about_headline']['row'], 'exactly one occurrence at current row' );
+$q40 = array_values( array_filter( $dup->queue(), static function ( $row ) { return 40 === (int) $row['post_id']; } ) );
+rms_prov_assert( 1 === count( $q40 ) && 'about_headline' === ( $q40[0]['field'] ?? '' ) && 1 === (int) $q40[0]['row'], 'queue has one remaining' );
+rms_prov_assert( isset( $dup->query( 41 )['0:contact_info_headline'] ), 'other page untouched' );
+$after = $dup->query( 40 );
+rms_prov_assert( $dup->sync( 40, $dup_snap ) && $after === $dup->query( 40 ), 'dup sync idempotent' );
+echo "PASS provenance-sync-duplicate-occurrence-multiset\n";
+++$passed;
+
 echo 'Harness passed: ' . $passed . " scenarios.\n";
