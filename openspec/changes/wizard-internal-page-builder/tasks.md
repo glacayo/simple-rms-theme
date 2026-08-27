@@ -45,18 +45,18 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Template Conversion (About/Services/Contact/Projects)
 
-- [ ] 4.1 Create `templates/page-sections-loop.php`; unknown layouts skipped without fatal.
-- [ ] 4.2 Modify `pages/{about-us,services,contact-us,projects}.php` via loop partial.
-- [ ] 4.3 Modify `class-step-generate-pages.php`: assign blueprint `_wp_page_template` at shell-creation; no sections written.
+- [x] 4.1 Create `templates/page-sections-loop.php`; unknown layouts skipped without fatal.
+- [x] 4.2 Modify `pages/{about-us,services,contact-us,projects}.php` via loop partial.
+- [x] 4.3 Modify `class-step-generate-pages.php`: assign blueprint `_wp_page_template` at shell-creation; no sections written.
 
 ## Phase 5: Remaining Backends + Testimonials Repair
 
 - [ ] 5.1 Extend `class-step-internal-page-builder.php` plan/process to Services, Contact, Projects, Testimonials; extend existing `tests/wizard-placeholder-provenance-harness.php` for later sync/replacement behavior.
-- [ ] 5.2 Modify `pages/testimonials.php`: valid-PHP-opener + loop partial; drop `services-page` reference.
+- [ ] 5.2 Modify `pages/testimonials.php`: valid-PHP-opener + loop partial; drop `services-page` reference; enable Testimonials `_wp_page_template` assignment at Generate Pages shell creation.
 
 ## Phase 6: Blog Index Chrome
 
-- [ ] 6.1 Create `home.php`: configurable-chrome + WP-posts-loop + empty-state, zero post writes.
+- [ ] 6.1 Create `home.php`: configurable-chrome + WP-posts-loop + empty-state, zero post writes; enable Blog `_wp_page_template` assignment at Generate Pages shell creation.
 - [ ] 6.2 Modify `header.php`: loop stored `page_sections` layouts (deferred); extend plan to Blog blueprint.
 
 ## Phase 7: Harness Layer 2 + Provenance Sync
