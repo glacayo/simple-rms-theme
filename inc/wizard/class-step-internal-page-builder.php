@@ -1,6 +1,6 @@
 <?php
 /**
- * Wizard internal page builder — About core slice.
+ * Wizard internal page builder — About plus remaining ready types.
  *
  * @package Simple_RMS_Theme
  */
@@ -12,11 +12,13 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/class-section-assembler.php';
 require_once __DIR__ . '/class-placeholder-provenance-store.php';
 
-/** About-only start/process under execute_step. Does not acquire the fence. */
+/** Start/process under execute_step. Does not acquire the fence. */
 class Step_Internal_Page_Builder {
 	private const STEP        = 'internal-page-builder';
-	private const SCOPE_TYPE  = 'about';
-	private const SCOPE_SLUGS = [ 'about', 'about-us' ];
+	private const READY_TYPES = [ 'about', 'services', 'contact', 'projects', 'testimonials' ];
+	private const LEGACY_SLUGS = [
+		'about' => [ 'about', 'about-us' ],
+	];
 	private $logger;
 	private $state_manager;
 	private $content_builder;
@@ -96,7 +98,7 @@ class Step_Internal_Page_Builder {
 	 */
 	private function start( array $payload ): array {
 		$fresh = $this->state_manager->get_state();
-		$plan  = $this->ensure_about_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
+		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$fresh['internal_pages'] = $plan;
 		$this->state_manager->save_state( $fresh );
 		$pending = $this->is_pending( $plan );
@@ -111,23 +113,25 @@ class Step_Internal_Page_Builder {
 	 */
 	private function process( array $payload ): array {
 		$fresh = $this->state_manager->get_state();
-		$plan  = $this->ensure_about_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
-		$entry = is_array( $plan[ self::SCOPE_TYPE ] ?? null ) ? $plan[ self::SCOPE_TYPE ] : null;
+		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
+		$type  = $this->next_actionable_type( $plan, $payload );
 
-		if ( null === $entry ) {
+		if ( null === $type ) {
 			$fresh['internal_pages'] = $plan;
 			$this->state_manager->save_state( $fresh );
 			$this->state_manager->set_step_status( self::STEP, 'complete' );
 
-			return [ 'internal_pages' => $plan, 'status' => 'complete', 'unavailable' => true ];
+			return [ 'internal_pages' => $plan, 'status' => 'complete', 'unavailable' => true, 'reason' => 'unavailable' ];
 		}
 
-		$entry                    = $this->process_about(
+		$entry         = is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : State_Manager::INTERNAL_PAGE_ENTRY;
+		$entry         = $this->process_page(
+			$type,
 			$entry,
-			$this->type_requested( $payload['overwrite'] ?? [], self::SCOPE_TYPE ),
-			$this->type_requested( $payload['convert_legacy'] ?? [], self::SCOPE_TYPE )
+			$this->type_requested( $payload['overwrite'] ?? [], $type ),
+			$this->type_requested( $payload['convert_legacy'] ?? [], $type )
 		);
-		$plan[ self::SCOPE_TYPE ] = $entry;
+		$plan[ $type ] = $entry;
 		$fresh                    = $this->state_manager->get_state();
 		$fresh['internal_pages']  = $plan;
 		$this->state_manager->save_state( $fresh );
@@ -137,7 +141,7 @@ class Step_Internal_Page_Builder {
 
 		return [
 			'internal_pages' => $plan,
-			'processed'      => self::SCOPE_TYPE,
+			'processed'      => $type,
 			'status'         => (string) ( $entry['status'] ?? '' ),
 			'reason'         => (string) ( $entry['reason'] ?? '' ),
 		];
@@ -147,32 +151,35 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,mixed> $state
 	 * @return array<string,array<string,mixed>>
 	 */
-	private function ensure_about_plan( array $state, bool $retry_failed = false ): array {
+	private function ensure_plan( array $state, bool $retry_failed = false ): array {
 		$plan  = is_array( $state['internal_pages'] ?? null ) ? $state['internal_pages'] : [];
-		$shell = $this->find_about_shell( is_array( $state['generated_pages'] ?? null ) ? $state['generated_pages'] : [] );
-		$entry = is_array( $plan[ self::SCOPE_TYPE ] ?? null )
-			? array_merge( State_Manager::INTERNAL_PAGE_ENTRY, $plan[ self::SCOPE_TYPE ] )
-			: State_Manager::INTERNAL_PAGE_ENTRY;
+		$pages = is_array( $state['generated_pages'] ?? null ) ? $state['generated_pages'] : [];
 
-		if ( null === $shell ) {
-			$entry['post_id']         = 0;
-			$entry['status']          = 'skipped';
-			$entry['reason']          = 'unavailable';
-			$entry['updated_at']      = \current_time( 'mysql', true );
-			$plan[ self::SCOPE_TYPE ] = $entry;
+		foreach ( self::READY_TYPES as $type ) {
+			$shell = $this->find_shell( $type, $pages );
+			$entry = is_array( $plan[ $type ] ?? null )
+				? array_merge( State_Manager::INTERNAL_PAGE_ENTRY, $plan[ $type ] )
+				: State_Manager::INTERNAL_PAGE_ENTRY;
 
-			return $plan;
-		}
+			if ( null === $shell ) {
+				$entry['post_id']    = 0;
+				$entry['status']     = 'skipped';
+				$entry['reason']     = 'unavailable';
+				$entry['updated_at'] = \current_time( 'mysql', true );
+				$plan[ $type ]       = $entry;
+				continue;
+			}
 
-		$entry['post_id'] = (int) $shell['id'];
-		if ( $retry_failed && 'failed' === (string) ( $entry['status'] ?? '' ) ) {
-			$entry['status'] = 'pending';
-			$entry['reason'] = '';
+			$entry['post_id'] = (int) $shell['id'];
+			if ( $retry_failed && 'failed' === (string) ( $entry['status'] ?? '' ) ) {
+				$entry['status'] = 'pending';
+				$entry['reason'] = '';
+			}
+			if ( '' === (string) ( $entry['status'] ?? '' ) ) {
+				$entry['status'] = 'pending';
+			}
+			$plan[ $type ] = $entry;
 		}
-		if ( '' === (string) ( $entry['status'] ?? '' ) ) {
-			$entry['status'] = 'pending';
-		}
-		$plan[ self::SCOPE_TYPE ] = $entry;
 
 		return $plan;
 	}
@@ -181,17 +188,19 @@ class Step_Internal_Page_Builder {
 	 * @param array<int,array<string,mixed>> $generated_pages
 	 * @return array{id:int,slug:string}|null
 	 */
-	private function find_about_shell( array $generated_pages ) {
+	private function find_shell( string $want, array $generated_pages ) {
+		$aliases = self::LEGACY_SLUGS[ $want ] ?? [ $want ];
+
 		foreach ( $generated_pages as $page ) {
 			if ( ! is_array( $page ) ) {
 				continue;
 			}
 			$slug = \sanitize_title( (string) ( $page['slug'] ?? '' ) );
 			$type = \sanitize_title( (string) ( $page['type'] ?? '' ) );
-			if ( '' !== $type && self::SCOPE_TYPE !== $type ) {
+			if ( '' !== $type && $want !== $type ) {
 				continue;
 			}
-			if ( '' === $type && ! in_array( $slug, self::SCOPE_SLUGS, true ) ) {
+			if ( '' === $type && ! in_array( $slug, $aliases, true ) ) {
 				continue;
 			}
 			$id = \absint( $page['id'] ?? 0 );
@@ -211,7 +220,7 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,mixed> $entry
 	 * @return array<string,mixed>
 	 */
-	private function process_about( array $entry, bool $overwrite = false, bool $convert = false ): array {
+	private function process_page( string $type, array $entry, bool $overwrite = false, bool $convert = false ): array {
 		$post_id = \absint( $entry['post_id'] ?? 0 );
 		$now     = \current_time( 'mysql', true );
 
@@ -250,9 +259,18 @@ class Step_Internal_Page_Builder {
 			return $entry;
 		}
 
-		$blueprint = Internal_Page_Blueprints::all()[ self::SCOPE_TYPE ];
-		$built     = $this->assemble_about_rows( $blueprint, $post_id );
-		$saved     = $this->content_builder->build_page(
+		$all       = Internal_Page_Blueprints::all();
+		$blueprint = is_array( $all[ $type ] ?? null ) ? $all[ $type ] : null;
+		if ( ! is_array( $blueprint ) ) {
+			$entry['status']     = 'skipped';
+			$entry['reason']     = 'unavailable';
+			$entry['updated_at'] = $now;
+
+			return $entry;
+		}
+
+		$built = $this->assemble_rows( $blueprint, $post_id );
+		$saved = $this->content_builder->build_page(
 			[
 				'id'           => $post_id,
 				'section_only' => true,
@@ -282,7 +300,7 @@ class Step_Internal_Page_Builder {
 	 * @param array{template:string,layouts:array<int,string>,page_type:string,canonical:string} $blueprint
 	 * @return array{rows:array<int,array<string,mixed>>,layouts:array<int,string>}
 	 */
-	private function assemble_about_rows( array $blueprint, int $post_id ): array {
+	private function assemble_rows( array $blueprint, int $post_id ): array {
 		$client  = is_array( $this->state_manager->get_state()['client_data'] ?? null ) ? $this->state_manager->get_state()['client_data'] : [];
 		$rows    = [];
 		$layouts = [];
@@ -301,12 +319,14 @@ class Step_Internal_Page_Builder {
 					continue;
 				}
 			}
-			$count  = $this->harness->has_fillable_fields( $layout ) ? ( 'vision-mission-v2' === $layout ? 3 : 1 ) : 0;
-			$row    = $this->content_builder->prepare_image_fallbacks( $this->section_assembler->section_data( $layout, $client, [], $count ) );
-			$rows[] = $row;
-			foreach ( $this->harness->get_fillable_fields( $layout ) as $field ) {
+			$count        = $this->harness->has_fillable_fields( $layout ) ? ( 'vision-mission-v2' === $layout ? 3 : 1 ) : 0;
+			$placeholders = $this->section_assembler->placeholder_fields( $layout, $client, $count );
+			$row          = $this->content_builder->prepare_image_fallbacks( $this->section_assembler->section_data( $layout, $client, [], $count ) );
+			$rows[]       = $row;
+			foreach ( $placeholders as $field => $_unused ) {
+				$field = (string) $field;
 				if ( isset( $row[ $field ] ) ) {
-					$this->provenance->record( $post_id, $layout, (int) $index, (string) $field, 'missing_client_fact', $row[ $field ] );
+					$this->provenance->record( $post_id, $layout, (int) $index, $field, 'missing_client_fact', $row[ $field ] );
 				}
 			}
 		}
@@ -327,9 +347,46 @@ class Step_Internal_Page_Builder {
 	 * @param array<string,array<string,mixed>> $plan
 	 */
 	private function is_pending( array $plan ): bool {
-		$status = (string) ( ( is_array( $plan[ self::SCOPE_TYPE ] ?? null ) ? $plan[ self::SCOPE_TYPE ] : [] )['status'] ?? '' );
+		return null !== $this->next_pending_type( $plan );
+	}
 
-		return in_array( $status, [ 'pending', 'failed' ], true );
+	/**
+	 * @param array<string,array<string,mixed>> $plan
+	 */
+	private function next_pending_type( array $plan ): ?string {
+		foreach ( self::READY_TYPES as $type ) {
+			$status = (string) ( ( is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : [] )['status'] ?? '' );
+			if ( in_array( $status, [ 'pending', 'failed' ], true ) ) {
+				return $type;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param array<string,array<string,mixed>> $plan
+	 * @param array<string,mixed>               $payload
+	 */
+	private function next_actionable_type( array $plan, array $payload ): ?string {
+		$pending = $this->next_pending_type( $plan );
+		if ( null !== $pending ) {
+			return $pending;
+		}
+
+		foreach ( self::READY_TYPES as $type ) {
+			$entry  = is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : [];
+			$status = (string) ( $entry['status'] ?? '' );
+			$reason = (string) ( $entry['reason'] ?? '' );
+			if ( 'complete' === $status && $this->type_requested( $payload['overwrite'] ?? [], $type ) ) {
+				return $type;
+			}
+			if ( 'skipped' === $status && 'legacy_unconfirmed' === $reason && $this->type_requested( $payload['convert_legacy'] ?? [], $type ) ) {
+				return $type;
+			}
+		}
+
+		return null;
 	}
 
 	/**

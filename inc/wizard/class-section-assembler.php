@@ -55,6 +55,16 @@ final class Section_Assembler {
 		return $section;
 	}
 
+	/**
+	 * Fields produced by placeholder fallback (excludes company_services rows).
+	 *
+	 * @param array<string,mixed> $client_data Wizard client data.
+	 * @return array<string,mixed>
+	 */
+	public function placeholder_fields( string $section_key, array $client_data, int $item_count ): array {
+		return $this->placeholder_copy( $section_key, $client_data, $item_count );
+	}
+
 	private function placeholder_copy( string $section_key, array $client_data, int $item_count ): array {
 		// Layouts with no fillable fields must not produce invented fallback copy.
 		if ( ! $this->harness->has_fillable_fields( $section_key ) ) {
