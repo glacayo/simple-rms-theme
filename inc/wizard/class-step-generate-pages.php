@@ -9,6 +9,8 @@ namespace Inc\Wizard;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-internal-page-blueprints.php';
+
 /**
  * Creates the wizard-selected pages and stores Home/Blog assignments.
  */
@@ -82,15 +84,23 @@ class Step_Generate_Pages {
 				return $this->landing_slug_conflict_error( $slug, (int) $existing->ID );
 			}
 
-			$post_id = $this->content_builder->build_page(
-				[
-					'id'      => $existing ? (int) $existing->ID : 0,
-					'title'   => $page['title'],
-					'slug'    => $slug,
-					'status'  => 'publish',
-					'content' => $this->generate_page_content( $page['title'], $slug, $client_data, $ai_config ),
-				]
-			);
+			$page_def = [
+				'id'      => $existing ? (int) $existing->ID : 0,
+				'title'   => $page['title'],
+				'slug'    => $slug,
+				'status'  => 'publish',
+				'content' => $this->generate_page_content( $page['title'], $slug, $client_data, $ai_config ),
+			];
+
+			$type      = \sanitize_title( (string) ( $page['type'] ?? '' ) );
+			$blueprint = $this->shell_blueprint( $type );
+			if ( is_array( $blueprint ) && ! empty( $blueprint['template'] ) ) {
+				$page_def['meta_input'] = [
+					'_wp_page_template' => (string) $blueprint['template'],
+				];
+			}
+
+			$post_id = $this->content_builder->build_page( $page_def );
 
 			if ( $post_id <= 0 ) {
 				$this->state_manager->set_step_status( self::STEP, 'failed' );
@@ -440,6 +450,21 @@ class Step_Generate_Pages {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Blueprint used at shell creation, or null when the type is not shell-ready.
+	 *
+	 * @return array{template:string,layouts:array<int,string>,page_type:string,canonical:string}|null
+	 */
+	private function shell_blueprint( string $type ) {
+		if ( ! in_array( $type, Internal_Page_Blueprints::shell_ready_types(), true ) ) {
+			return null;
+		}
+
+		$all = Internal_Page_Blueprints::all();
+
+		return is_array( $all[ $type ] ?? null ) ? $all[ $type ] : null;
 	}
 
 	private function available_pages(): array {

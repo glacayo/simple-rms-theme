@@ -108,10 +108,12 @@ class Content_Builder {
 			return 0;
 		}
 
-		$post_id  = (int) $result;
-		$sections = $this->prepare_sections( is_array( $page['sections'] ?? null ) ? $page['sections'] : [] );
+		$post_id = (int) $result;
 
-		$this->save_page_sections( $post_id, $sections );
+		if ( array_key_exists( 'sections', $page ) ) {
+			$sections = $this->prepare_sections( is_array( $page['sections'] ) ? $page['sections'] : [] );
+			$this->save_page_sections( $post_id, $sections );
+		}
 
 		if ( is_array( $page['seo'] ?? null ) ) {
 			$this->yoast_meta_writer->write( $post_id, $page['seo'] );
