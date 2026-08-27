@@ -121,6 +121,12 @@ class Step_Internal_Page_Builder {
 			$this->state_manager->save_state( $fresh );
 			$this->state_manager->set_step_status( self::STEP, 'complete' );
 
+			foreach ( self::READY_TYPES as $ready ) {
+				if ( 'complete' === (string) ( ( is_array( $plan[ $ready ] ?? null ) ? $plan[ $ready ] : [] )['status'] ?? '' ) ) {
+					return [ 'internal_pages' => $plan, 'status' => 'complete' ];
+				}
+			}
+
 			return [ 'internal_pages' => $plan, 'status' => 'complete', 'unavailable' => true, 'reason' => 'unavailable' ];
 		}
 

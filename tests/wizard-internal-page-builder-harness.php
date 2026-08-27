@@ -174,6 +174,8 @@ rms_ipb_assert( 'pages/contact-us.php' === ( $by_id[14]['meta_input']['_wp_page_
 rms_ipb_assert( array( 'gallery-grid' ) === array_column( $by_id[15]['sections'] ?? array(), 'acf_fc_layout' ), 'projects layouts' );
 rms_ipb_assert( 'pages/testimonials.php' === ( $by_id[16]['meta_input']['_wp_page_template'] ?? '' ), 'testimonials template' );
 rms_ipb_assert( array( 'testimonials-v1' ) === array_column( $by_id[16]['sections'] ?? array(), 'acf_fc_layout' ), 'testimonials layouts' );
+$tick = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'complete' === ( $tick['status'] ?? '' ) && empty( $tick['unavailable'] ) && array() === array_column( array_slice( $GLOBALS['_build_log'], 5 ), 'id' ), 'extra process is complete no-op' );
 echo "PASS remaining-ready-types-and-custom-slugs\n"; ++$passed;
 rms_ipb_reset();
 $GLOBALS['_posts'][13] = new WP_Post( 13 );
