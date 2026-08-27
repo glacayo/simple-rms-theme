@@ -61,6 +61,7 @@ class Step_Controller {
 		'ia-generation',
 		'home-page-builder',
 		'landing-page-builder',
+		'internal-page-builder',
 		'unlock',
 		'relock',
 	];
@@ -176,7 +177,7 @@ class Step_Controller {
 			return $fence_owner;
 		}
 
-		$this->mutation_fence_owner = (string) $fence_owner;
+		$this->enter_authorized_mutation_scope( (string) $fence_owner );
 
 		// Orchestrated landing actions keep the per-run lease for run ownership.
 		// The legacy UI state lock is compatibility-only and is not acquired for
@@ -200,10 +201,12 @@ class Step_Controller {
 			}
 		}
 
+		$is_internal_skip_all = 'internal-page-builder' === $step
+			&& $this->payload_is_truthy( $payload['skip_all'] ?? false );
+
 		if ( ! $is_landing_orchestrated ) {
 			if ( ! $this->state_manager->acquire_lock( self::LOCK_NAME ) ) {
-				$mutation_fence->release( (string) $fence_owner );
-				$this->mutation_fence_owner = '';
+				$this->leave_authorized_mutation_scope( $mutation_fence, (string) $fence_owner );
 
 				return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
 			}
@@ -212,12 +215,16 @@ class Step_Controller {
 		}
 
 		$progress_status_written = false;
+		$prior_step_status       = (string) ( $this->state_manager->get_state()['step_status'][ $step ] ?? 'pending' );
+		if ( '' === $prior_step_status ) {
+			$prior_step_status = 'pending';
+		}
 
 		try {
 			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
 			// Landing start/process persist their own run/public state.
 			// Skip-all either 409s without mutation or marks complete itself.
-			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all ) {
+			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all && ! $is_internal_skip_all ) {
 				$this->state_manager->set_current_step( $step );
 				$this->state_manager->set_step_status( $step, 'running' );
 				$progress_status_written = true;
@@ -226,6 +233,10 @@ class Step_Controller {
 			$result = $this->dispatch_step( $step, $payload );
 
 			if ( \is_wp_error( $result ) ) {
+				if ( $progress_status_written && 'internal-page-builder' === $step ) {
+					$this->state_manager->set_step_status( $step, $prior_step_status );
+				}
+
 				return $result;
 			}
 
@@ -296,6 +307,7 @@ class Step_Controller {
 					$this->state_manager->release_lock( self::LOCK_NAME );
 				}
 			} finally {
+				$mutation_fence->clear_agent( (string) $fence_owner );
 				$mutation_fence->release( (string) $fence_owner );
 				$this->mutation_fence_owner = '';
 			}
@@ -437,6 +449,11 @@ class Step_Controller {
 			case 'landing-page-builder':
 				return ( new Step_Landing_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
+			case 'internal-page-builder':
+				$builder = new Step_Internal_Page_Builder( $this->logger, $this->state_manager );
+				$this->authorize_internal_builder( $builder );
+				return $builder->run( $payload );
+
 			case 'unlock':
 				return ( new Wizard_Unlock_Controller( $this->state_manager, $this->logger ) )->unlock();
 
@@ -537,6 +554,29 @@ class Step_Controller {
 		return true === $value || 1 === $value || '1' === $value || 'true' === $value || 'yes' === $value || 'on' === $value;
 	}
 
+	private function enter_authorized_mutation_scope( string $owner ): void {
+		$this->mutation_fence_owner = $owner;
+	}
+
+	private function leave_authorized_mutation_scope( Wizard_Mutation_Fence $fence, string $owner ): void {
+		$fence->clear_agent( $owner );
+		$fence->release( $owner );
+
+		if ( $this->mutation_fence_owner === $owner ) {
+			$this->mutation_fence_owner = '';
+		}
+	}
+
+	private function authorize_internal_builder( Step_Internal_Page_Builder $builder ): void {
+		$owner = $this->mutation_fence_owner;
+		if ( '' === $owner ) {
+			return;
+		}
+
+		$builder->accept_mutation_owner( $owner );
+		( new Wizard_Mutation_Fence() )->authorize_agent( $builder, $owner );
+	}
+
 	private function normalize_step( string $step ): string {
 		$step = \sanitize_key( $step );
 
@@ -550,6 +590,7 @@ class Step_Controller {
 			'menu_setup'        => 'menu-setup',
 			'home_page_builder' => 'home-page-builder',
 			'landing_page_builder' => 'landing-page-builder',
+			'internal_page_builder' => 'internal-page-builder',
 		];
 
 		return $aliases[ $step ] ?? $step;
