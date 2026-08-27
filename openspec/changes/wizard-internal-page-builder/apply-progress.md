@@ -2,10 +2,10 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: PR5B provenance sync on `fix/internal-page-provenance-sync`
+**Latest work unit**: Phase 6 Blog index on `feat/internal-page-blog-index`
 **Date**: 2026-08-27
 **Delivery**: auto-chain / force-chained
-**Cumulative**: 11/18 tasks complete
+**Cumulative**: 13/18 tasks complete
 
 ## Local chain
 
@@ -18,6 +18,7 @@
 | PR4B | `feat/internal-page-template-rendering` | `42dc3f1367b6829907abed709cf30f8ccfb346f2` | PR4A `f697772` |
 | PR5A | `feat/internal-page-remaining-types` | `54f268e71e42985cac6a7438554f5da2b0c8e981` | tracker `85bc1bd` |
 | PR5B | `fix/internal-page-provenance-sync` | `7d1e997f013bc80385cfa8c3fbfd85a07f0c921d` | PR5A `54f268e` |
+| PR6 | `feat/internal-page-blog-index` | uncommitted on tracker `c077e96` | tracker `c077e96` |
 
 PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
@@ -32,10 +33,12 @@ PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify prov
 - [x] 4.3 Generate Pages assigns blueprint `_wp_page_template`; no sections
 - [x] 5.1 Remaining ready types + provenance sync service
 - [x] 5.2 Testimonials template + shell assignment
+- [x] 6.1 `home.php` posts-index chrome + Blog shell assignment
+- [x] 6.2 Header stored-layout assets; builder plan includes Blog
 
 ## Remaining Tasks
 
-- [ ] 6.1–8.3
+- [ ] 7.1–8.3
 
 ## Work Unit Evidence (PR3A)
 
@@ -118,6 +121,19 @@ Regressions: ACF **11/11**; Home SEO **9/9**; integration **8/8**. Landing not r
 
 Scratch: `scratch-phase5-hardened-full`.
 
+## Work Unit Evidence (Phase 6)
+
+| Evidence | Result |
+|---|---|
+| Diff vs tracker `c077e96` (prod+test) | **+265 / −133 = 398** (under 400) |
+| Focused test | `php -l` home.php, blog-v1, loop, header, boundary, blueprints, builder, footer harness, 2 harnesses |
+| Runtime | blog-index **7/7**; template **11/11**; builder **16/16**; footer variants **5/5**; palette **9/9** |
+| Rollback | Delete `home.php` + blog-index harness; revert blog-v1 chrome-only, loop post-id, header internal-template gating, `rms_page_section_layouts()`, Blog `shell_ready_types`/`READY_TYPES`, template harness Blog assertions |
+
+`home.php` reads chrome from `page_for_posts`. `blog-v1.php` is headline + CTA only when both text and URL are non-empty after `esc_url`. Footer harness stubs `is_home()` false. Internal assets load only on ready page templates + `is_home()`. Landing **N/A**.
+
+Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**. Footer **5/5**; palette **9/9**.
+
 ## Status
 
-11/18 complete. PR5A+PR5B local commits. Ready for independent validation.
+13/18 complete. Phase 6 uncommitted on `feat/internal-page-blog-index`, ready for independent validation.

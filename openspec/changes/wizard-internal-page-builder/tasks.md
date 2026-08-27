@@ -24,9 +24,9 @@ Chain strategy: feature-branch-chain
 | 3 | About backend | PR2 | `php -l` x2 | New harness file | Drop step class |
 | 4 | Templates+shell | PR3 | `php -l` x5 | Load pages manually | Revert templates |
 | 5 | Remaining+Testimonials | PR4 | `php -l` x2 | New harness file | Revert extension |
-| 6 | Blog chrome | PR5 | `php -l` x2 | Load index manually | Delete `home.php` |
-| 7 | Harness L2+sync | PR6 | `php -l` x2 | Extended fakes | Revert L2 bodies |
-| 8 | UI+activation+regression | PR7 | `tsc`;`php -l` | Full run manually | Remove step lists |
+| 6 | Blog chrome | PR6 | `php -l` x2 | Load index manually | Delete `home.php` |
+| 7 | Harness L2+sync | PR7 | `php -l` x2 | Extended fakes | Revert L2 bodies |
+| 8 | UI+activation+regression | PR8 | `tsc`;`php -l` | Full run manually | Remove step lists |
 
 ## Phase 1: Blueprint Registry & State Shape
 
@@ -56,8 +56,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 6: Blog Index Chrome
 
-- [ ] 6.1 Create `home.php`: configurable-chrome + WP-posts-loop + empty-state, zero post writes; enable Blog `_wp_page_template` assignment at Generate Pages shell creation.
-- [ ] 6.2 Modify `header.php`: loop stored `page_sections` layouts (deferred); extend plan to Blog blueprint.
+- [x] 6.1 Create `home.php`: configurable-chrome + WP-posts-loop + empty-state, zero post writes; enable Blog `_wp_page_template` assignment at Generate Pages shell creation.
+- [x] 6.2 Modify `header.php`: loop stored `page_sections` layouts (deferred); extend plan to Blog blueprint.
 
 ## Phase 7: Harness Layer 2 + Provenance Sync
 
