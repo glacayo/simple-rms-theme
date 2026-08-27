@@ -112,4 +112,4 @@ $custom = $sel->invoke(
 rms_type_assert( isset( $custom['our-company'] ) && 'about' === $custom['our-company']['type'], 'our-company keeps about type' );
 echo "PASS our-company-explicit-about-type\n";
 
-echo "Harness passed: 6 scenarios.\n";
+echo "Harness passed: 5 scenarios.\n";
