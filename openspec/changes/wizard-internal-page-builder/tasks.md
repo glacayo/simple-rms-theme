@@ -51,8 +51,8 @@ Chain strategy: feature-branch-chain
 
 ## Phase 5: Remaining Backends + Testimonials Repair
 
-- [ ] 5.1 Extend `class-step-internal-page-builder.php` plan/process to Services, Contact, Projects, Testimonials; extend existing `tests/wizard-placeholder-provenance-harness.php` for later sync/replacement behavior.
-- [ ] 5.2 Modify `pages/testimonials.php`: valid-PHP-opener + loop partial; drop `services-page` reference; enable Testimonials `_wp_page_template` assignment at Generate Pages shell creation.
+- [x] 5.1 Extend `class-step-internal-page-builder.php` plan/process to Services, Contact, Projects, Testimonials; extend existing `tests/wizard-placeholder-provenance-harness.php` for later sync/replacement behavior.
+- [x] 5.2 Modify `pages/testimonials.php`: valid-PHP-opener + loop partial; drop `services-page` reference; enable Testimonials `_wp_page_template` assignment at Generate Pages shell creation.
 
 ## Phase 6: Blog Index Chrome
 
@@ -62,7 +62,7 @@ Chain strategy: feature-branch-chain
 ## Phase 7: Harness Layer 2 + Provenance Sync
 
 - [ ] 7.1 Modify `class-ai-content-harness.php`: Layer 2 for `PAGE_ABOUT/SERVICE/CONTACT/BLOG`; add `PAGE_PROJECTS`/`PAGE_TESTIMONIALS`, gallery/item fields blocked.
-- [ ] 7.2 Modify `class-placeholder-provenance-store.php`: add `sync()` + `is_placeholder_payload()`; wire `acf/save_post`(20)-in-`wizard-init.php`; extend `test-landing-run-orchestrator.php` fakes.
+- [ ] 7.2 Wire existing `Placeholder_Provenance_Store::sync()` / `is_placeholder_payload()` on `acf/save_post`(20) in `wizard-init.php`; extend `test-landing-run-orchestrator.php` fakes. Do not re-add store methods.
 
 ## Phase 8: Admin UI, Activation, Regression
 

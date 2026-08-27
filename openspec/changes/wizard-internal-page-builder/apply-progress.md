@@ -2,10 +2,10 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: PR4B template rendering on `feat/internal-page-template-rendering`
-**Date**: 2026-08-26
+**Latest work unit**: PR5B provenance sync on `fix/internal-page-provenance-sync`
+**Date**: 2026-08-27
 **Delivery**: auto-chain / force-chained
-**Cumulative**: 9/18 tasks complete
+**Cumulative**: 11/18 tasks complete
 
 ## Local chain
 
@@ -16,6 +16,8 @@
 | PR3C | `feat/internal-page-about-recovery` | `a3c5b8aad368149093bfa85e5c411454d3563d4a` | PR3B `842376a` |
 | PR4A | `feat/wizard-stable-page-types` | `f69777219aba6004dc3fc92ac7241ced7127692c` | tracker `4ae9ced` |
 | PR4B | `feat/internal-page-template-rendering` | `42dc3f1367b6829907abed709cf30f8ccfb346f2` | PR4A `f697772` |
+| PR5A | `feat/internal-page-remaining-types` | `54f268e71e42985cac6a7438554f5da2b0c8e981` | tracker `85bc1bd` |
+| PR5B | `fix/internal-page-provenance-sync` | `7d1e997f013bc80385cfa8c3fbfd85a07f0c921d` | PR5A `54f268e` |
 
 PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
@@ -28,10 +30,12 @@ PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify prov
 - [x] 4.1 Shared `templates/page-sections-loop.php`
 - [x] 4.2 About/Services/Contact/Projects use the loop
 - [x] 4.3 Generate Pages assigns blueprint `_wp_page_template`; no sections
+- [x] 5.1 Remaining ready types + provenance sync service
+- [x] 5.2 Testimonials template + shell assignment
 
 ## Remaining Tasks
 
-- [ ] 5.1–8.3
+- [ ] 6.1–8.3
 
 ## Work Unit Evidence (PR3A)
 
@@ -86,8 +90,34 @@ Production bytes were not changed by the autoload correction (test stub instrume
 
 Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**.
 
-Scratch preserved: `stash@{0}` `scratch-phase4-corrected-uncommitted`.
+Scratch preserved: `scratch-phase4-corrected-uncommitted`.
+
+## Work Unit Evidence (PR5A)
+
+| Evidence | Result |
+|---|---|
+| Diff vs tracker | **+204 / −60 = 264** |
+| Commit | `54f268e` `feat(wizard): build remaining internal page types` |
+| Runtime | builder **16/16**; template **11/11**; provenance **4/4** (no sync yet) |
+| Rollback | Revert `54f268e` |
+
+Remaining types via `generated_pages[].type`; Testimonials PHP+loop+shell; Blog deferred. `placeholder_fields()` so company_services/canonical facts are not recorded. Landing **293/0**.
+
+## Work Unit Evidence (PR5B)
+
+| Evidence | Result |
+|---|---|
+| Diff vs PR5A | **+216 / −4 = 220** |
+| Commits | `aaae5ad` harden sync; `7d1e997` `test(wizard): cover duplicate placeholder sync` |
+| Runtime | provenance **6/6**; builder **16/16**; template **11/11** |
+| Rollback | Revert `7d1e997` then `aaae5ad` |
+
+Sync matches layout+field+canonical hash (multiset); duplicate identical occurrences consume one remaining row; reorder reindexes; malformed no-op; empty snapshot page-scoped; extra process after complete is complete/no-op. 7.2 wires existing sync.
+
+Regressions: ACF **11/11**; Home SEO **9/9**; integration **8/8**. Landing not re-run on PR5B (assembler unchanged in this slice).
+
+Scratch: `scratch-phase5-hardened-full`.
 
 ## Status
 
-9/18 complete. PR4A+PR4B local commits only. Ready for independent validation.
+11/18 complete. PR5A+PR5B local commits. Ready for independent validation.
