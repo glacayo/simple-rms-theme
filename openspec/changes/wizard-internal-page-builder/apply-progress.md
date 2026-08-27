@@ -2,7 +2,7 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: Phase 7 AI Layer 2 + provenance hook on `feat/internal-page-ai-provenance`
+**Latest work unit**: Phase 7 PR7A #58 + PR7B #59 merged on tracker `ec14fed`
 **Date**: 2026-08-27
 **Delivery**: auto-chain / force-chained
 **Cumulative**: 15/18 tasks complete
@@ -19,7 +19,8 @@
 | PR5A | `feat/internal-page-remaining-types` | `54f268e71e42985cac6a7438554f5da2b0c8e981` | tracker `85bc1bd` |
 | PR5B | `fix/internal-page-provenance-sync` | `7d1e997f013bc80385cfa8c3fbfd85a07f0c921d` | PR5A `54f268e` |
 | PR6 | `feat/internal-page-blog-index` | published on tracker `3d776c6` | tracker `c077e96` |
-| PR7 | `feat/internal-page-ai-provenance` | uncommitted on tracker `3d776c6` | tracker `3d776c6` |
+| PR7A | `feat/internal-page-ai-layer2` | #58 `473c2e991edd389186c89b11827adcf3cbd898e5` merged `12a195587cce307b9fda61efde100d3508597e4b` | tracker `3d776c6` |
+| PR7B | `feat/internal-page-provenance-hook` | #59 `7c8128029e9223d94b8fb52a2772516b533cef70` merged `ec14fed194d4e8018cc326f50201047912634264` | PR7A `473c2e9` |
 
 PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
@@ -141,17 +142,17 @@ Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**. Foot
 
 | Evidence | Result |
 |---|---|
-| Diff vs tracker `3d776c6` (prod+test) | **+442 / −11 = 453** (over 400 — publish as PR7A then PR7B) |
-| PR7A 7.1 AI Layer 2 | **+113 / −10 = 123** — harness, blueprints, `tests/wizard-ai-layer2-harness.php` |
-| PR7B 7.2 provenance hook | **+329 / −1 = 330** — store, wizard-init `register()`, landing fake+runtime register, hook harness |
-| Focused test | `php -l` AI harness, blueprints, provenance store, wizard-init, landing orchestrator, Layer 2 harness, hook harness |
-| Runtime | Layer 2 **5/5**; hook **9/9** (runtime `register()`, empty-save completeness, nested reentrancy); provenance **6/6**; builder **16/16**; templates **11/11**; blog-index **7/7**; Landing **293/0** (bootstrap asserts `register()` via fake `add_action`) |
+| Diff vs tracker `3d776c6` (prod+test) | **+442 / −11 = 453** (over 400 — merged as PR7A then PR7B) |
+| PR7A 7.1 AI Layer 2 | #58 product `473c2e9` merge `12a1955`; **+113 / −10 = 123**/400; 3 files — harness, blueprints, `tests/wizard-ai-layer2-harness.php` |
+| PR7B 7.2 provenance hook | #59 product `7c81280` merge `ec14fed`; **+329 / −1 = 330**/400; 4 files — store, wizard-init `register()`, landing fake+runtime register, hook harness |
+| Focused test | `php -l` **7/7**: AI harness, blueprints, provenance store, wizard-init, landing orchestrator, Layer 2 harness, hook harness |
+| Runtime | Independent revalidation **PASS, no warnings**. Layer 2 **5/5**; hook **9/9** (runtime `register()`, empty-save completeness, nested reentrancy); provenance **6/6**; builder **16/16**; templates **11/11**; blog-index **7/7**; Landing **293/0** (bootstrap asserts `register()` via fake `add_action`) |
 | Rollback | PR7A: revert Layer 2/`PAGE_PROJECTS`/`PAGE_TESTIMONIALS` + delete Layer 2 harness. PR7B: drop `register()`/`handle_acf_save_post()`/`complete_page_sections_snapshot()` + wizard-init call; restore landing require/`add_action` fake; delete hook harness |
 
-`get_layer2()` for Home/Landing is unchanged. Unknown type falls back to `PAGE_HOME` with a warning. Blocked collections stay empty. `wizard-init.php` calls `Placeholder_Provenance_Store::register()` which `add_action( 'acf/save_post', [ self::class, 'handle_acf_save_post' ], 20, 1 )`. Hook and Landing harnesses call that same method through fake `add_action` (no source grep). Valid field object `value === false` → `sync( $id, [] )` once, page-scoped. Read failure/missing value/malformed nonempty/non-page/autosave/revision no-op. Nested `handle_acf_save_post()` during `update_option` persist returns false, one write, no cross-page mutation. Footer/palette **N/A**.
+`get_layer2()` for Home/Landing is unchanged. Unknown type falls back to `PAGE_HOME` with a warning. Blocked collections stay empty. `wizard-init.php` calls `Placeholder_Provenance_Store::register()` which `add_action( 'acf/save_post', [ self::class, 'handle_acf_save_post' ], 20, 1 )`. Hook and Landing harnesses call that same method through fake `add_action` (no source grep). Valid field object `value === false` → `sync( $id, [] )` once, page-scoped. Read failure/missing value/malformed nonempty/non-page/autosave/revision no-op. Nested `handle_acf_save_post()` during `update_option` persist returns false, one write, no cross-page mutation. Independent revalidation proved runtime registration, Landing path, causal reentrancy, and empty-vs-read-failure. Footer/palette **N/A**.
 
 Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**.
 
 ## Status
 
-15/18 complete. Phase 7 uncommitted on `feat/internal-page-ai-provenance`. Combined slice **453** so publish as PR7A (7.1) then PR7B (7.2). Remaining 8.1–8.3.
+15/18 complete. Phase 7 merged on tracker `ec14fed`: PR7A #58 product `473c2e9` merge `12a1955`; PR7B #59 product `7c81280` merge `ec14fed`. Independent revalidation PASS, no warnings. Remaining 8.1–8.3. Phase 8 not started.
