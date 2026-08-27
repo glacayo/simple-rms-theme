@@ -14,14 +14,6 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Internal_Page_Blueprints {
 	/**
-	 * Return the fixed blueprint map keyed by page type.
-	 *
-	 * PAGE_PROJECTS and PAGE_TESTIMONIALS are string identifiers until the harness
-	 * defines those constants. Existing types use AI_Content_Harness page-type constants.
-	 *
-	 * @return array<string,array{template:string,layouts:array<int,string>,page_type:string,canonical:string}>
-	 */
-	/**
 	 * Page types whose `_wp_page_template` may be assigned at Generate Pages shell creation.
 	 * Testimonials wait for Phase 5 template repair; Blog waits for Phase 6 `home.php`.
 	 *
@@ -31,6 +23,14 @@ final class Internal_Page_Blueprints {
 		return [ 'about', 'services', 'contact', 'projects' ];
 	}
 
+	/**
+	 * Return the fixed blueprint map keyed by page type.
+	 *
+	 * PAGE_PROJECTS and PAGE_TESTIMONIALS are string identifiers until the harness
+	 * defines those constants. Existing types use AI_Content_Harness page-type constants.
+	 *
+	 * @return array<string,array{template:string,layouts:array<int,string>,page_type:string,canonical:string}>
+	 */
 	public static function all(): array {
 		return [
 			'about'         => [
