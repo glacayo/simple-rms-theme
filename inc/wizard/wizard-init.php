@@ -101,6 +101,8 @@ if ( Inc\Wizard\Wizard_Unlock_Controller::is_controlled_unlock_enabled() ) {
 }
 add_action( 'admin_post_' . Inc\Wizard\Wizard_Unlock_Controller::RELOCK_ACTION, 'rms_wizard_handle_relock_action' );
 
+Inc\Wizard\Placeholder_Provenance_Store::register();
+
 // Always-loaded Ads landing robots + sitemap protections (front-end + sitemaps).
 add_filter( 'wp_robots', 'rms_wizard_ads_landing_wp_robots' );
 add_filter( 'wp_sitemaps_posts_query_args', 'rms_wizard_exclude_ads_landings_from_wp_sitemap', 10, 2 );
