@@ -117,6 +117,7 @@ class Step_Generate_Pages {
 				'title' => $page['title'],
 				'slug'  => $slug,
 				'role'  => $role,
+				'type'  => \sanitize_title( (string) ( $page['type'] ?? '' ) ),
 			];
 		}
 

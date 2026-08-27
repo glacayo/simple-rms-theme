@@ -13,6 +13,7 @@ if ( ! class_exists( 'WP_Post', false ) ) {
 	class WP_Post { public $ID; public $post_type = 'page'; public $post_content = ''; public function __construct( $id = 0 ) { $this->ID = (int) $id; } }
 }
 $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array();
+$GLOBALS['_next_id'] = 20;
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( preg_replace( '/\s+/', ' ', (string) $s ) ); } }
 if ( ! function_exists( 'sanitize_key' ) ) { function sanitize_key( $k ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $k ) ) ); } }
 if ( ! function_exists( 'sanitize_title' ) ) { function sanitize_title( $v ) { return strtolower( preg_replace( '/[^a-z0-9-]+/', '-', (string) $v ) ); } }
@@ -24,11 +25,15 @@ if ( ! function_exists( 'current_time' ) ) { function current_time( $t, $g = fal
 if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = false ) { return $GLOBALS['_options'][ $n ] ?? $d; } }
 if ( ! function_exists( 'update_option' ) ) { function update_option( $n, $v, $a = null ) { unset( $a ); $GLOBALS['_options'][ $n ] = $v; return true; } }
 if ( ! function_exists( 'get_post' ) ) { function get_post( $id ) { return $GLOBALS['_posts'][ (int) $id ] ?? null; } }
+if ( ! function_exists( 'get_page_by_path' ) ) { function get_page_by_path( $s, $o = null, $t = 'page' ) { unset( $s, $o, $t ); return null; } }
+if ( ! function_exists( 'get_posts' ) ) { function get_posts( $a = array() ) { unset( $a ); return array(); } }
+if ( ! function_exists( 'esc_html' ) ) { function esc_html( $t ) { return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' ); } }
+if ( ! defined( 'OBJECT' ) ) { define( 'OBJECT', 'OBJECT' ); }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k, $s = false ) { unset( $s ); return $GLOBALS['_post_meta'][ (int) $id ][ $k ] ?? ''; } }
 if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $t ) { return $t instanceof WP_Error; } }
 if ( ! function_exists( 'get_template_directory_uri' ) ) { function get_template_directory_uri() { return 'https://example.test/theme'; } }
 if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $v ) { return rtrim( (string) $v, '/\\' ) . '/'; } }
-foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php' ) as $f ) {
+foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php', 'class-step-generate-pages.php' ) as $f ) {
 	require_once $theme_root . '/inc/wizard/' . $f;
 }
 use Inc\Wizard\AI_Content_Harness;
@@ -38,18 +43,21 @@ use Inc\Wizard\Internal_Page_Blueprints;
 use Inc\Wizard\Logger;
 use Inc\Wizard\Placeholder_Provenance_Store;
 use Inc\Wizard\State_Manager;
+use Inc\Wizard\Step_Generate_Pages;
 use Inc\Wizard\Step_Internal_Page_Builder;
 class RMS_Internal_Fake_Builder extends Content_Builder {
 	public function build_page( array $page ): int {
 		if ( ! empty( $GLOBALS['_fail_build'] ) ) { return 0; }
-		$id = absint( $page['id'] ?? 0 ); $GLOBALS['_build_log'][] = $page;
+		$id = absint( $page['id'] ?? 0 );
+		if ( $id <= 0 ) { $GLOBALS['_next_id'] = ( $GLOBALS['_next_id'] ?? 20 ) + 1; $id = $GLOBALS['_next_id']; }
+		$GLOBALS['_build_log'][] = $page;
 		if ( $id > 0 && isset( $page['sections'] ) ) { $GLOBALS['_post_meta'][ $id ]['page_sections'] = $page['sections']; }
 		if ( $id > 0 && isset( $page['meta_input']['_wp_page_template'] ) ) { $GLOBALS['_post_meta'][ $id ]['_wp_page_template'] = $page['meta_input']['_wp_page_template']; }
 		return $id;
 	}
 }
 function rms_ipb_assert( $c, string $m ): void { if ( ! $c ) { fwrite( STDERR, $m . "\n" ); exit( 1 ); } }
-function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); $GLOBALS['_fail_build'] = false; }
+function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); $GLOBALS['_fail_build'] = false; $GLOBALS['_next_id'] = 20; }
 function rms_ipb_builder(): Step_Internal_Page_Builder {
 	$l = new Logger(); $s = new State_Manager();
 	return new Step_Internal_Page_Builder( $l, $s, new RMS_Internal_Fake_Builder( $l, $s ), new AI_Content_Harness(), new Canonical_Section_Store() );
@@ -111,4 +119,30 @@ rms_ipb_assert( 'failed' === ( $fail['status'] ?? '' ) && 'persist_failed' === (
 $GLOBALS['_fail_build'] = false; $retried = $b->run( array( 'action' => 'process', 'retry_failed' => true ) );
 rms_ipb_assert( 'complete' === ( $retried['status'] ?? '' ), 'retry' );
 echo "PASS failure-isolation-and-retry\n"; ++$passed;
+rms_ipb_reset();
+$l = new Logger(); $sm = new State_Manager();
+$gen = new Step_Generate_Pages( $l, $sm, new RMS_Internal_Fake_Builder( $l, $sm ) );
+$out = $gen->run( array( 'pages' => array( 'home' => array( 'type' => 'home', 'slug' => 'home', 'title' => 'Home', 'role' => 'home', 'generate' => true ), 'our-company' => array( 'type' => 'about', 'slug' => 'our-company', 'title' => 'Our Company', 'generate' => true ) ), 'confirm_cleanup' => true ) );
+rms_ipb_assert( ! is_wp_error( $out ), 'generate-pages run' );
+$by = array();
+foreach ( $out['generated_pages'] as $row ) { $by[ (string) $row['slug'] ] = $row; }
+rms_ipb_assert( 'about' === ( $by['our-company']['type'] ?? '' ), 'result type' );
+rms_ipb_assert( 'about' === ( $sm->get_state()['generated_pages'][1]['type'] ?? '' ), 'state type' );
+$GLOBALS['_posts'][ (int) $by['our-company']['id'] ] = new WP_Post( (int) $by['our-company']['id'] );
+$GLOBALS['_build_log'] = array();
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $proc = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'complete' === ( $proc['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'about processes our-company' );
+echo "PASS our-company-type-about-generate-and-build\n"; ++$passed;
+rms_ipb_reset(); $GLOBALS['_posts'][12] = new WP_Post( 12 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'type' => 'services', 'role' => '' ) ); $sm->save_state( $st );
+$coerced = rms_ipb_builder()->run( array( 'action' => 'process' ) );
+rms_ipb_assert( array() === $GLOBALS['_build_log'] && ( 'unavailable' === ( $coerced['reason'] ?? '' ) || 'skipped' === ( $coerced['status'] ?? '' ) ), 'unknown type not coerced' );
+echo "PASS unknown-type-not-coerced\n"; ++$passed;
+rms_ipb_reset(); $GLOBALS['_posts'][12] = new WP_Post( 12 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about-us', 'role' => '' ) ); $sm->save_state( $st );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $legacy_alias = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'complete' === ( $legacy_alias['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'legacy about-us alias' );
+echo "PASS legacy-about-us-alias\n"; ++$passed;
 echo 'Harness passed: ' . $passed . " scenarios.\n";

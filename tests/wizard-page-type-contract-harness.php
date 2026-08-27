@@ -100,15 +100,16 @@ $custom = $sel->invoke(
 	$gp,
 	array(
 		'pages' => array(
-			'our-story' => array(
-				'slug'     => 'our-story',
-				'title'    => 'Our Story',
+			'our-company' => array(
+				'type'     => 'about',
+				'slug'     => 'our-company',
+				'title'    => 'Our Company',
 				'generate' => true,
 			),
 		),
 	)
 );
-rms_type_assert( isset( $custom['our-story'] ) && '' === $custom['our-story']['type'], 'custom page has empty type' );
-echo "PASS custom-page-empty-type\n";
+rms_type_assert( isset( $custom['our-company'] ) && 'about' === $custom['our-company']['type'], 'our-company keeps about type' );
+echo "PASS our-company-explicit-about-type\n";
 
-echo "Harness passed: 5 scenarios.\n";
+echo "Harness passed: 6 scenarios.\n";
