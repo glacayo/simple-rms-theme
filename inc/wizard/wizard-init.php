@@ -522,6 +522,8 @@ function rms_wizard_render_admin_page(): void {
 							<?php rms_wizard_render_home_page_builder_form(); ?>
 						<?php elseif ( 'landing-page-builder' === $slug ) : ?>
 							<?php rms_wizard_render_landing_page_builder_form(); ?>
+						<?php elseif ( 'internal-page-builder' === $slug ) : ?>
+							<?php rms_wizard_render_internal_page_builder_form(); ?>
 						<?php endif; ?>
 
 						<div class="rms-wizard-actions rms-wizard-step-actions">
@@ -1005,6 +1007,64 @@ function rms_wizard_render_landing_page_builder_form(): void {
 				</div>
 			</template>
 		</div>
+	</form>
+	<?php
+}
+
+/**
+ * Render the Internal Page Builder cards. Identity is page type, not slug.
+ *
+ * @return void
+ */
+function rms_wizard_render_internal_page_builder_form(): void {
+	$labels = [
+		'about'         => __( 'About', 'simple-rms-theme' ),
+		'services'      => __( 'Services', 'simple-rms-theme' ),
+		'contact'       => __( 'Contact', 'simple-rms-theme' ),
+		'projects'      => __( 'Projects', 'simple-rms-theme' ),
+		'testimonials'  => __( 'Testimonials', 'simple-rms-theme' ),
+		'blog'          => __( 'Blog', 'simple-rms-theme' ),
+	];
+	$blueprints = [];
+	foreach ( Inc\Wizard\Internal_Page_Blueprints::all() as $type => $blueprint ) {
+		$blueprints[] = [
+			'type'    => $type,
+			'label'   => $labels[ $type ] ?? $type,
+			'layouts' => is_array( $blueprint['layouts'] ?? null ) ? $blueprint['layouts'] : [],
+		];
+	}
+	?>
+	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-internal-page-builder-form>
+		<p class="rms-wizard-fields__intro">
+			<?php esc_html_e( 'Build sections on pages already created in Generate Pages. Resume continues pending pages. Regeneration and legacy conversion need an explicit, confirmed choice and never run from a slug guess.', 'simple-rms-theme' ); ?>
+		</p>
+		<p class="rms-wizard-internal-progress" data-wizard-internal-progress aria-live="polite"></p>
+		<label class="rms-wizard-landing-skip-all">
+			<input type="checkbox" name="skip_all" value="1" data-wizard-internal-skip-all>
+			<span><?php esc_html_e( 'Skip internal pages for now (complete this step without changing pages)', 'simple-rms-theme' ); ?></span>
+		</label>
+		<script type="application/json" data-wizard-internal-blueprints><?php echo wp_json_encode( $blueprints, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+		<div class="rms-wizard-page-rows" data-wizard-internal-cards role="list"></div>
+		<p class="rms-wizard-page-builder__empty" data-wizard-internal-empty><?php esc_html_e( 'No generated internal pages are available yet.', 'simple-rms-theme' ); ?></p>
+		<template data-wizard-internal-card-template>
+			<article class="rms-wizard-page-row rms-wizard-internal-card" role="listitem" data-wizard-internal-card data-wizard-page-type="">
+				<input type="hidden" data-wizard-internal-type value="">
+				<div>
+					<strong data-wizard-internal-label></strong>
+					<small data-wizard-internal-layouts></small>
+				</div>
+				<span data-wizard-internal-status></span>
+				<label class="rms-wizard-internal-card__action" data-wizard-internal-overwrite-wrap hidden>
+					<input type="checkbox" data-wizard-internal-overwrite>
+					<span><?php esc_html_e( 'Regenerate this page', 'simple-rms-theme' ); ?></span>
+				</label>
+				<label class="rms-wizard-internal-card__action" data-wizard-internal-convert-wrap hidden>
+					<input type="checkbox" data-wizard-internal-convert>
+					<span><?php esc_html_e( 'Convert legacy content on this page', 'simple-rms-theme' ); ?></span>
+				</label>
+				<a class="button-link" data-wizard-internal-edit hidden><?php esc_html_e( 'Edit page', 'simple-rms-theme' ); ?></a>
+			</article>
+		</template>
 	</form>
 	<?php
 }

@@ -553,6 +553,21 @@
   min-height: 32px;
 }
 
+.rms-wizard-internal-card {
+  grid-template-columns: minmax(160px, 1fr) auto minmax(180px, auto) auto;
+}
+
+.rms-wizard-internal-card__action {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.rms-wizard-internal-progress {
+  min-height: 1.4em;
+  margin: 0 0 8px;
+}
+
 .rms-wizard-page-builder__empty {
   padding: 16px;
   margin: 0;

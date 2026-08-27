@@ -48,6 +48,7 @@ interface GeneratedPage {
   title?: string;
   slug?: string;
   role?: string;
+  type?: string;
 }
 
 interface LandingPageState {
@@ -160,6 +161,13 @@ interface WizardState {
     configured_at?: string;
   };
   generated_pages?: GeneratedPage[];
+  internal_pages?: Record<string, {
+    post_id?: number;
+    layouts?: string[];
+    status?: string;
+    reason?: string;
+    updated_at?: string;
+  }>;
   home_seo_targeting?: {
     enabled?: boolean;
     primary_keyword?: string;
@@ -287,6 +295,10 @@ declare global {
     'landing-page-builder': {
       message: 'Replacing canonical reusable sections overwrites shared copy used by future landings. This cannot be undone.',
       checkboxMessage: 'Confirm replace canonical before overwriting shared reusable sections.',
+    },
+    'internal-page-builder': {
+      message: 'Regenerating or converting a page replaces its current content. Edited ACF fields on unselected pages are kept. This cannot be undone.',
+      checkboxMessage: 'Confirm regeneration or conversion for the selected internal pages.',
     },
   };
 
@@ -458,6 +470,99 @@ declare global {
     });
   };
 
+  const hydrateInternalPageCards = (): void => {
+    const form = root.querySelector<HTMLFormElement>('[data-wizard-internal-page-builder-form]');
+    const list = form?.querySelector<HTMLElement>('[data-wizard-internal-cards]');
+    const empty = form?.querySelector<HTMLElement>('[data-wizard-internal-empty]');
+    const template = form?.querySelector<HTMLTemplateElement>('[data-wizard-internal-card-template]');
+    const progress = form?.querySelector<HTMLElement>('[data-wizard-internal-progress]');
+    const raw = form?.querySelector<HTMLScriptElement>('[data-wizard-internal-blueprints]')?.textContent ?? '[]';
+
+    if (!form || !list || !template) {
+      return;
+    }
+
+    let blueprints: Array<{ type: string; label: string; layouts: string[] }> = [];
+    try {
+      blueprints = JSON.parse(raw) as Array<{ type: string; label: string; layouts: string[] }>;
+    } catch {
+      blueprints = [];
+    }
+
+    const plan = state.internal_pages ?? {};
+    const pages = Array.isArray(state.generated_pages) ? state.generated_pages : [];
+    list.replaceChildren();
+    let visible = 0;
+    let pending = 0;
+    let complete = 0;
+
+    blueprints.forEach((blueprint) => {
+      const entry = plan[blueprint.type] ?? {};
+      const postId = Number(entry.post_id ?? 0);
+      const generated = pages.find((page) => (page.type || '') === blueprint.type);
+      if (!generated && postId <= 0 && !entry.status) {
+        return;
+      }
+
+      const node = template.content.firstElementChild?.cloneNode(true);
+      if (!(node instanceof HTMLElement)) {
+        return;
+      }
+
+      visible += 1;
+      const status = String(entry.status ?? (generated ? 'pending' : 'skipped'));
+      if (status === 'pending' || status === 'failed') {
+        pending += 1;
+      }
+      if (status === 'complete') {
+        complete += 1;
+      }
+
+      node.dataset.wizardPageType = blueprint.type;
+      const typeInput = node.querySelector<HTMLInputElement>('[data-wizard-internal-type]');
+      const labelNode = node.querySelector('[data-wizard-internal-label]');
+      const layoutNode = node.querySelector('[data-wizard-internal-layouts]');
+      const statusNode = node.querySelector('[data-wizard-internal-status]');
+      const overwriteWrap = node.querySelector<HTMLElement>('[data-wizard-internal-overwrite-wrap]');
+      const convertWrap = node.querySelector<HTMLElement>('[data-wizard-internal-convert-wrap]');
+      const editLink = node.querySelector<HTMLAnchorElement>('[data-wizard-internal-edit]');
+
+      if (typeInput) {
+        typeInput.value = blueprint.type;
+      }
+      if (labelNode) {
+        labelNode.textContent = blueprint.label;
+      }
+      if (layoutNode) {
+        layoutNode.textContent = (Array.isArray(entry.layouts) && entry.layouts.length > 0 ? entry.layouts : blueprint.layouts).join(', ');
+      }
+      if (statusNode) {
+        const reason = String(entry.reason ?? '');
+        statusNode.textContent = reason && status !== 'complete' ? `${status} (${reason})` : status;
+      }
+      if (overwriteWrap) {
+        overwriteWrap.hidden = status !== 'complete';
+      }
+      if (convertWrap) {
+        convertWrap.hidden = !(status === 'skipped' && String(entry.reason ?? '') === 'legacy_unconfirmed');
+      }
+      if (editLink) {
+        const canEdit = postId > 0;
+        editLink.hidden = !canEdit;
+        editLink.href = canEdit ? `post.php?post=${postId}&action=edit` : '#';
+      }
+
+      list.append(node);
+    });
+
+    if (empty) {
+      empty.hidden = visible > 0;
+    }
+    if (progress) {
+      progress.textContent = visible > 0 ? `${complete} of ${visible} internal pages complete` : '';
+    }
+  };
+
   const render = (options?: { replaceHomeSeo?: boolean }): void => {
     const nextStep = state.current_step && steps.some((step) => step.slug === state.current_step)
       ? state.current_step
@@ -469,6 +574,7 @@ declare global {
     hydrateLandingRowsFromState();
     renderLandingReplaceOptions();
     renderLandingRunProgressFromState();
+    hydrateInternalPageCards();
     syncGuidedControlState();
     setActiveStep(nextStep);
     updateNav();
@@ -598,6 +704,65 @@ declare global {
     setNotice(summary, 'error');
   };
 
+  const runInternalPageBuilderStep = async (payload: StepPayload, intent: LandingClientIntent): Promise<void> => {
+    const step = 'internal-page-builder';
+
+    if (payload.skip_all) {
+      const skipped = await request<StepResponse>(`steps/${step}/run`, {
+        method: 'POST',
+        body: JSON.stringify({ skip_all: true }),
+      }, 1);
+
+      if (skipped.state) {
+        state = skipped.state;
+      }
+
+      setStepResult(step, skipped.result ?? skipped);
+      applyStepOutcomePresentation(step, skipped, 'Internal pages skipped without changing pages.');
+      return;
+    }
+
+    const startResponse = await request<StepResponse>(`steps/${step}/run`, {
+      method: 'POST',
+      body: JSON.stringify({
+        ...payload,
+        action: 'start',
+        retry_failed: intent === 'retry',
+      }),
+    }, 1);
+
+    if (startResponse.state) {
+      state = startResponse.state;
+    }
+
+    hydrateInternalPageCards();
+    let guard = 0;
+    let lastResponse = startResponse;
+
+    while (statusFor(step) === 'running' && guard < 8) {
+      guard += 1;
+      setStepActionStatus(step, 'Building the next internal page...', 'info');
+      const processed = await request<StepResponse>(`steps/${step}/run`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...payload,
+          action: 'process',
+          retry_failed: false,
+        }),
+      }, 1);
+
+      lastResponse = processed;
+
+      if (processed.state) {
+        state = processed.state;
+      }
+
+      hydrateInternalPageCards();
+    }
+
+    applyStepOutcomePresentation(step, lastResponse);
+  };
+
   const runStep = async (step: string, intent: LandingClientIntent = 'run'): Promise<void> => {
     runningStep = step;
     setActiveStep(step);
@@ -651,6 +816,12 @@ declare global {
           return;
         }
 
+        return;
+      }
+
+      if (step === 'internal-page-builder') {
+        await runInternalPageBuilderStep(payload, intent);
+        persisted = true;
         return;
       }
 
@@ -1145,6 +1316,10 @@ declare global {
       return collectLandingPageBuilderPayload(form);
     }
 
+    if (step === 'internal-page-builder') {
+      return collectInternalPageBuilderPayload(form);
+    }
+
     return collectFormPayload(form);
   };
 
@@ -1305,7 +1480,45 @@ declare global {
     };
   };
 
+  const collectInternalPageBuilderPayload = (form: HTMLFormElement): StepPayload => {
+    if (form.querySelector<HTMLInputElement>('[data-wizard-internal-skip-all]')?.checked) {
+      return { skip_all: true };
+    }
+
+    const overwrite: string[] = [];
+    const convertLegacy: string[] = [];
+
+    form.querySelectorAll<HTMLElement>('[data-wizard-internal-card]').forEach((card) => {
+      const type = card.dataset.wizardPageType || card.querySelector<HTMLInputElement>('[data-wizard-internal-type]')?.value || '';
+      if (!type) {
+        return;
+      }
+      if (card.querySelector<HTMLInputElement>('[data-wizard-internal-overwrite]')?.checked) {
+        overwrite.push(type);
+      }
+      if (card.querySelector<HTMLInputElement>('[data-wizard-internal-convert]')?.checked) {
+        convertLegacy.push(type);
+      }
+    });
+
+    return {
+      overwrite,
+      convert_legacy: convertLegacy,
+    };
+  };
+
   const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
+    if (step === 'internal-page-builder') {
+      const overwrite = Array.isArray(payload.overwrite) ? payload.overwrite : [];
+      const convertLegacy = Array.isArray(payload.convert_legacy) ? payload.convert_legacy : [];
+      if (overwrite.length === 0 && convertLegacy.length === 0) {
+        return true;
+      }
+
+      const warning = destructiveWarnings[step];
+      return openConfirmationModal(warning.message);
+    }
+
     if (step === 'landing-page-builder') {
       const replaceMap = (payload.replace_canonical ?? {}) as Record<string, boolean>;
       const needsReplaceConfirm = Object.values(replaceMap).some(Boolean);
