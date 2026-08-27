@@ -9,8 +9,11 @@ import {
 } from './landing-run-helpers';
 import {
   applyApiKeyInputSafety,
+  buildGeneratePagePayloadItem,
   presentStepOutcome,
+  sanitizeWizardPageType,
   summarizeDependencyResult,
+  type GeneratePagePayloadItem,
 } from './wizard-helpers';
 import {
   applyHomeSeoTargetingUi,
@@ -95,6 +98,7 @@ interface WizardPageTemplate {
   slug?: string;
   description?: string;
   role?: string;
+  type?: string;
 }
 
 interface HomeSectionTemplate {
@@ -138,12 +142,7 @@ interface LandingPayloadItem {
   sections: LandingSectionPayload[];
 }
 
-interface PagePayloadItem {
-  slug: string;
-  title: string;
-  generate: boolean;
-  role: string;
-}
+type PagePayloadItem = GeneratePagePayloadItem;
 
 interface WizardState {
   current_step?: string;
@@ -1183,7 +1182,12 @@ declare global {
       const isBlog = Boolean(row.querySelector<HTMLInputElement>('[data-wizard-page-blog]')?.checked);
       const role = isBlog ? 'blog' : (isHome ? 'home' : '');
 
-      pages[slug] = { slug, title: rawTitle, generate: true, role };
+      pages[slug] = buildGeneratePagePayloadItem({
+        slug,
+        title: rawTitle,
+        role,
+        type: row.dataset.wizardPageType ?? '',
+      });
       selectedSlugs.push(slug);
 
       if (isHome) {
@@ -2152,6 +2156,8 @@ declare global {
       slugInput.value = slug;
       slugInput.dataset.wizardSlugAuto = '1';
     }
+
+    row.dataset.wizardPageType = sanitizeWizardPageType(data.type ?? '');
 
     rows.append(row);
     updatePageRowRadioValues(row);

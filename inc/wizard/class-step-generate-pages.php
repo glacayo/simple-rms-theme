@@ -117,6 +117,7 @@ class Step_Generate_Pages {
 				'title' => $page['title'],
 				'slug'  => $slug,
 				'role'  => $role,
+				'type'  => \sanitize_title( (string) ( $page['type'] ?? '' ) ),
 			];
 		}
 
@@ -173,13 +174,38 @@ class Step_Generate_Pages {
 				continue;
 			}
 
+			$type = $this->resolve_page_type( $config, is_string( $key ) ? $key : '', $slug, $available );
+
 			$selected[ $slug ] = [
-				'title' => \sanitize_text_field( (string) ( $config['title'] ?? $available[ $slug ] ?? ucwords( str_replace( '-', ' ', $slug ) ) ) ),
+				'title' => \sanitize_text_field( (string) ( $config['title'] ?? $available[ $type ] ?? $available[ $slug ] ?? ucwords( str_replace( '-', ' ', $slug ) ) ) ),
 				'role'  => \sanitize_key( (string) ( $config['role'] ?? '' ) ),
+				'type'  => $type,
 			];
 		}
 
 		return $selected;
+	}
+
+	/**
+	 * Prefer a valid explicit type; ignore unknown types; fall back to legacy keys/slugs.
+	 *
+	 * @param array<string,mixed>      $config    Page payload item.
+	 * @param array<string,string>     $available Catalog keyed by immutable type.
+	 */
+	private function resolve_page_type( array $config, string $key, string $slug, array $available ): string {
+		$explicit = \sanitize_title( (string) ( $config['type'] ?? '' ) );
+
+		if ( '' !== $explicit && isset( $available[ $explicit ] ) ) {
+			return $explicit;
+		}
+
+		$from_key = \sanitize_title( $key );
+
+		if ( '' !== $from_key && isset( $available[ $from_key ] ) ) {
+			return $from_key;
+		}
+
+		return isset( $available[ $slug ] ) ? $slug : '';
 	}
 
 	private function resolve_roles( array $pages, array $payload ) {

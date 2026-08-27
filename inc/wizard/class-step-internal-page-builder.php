@@ -187,8 +187,11 @@ class Step_Internal_Page_Builder {
 				continue;
 			}
 			$slug = \sanitize_title( (string) ( $page['slug'] ?? '' ) );
-			$type = \sanitize_key( (string) ( $page['type'] ?? '' ) );
-			if ( self::SCOPE_TYPE !== $type && ! in_array( $slug, self::SCOPE_SLUGS, true ) ) {
+			$type = \sanitize_title( (string) ( $page['type'] ?? '' ) );
+			if ( '' !== $type && self::SCOPE_TYPE !== $type ) {
+				continue;
+			}
+			if ( '' === $type && ! in_array( $slug, self::SCOPE_SLUGS, true ) ) {
 				continue;
 			}
 			$id = \absint( $page['id'] ?? 0 );

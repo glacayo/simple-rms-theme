@@ -569,6 +569,7 @@ function rms_wizard_render_generate_pages_form(): void {
 			'title'       => $page['title'],
 			'description' => $page['description'],
 			'role'        => 'home' === $slug || 'blog' === $slug ? $slug : '',
+			'type'        => $slug,
 		];
 	}
 	?>
@@ -603,7 +604,7 @@ function rms_wizard_render_generate_pages_form(): void {
 			</label>
 
 			<template data-wizard-page-row-template>
-				<article class="rms-wizard-page-row" role="listitem" data-wizard-page-row>
+				<article class="rms-wizard-page-row" role="listitem" data-wizard-page-row data-wizard-page-type="">
 					<div class="rms-wizard-field rms-wizard-page-row__title">
 						<label for="rms-wizard-page-title-__INDEX__"><?php esc_html_e( 'Page title', 'simple-rms-theme' ); ?></label>
 						<input id="rms-wizard-page-title-__INDEX__" type="text" name="pages[__INDEX__][title]" data-wizard-page-title placeholder="<?php esc_attr_e( 'Services', 'simple-rms-theme' ); ?>">
