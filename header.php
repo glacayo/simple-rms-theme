@@ -72,22 +72,17 @@
         }
     }
 
-    // Internal page: About Us — breadcrumb above the fold
-    if (is_page_template('pages/about-us.php')) {
-        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
+    // Wizard internal templates with stored page_sections (not Thank You/default/landing).
+    $rms_internal_templates = ['pages/about-us.php', 'pages/services.php', 'pages/contact-us.php', 'pages/projects.php', 'pages/testimonials.php'];
+    if (is_page_template($rms_internal_templates)) {
+        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-internal');
+        foreach (rms_page_section_layouts((int) get_queried_object_id()) as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
     }
 
-    // Internal page: Services — breadcrumb + services section (below the fold, deferred)
-    if (is_page_template('pages/services.php')) {
-        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
-        $vite->get_deferred_style('section-services-page', 'src/scss/templates/services-page.scss');
-        $vite->get_deferred_style('section-cta-v2', 'src/scss/templates/cta-v2.scss');
-    }
-
-    // Internal page: Projects / Gallery — breadcrumb + gallery grid + lightbox
+    // Projects lightbox is not a page_sections layout.
     if (is_page_template('pages/projects.php')) {
-        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
-        $vite->get_deferred_style('section-gallery-grid', 'src/scss/templates/gallery-grid.scss');
         $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
         $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
         if ($lightbox_js) {
@@ -95,10 +90,8 @@
         }
     }
 
-    // Internal page: Contact Us — breadcrumb + contact info + contact map
+    // Contact map chrome sits outside the flexible loop.
     if (is_page_template('pages/contact-us.php')) {
-        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
-        $vite->get_deferred_style('section-contact-info', 'src/scss/templates/contact-info.scss');
         $vite->get_deferred_style('section-contact-map', 'src/scss/templates/contact-map.scss');
     }
 
@@ -110,8 +103,16 @@
         $vite->get_deferred_style('section-blog-v1', 'src/scss/templates/blog-v1.scss');
     }
 
-    // Internal page: Blog — breadcrumb + blog listing
-    if (is_page_template('pages/blog.php')) {
+    // Posts index (`page_for_posts` → home.php). Ignore pages/blog.php page templates.
+    if (is_home() && !is_front_page()) {
+        echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-blog-index');
+        foreach (rms_page_section_layouts((int) get_option('page_for_posts')) as $section) {
+            $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+    }
+
+    // Regular page using the leftover Blog template (not the posts index).
+    if (is_page_template('pages/blog.php') && !is_home()) {
         echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-about-us');
         $vite->get_deferred_style('section-blog-listing', 'src/scss/templates/blog-listing.scss');
     }

@@ -15,12 +15,11 @@ defined( 'ABSPATH' ) || exit;
 final class Internal_Page_Blueprints {
 	/**
 	 * Page types whose `_wp_page_template` may be assigned at Generate Pages shell creation.
-	 * Blog waits for Phase 6 `home.php`.
 	 *
 	 * @return string[]
 	 */
 	public static function shell_ready_types(): array {
-		return [ 'about', 'services', 'contact', 'projects', 'testimonials' ];
+		return [ 'about', 'services', 'contact', 'projects', 'testimonials', 'blog' ];
 	}
 
 	/**

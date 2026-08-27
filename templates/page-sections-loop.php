@@ -7,12 +7,27 @@
 
 defined( 'ABSPATH' ) || exit;
 
+$rms_sections_post_id = 0;
+if ( isset( $args ) && is_array( $args ) ) {
+	$rms_sections_post_id = \absint( $args['post_id'] ?? 0 );
+}
+if ( $rms_sections_post_id <= 0 && function_exists( 'get_query_var' ) ) {
+	$rms_sections_post_id = \absint( get_query_var( 'rms_page_sections_post_id' ) );
+}
+$rms_acf_id = $rms_sections_post_id > 0 ? $rms_sections_post_id : false;
+
 $acf_available = function_exists( 'have_rows' )
 	&& function_exists( 'the_row' )
 	&& function_exists( 'get_row_layout' )
 	&& function_exists( 'get_sub_field' );
 
 if ( ! $acf_available ) {
+	if ( $rms_sections_post_id > 0 ) {
+		echo '<div class="internal-page internal-page--acf-missing">';
+		echo '<header class="internal-page__header"><h1 class="internal-page__title">' . esc_html( get_the_title( $rms_sections_post_id ) ) . '</h1></header>';
+		echo '</div>';
+		return;
+	}
 	if ( function_exists( 'have_posts' ) && have_posts() ) {
 		echo '<main id="main" class="internal-page internal-page--acf-missing">';
 		while ( have_posts() ) {
@@ -30,11 +45,11 @@ if ( ! $acf_available ) {
 	return;
 }
 
-if ( ! have_rows( 'page_sections' ) ) {
+if ( ! have_rows( 'page_sections', $rms_acf_id ) ) {
 	return;
 }
 
-while ( have_rows( 'page_sections' ) ) {
+while ( have_rows( 'page_sections', $rms_acf_id ) ) {
 	the_row();
 	$layout = get_row_layout();
 
