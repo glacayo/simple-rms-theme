@@ -25,8 +25,8 @@ final class Internal_Page_Blueprints {
 	/**
 	 * Return the fixed blueprint map keyed by page type.
 	 *
-	 * PAGE_PROJECTS and PAGE_TESTIMONIALS are string identifiers until the harness
-	 * defines those constants. Existing types use AI_Content_Harness page-type constants.
+	 * All types use AI_Content_Harness page-type constants, including PAGE_PROJECTS
+	 * and PAGE_TESTIMONIALS.
 	 *
 	 * @return array<string,array{template:string,layouts:array<int,string>,page_type:string,canonical:string}>
 	 */
@@ -53,13 +53,13 @@ final class Internal_Page_Blueprints {
 			'projects'      => [
 				'template'  => 'pages/projects.php',
 				'layouts'   => [ 'gallery-grid' ],
-				'page_type' => 'PAGE_PROJECTS',
+				'page_type' => AI_Content_Harness::PAGE_PROJECTS,
 				'canonical' => 'copy',
 			],
 			'testimonials'  => [
 				'template'  => 'pages/testimonials.php',
 				'layouts'   => [ 'testimonials-v1' ],
-				'page_type' => 'PAGE_TESTIMONIALS',
+				'page_type' => AI_Content_Harness::PAGE_TESTIMONIALS,
 				'canonical' => 'copy',
 			],
 			'blog'          => [
