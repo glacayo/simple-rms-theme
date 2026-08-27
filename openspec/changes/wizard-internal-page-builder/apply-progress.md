@@ -2,10 +2,10 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: Phase 7 PR7A #58 + PR7B #59 merged on tracker `ec14fed`
+**Latest work unit**: Phase 8 packaging — 4-PR safe chain with 8-case hidden dispatch vs 2-case REQUIRED_STEPS delta
 **Date**: 2026-08-27
 **Delivery**: auto-chain / force-chained
-**Cumulative**: 15/18 tasks complete
+**Cumulative**: 18/18 tasks complete
 
 ## Local chain
 
@@ -21,6 +21,7 @@
 | PR6 | `feat/internal-page-blog-index` | published on tracker `3d776c6` | tracker `c077e96` |
 | PR7A | `feat/internal-page-ai-layer2` | #58 `473c2e991edd389186c89b11827adcf3cbd898e5` merged `12a195587cce307b9fda61efde100d3508597e4b` | tracker `3d776c6` |
 | PR7B | `feat/internal-page-provenance-hook` | #59 `7c8128029e9223d94b8fb52a2772516b533cef70` merged `ec14fed194d4e8018cc326f50201047912634264` | PR7A `473c2e9` |
+| PR8 | `feat/internal-page-builder-activation` | uncommitted on tracker `c5b02eb` | tracker `c5b02eb` |
 
 PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
@@ -39,10 +40,13 @@ PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify prov
 - [x] 6.2 Header stored-layout assets; builder plan includes Blog
 - [x] 7.1 Layer 2 for About/Services/Contact/Blog + `PAGE_PROJECTS`/`PAGE_TESTIMONIALS`; blocked gallery/item fields
 - [x] 7.2 `Placeholder_Provenance_Store::register()` on `acf/save_post`(20, args 1); field-object empty-save completeness; runtime reentrancy
+- [x] 8.1 Internal Page Builder step UI: cards by stable type, skip-all, overwrite/convert confirmation, edit link
+- [x] 8.2 Controller `REQUIRED_STEPS`+`DISPATCHABLE_STEPS`+dispatch; fence owned by `execute_step`
+- [x] 8.3 Identity mismatch rejected; failed pages do not block next pending; step stays incomplete while any page is failed; Home/Landing regression
 
 ## Remaining Tasks
 
-- [ ] 8.1–8.3
+- None. Do not archive until independent validation.
 
 ## Work Unit Evidence (PR3A)
 
@@ -153,6 +157,34 @@ Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**. Foot
 
 Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**.
 
+## Work Unit Evidence (Phase 8)
+
+| Evidence | Result |
+|---|---|
+| Diff vs tracker `c5b02eb` (prod+test, exclude OpenSpec) | controller **+47/−6=53**; builder **+121/−16=137**; fence **+82/−1=83**; wizard-init **+62/−0=62**; SCSS **+15/−0=15**; TS **+214/−0=214**; builder harness **+155/−8=163**; bootstrap **185**; activation harness **135**; required-step harness **45**; UI harness **103**. **Total 1195** |
+| Focused test | `php -l` controller, builder, fence, wizard-init, bootstrap, activation, required-step, UI, builder harnesses; `tsc --noEmit` **0** |
+| Runtime | builder **19/19**; activation **8/8** (hidden dispatch, independent of REQUIRED_STEPS); required-step **2/2**; UI **2/2**; fence **4/4**; Layer 2 **5/5**; hook **9/9**; provenance **6/6**; templates **11/11**; blog **7/7**; Landing **293/0**; ACF **11/11**; Home SEO **9/9**; integration **8/8** |
+
+Activation tests that need the ninth required step live only in `tests/wizard-internal-page-required-step-harness.php`. The 8-case activation harness must pass on both the PR8B tree (8 required steps) and the final tree (9 required steps).
+
+### Safe 4-PR chain (feature-branch-chain from `c5b02eb`)
+
+Do **not** add `internal-page-builder` to `REQUIRED_STEPS` or to the wizard `$steps` / client `steps` arrays before PR8D.
+
+| PR | Base | Files / hunks | +/− | Churn | Intermediate | Command | Rollback |
+|---|---|---|---|---|---|---|---|
+| **PR8A** | tracker `c5b02eb` | `class-step-internal-page-builder.php`, `class-wizard-mutation-fence.php`, `tests/wizard-internal-page-builder-harness.php` | 121/16 + 82/1 + 155/8 | **383** | Builder is inert: no REST dispatch, `complete()` still 8 steps | `php tests/wizard-internal-page-builder-harness.php` → **19/19** | revert those 3 |
+| **PR8B** | PR8A | `class-step-controller.php` **excluding** the REQUIRED_STEPS comment rewrite and `'internal-page-builder'` array element (**+45/−4=49**); `tests/wizard-internal-page-activation-bootstrap.php` (**185**); `tests/wizard-internal-page-activation-harness.php` (**135**) | 45/4 + 185/0 + 135/0 | **369** | Hidden `execute_step('internal-page-builder')`; not in REQUIRED_STEPS; `complete()` still 8 steps; capability + REST nonce + completed `423` | `php tests/wizard-internal-page-activation-harness.php` → **8/8**; `php tests/wizard-mutation-fence-harness.php` → **4/4** | revert controller hunk; delete bootstrap + activation harness |
+| **PR8C** | PR8B | `wizard-init.php` **excluding** `$steps`/`$descriptions` keys (**+60/−0**); `wizard.ts` **excluding** the `steps` array entry (**+213/−0**); `wizard.scss` (**+15/−0**); `tests/wizard-internal-page-ui-harness.php` (**103**) | 60+213+15+103 | **391** | Form renderer + TS helpers + SCSS exist; sidebar/`steps` array omit the ninth slug so it is not in the normal sequence; `complete()` still 8 steps; UI harness calls the form renderer directly | `php tests/wizard-internal-page-ui-harness.php` → **2/2**; `npx tsc --noEmit` → **0**; activation **8/8** still | revert those 4 files |
+| **PR8D** | PR8C | REQUIRED_STEPS comment+element (**+2/−2=4**); wizard-init `$steps`+`$descriptions` keys (**+2/−0**); TS `steps` array entry (**+1/−0**); `tests/wizard-internal-page-required-step-harness.php` (**45**) | 2/2 + 2/0 + 1/0 + 45/0 | **52** | Ninth step required and visible together; explicit Complete proven | `php tests/wizard-internal-page-required-step-harness.php` → **2/2**; activation **8/8**; UI **2/2** | revert those 4 hunks/files |
+
+Hunk map (practical `git add -p`):
+- PR8B controller: take DISPATCHABLE entry, skip-all flag, identity status restore, `case 'internal-page-builder'`, alias, `authorize_internal_builder`. Leave the REQUIRED_STEPS comment and `'internal-page-builder',` element for PR8D.
+- PR8C wizard-init: take `rms_wizard_render_internal_page_builder_form()` and the `elseif ( 'internal-page-builder' === $slug )` branch. Leave the two `$steps` / `$descriptions` keys for PR8D.
+- PR8C `wizard.ts`: take helpers, `runStep` branch, `collectPayload`. Leave `{ slug: 'internal-page-builder', label: 'Internal Page Builder' }` for PR8D.
+
+Newest-first rollback: PR8D → PR8C → PR8B → PR8A.
+
 ## Status
 
-15/18 complete. Phase 7 merged on tracker `ec14fed`: PR7A #58 product `473c2e9` merge `12a1955`; PR7B #59 product `7c81280` merge `ec14fed`. Independent revalidation PASS, no warnings. Remaining 8.1–8.3. Phase 8 not started.
+18/18 complete. Phase 8 uncommitted on `feat/internal-page-builder-activation` @ tracker `c5b02eb`. Combined prod+test **1195**. Ready for independent packaging validation. No archive.

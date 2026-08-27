@@ -66,6 +66,6 @@ Chain strategy: feature-branch-chain
 
 ## Phase 8: Admin UI, Activation, Regression
 
-- [ ] 8.1 Modify `wizard-init.php`, `src/ts/admin/wizard.ts`, `src/scss/admin/wizard.scss`: step label, config, cards, re-dispatch, skip-all.
-- [ ] 8.2 Modify `class-step-controller.php`: add step to `REQUIRED_STEPS`+`DISPATCHABLE_STEPS`+dispatch-case (owns the global mutation fence), atomic with 8.1.
-- [ ] 8.3 Regression: rerun Home+Landing, diff `page_sections` vs baseline; `php -l` changed PHP; `tsc --noEmit`.
+- [x] 8.1 Modify `wizard-init.php`, `src/ts/admin/wizard.ts`, `src/scss/admin/wizard.scss`: step label, config, cards, re-dispatch, skip-all.
+- [x] 8.2 Modify `class-step-controller.php`: add step to `REQUIRED_STEPS`+`DISPATCHABLE_STEPS`+dispatch-case (owns the global mutation fence), atomic with 8.1.
+- [x] 8.3 Regression: rerun Home+Landing, diff `page_sections` vs baseline; `php -l` changed PHP; `tsc --noEmit`.
