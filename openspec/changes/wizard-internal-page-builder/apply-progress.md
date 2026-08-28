@@ -2,7 +2,7 @@
 
 **Change**: wizard-internal-page-builder
 **Mode**: Standard (`strict_tdd: false`)
-**Latest work unit**: Phase 8 packaging — 4-PR safe chain with 8-case hidden dispatch vs 2-case REQUIRED_STEPS delta
+**Latest work unit**: Phase 8 PR8A #60 + PR8B #61 + PR8C #62 + PR8D #63 merged on tracker `7296d1f`
 **Date**: 2026-08-27
 **Delivery**: auto-chain / force-chained
 **Cumulative**: 18/18 tasks complete
@@ -21,7 +21,10 @@
 | PR6 | `feat/internal-page-blog-index` | published on tracker `3d776c6` | tracker `c077e96` |
 | PR7A | `feat/internal-page-ai-layer2` | #58 `473c2e991edd389186c89b11827adcf3cbd898e5` merged `12a195587cce307b9fda61efde100d3508597e4b` | tracker `3d776c6` |
 | PR7B | `feat/internal-page-provenance-hook` | #59 `7c8128029e9223d94b8fb52a2772516b533cef70` merged `ec14fed194d4e8018cc326f50201047912634264` | PR7A `473c2e9` |
-| PR8 | `feat/internal-page-builder-activation` | uncommitted on tracker `c5b02eb` | tracker `c5b02eb` |
+| PR8A | `feat/internal-page-builder-core` | #60 `e00977e0df22a70f5fa2bb53b17a2fcc33815869` merged `d2a02903f5c6ff063daf38a15e41207f56fca907` | tracker `c5b02eb` |
+| PR8B | `feat/internal-page-builder-controller` | #61 `84c40d1e62afb826447339dc0192314d3e6d1e82` merged `d18b0b2e6931e33f9173075cb801ced4a46d3703` | PR8A `e00977e` |
+| PR8C | `feat/internal-page-builder-ui` | #62 `7a921173de2b5f55a7b5af5a3c6f39ba586e3f66` merged `eed44ace018db2c8057df83655c9ed335928ba84` | PR8B `84c40d1` |
+| PR8D | `feat/internal-page-builder-activation-final` | #63 `818845e1e4a087fbf8bf459171e2b8021f9d18cd` merged `7296d1f150a976e8927c6004ebb8d349d63a2f09` | PR8C `7a92117` |
 
 PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify provenance option autoload` (no amend).
 
@@ -46,7 +49,7 @@ PR3A commits: `303c90d` store+harness, then `ffe3d95` `test(wizard): verify prov
 
 ## Remaining Tasks
 
-- None. Do not archive until independent validation.
+- None. Independent product+packaging validation PASS, no warnings. Do not archive.
 
 ## Work Unit Evidence (PR3A)
 
@@ -161,15 +164,19 @@ Regressions: ACF-inactive **11/11**; Home SEO **9/9**; integration **8/8**.
 
 | Evidence | Result |
 |---|---|
-| Diff vs tracker `c5b02eb` (prod+test, exclude OpenSpec) | controller **+47/−6=53**; builder **+121/−16=137**; fence **+82/−1=83**; wizard-init **+62/−0=62**; SCSS **+15/−0=15**; TS **+214/−0=214**; builder harness **+155/−8=163**; bootstrap **185**; activation harness **135**; required-step harness **45**; UI harness **103**. **Total 1195** |
+| Diff vs tracker `c5b02eb` (prod+test, exclude OpenSpec) | controller **+47/−6=53**; builder **+121/−16=137**; fence **+82/−1=83**; wizard-init **+62/−0=62**; SCSS **+15/−0=15**; TS **+214/−0=214**; builder harness **+155/−8=163**; bootstrap **185**; activation harness **135**; required-step harness **45**; UI harness **103**. **Total 1195** (merged as PR8A–PR8D) |
+| PR8A invariants | #60 product `e00977e` merge `d2a0290`; **383**/400; 3 files — builder, fence, builder harness |
+| PR8B hidden dispatch | #61 product `84c40d1` merge `d18b0b2`; **369**/400; 3 files — controller (no REQUIRED_STEPS ninth), activation bootstrap, activation harness |
+| PR8C dormant UI | #62 product `7a92117` merge `eed44ac`; **391**/400; 4 files — wizard-init (no `$steps`/`$descriptions` keys), wizard.ts (no `steps` entry), wizard.scss, UI harness |
+| PR8D atomic activation | #63 product `818845e` merge `7296d1f`; **52**/400; 4 files — REQUIRED_STEPS ninth, wizard-init `$steps`+`$descriptions`, TS `steps` entry, required-step harness |
 | Focused test | `php -l` controller, builder, fence, wizard-init, bootstrap, activation, required-step, UI, builder harnesses; `tsc --noEmit` **0** |
-| Runtime | builder **19/19**; activation **8/8** (hidden dispatch, independent of REQUIRED_STEPS); required-step **2/2**; UI **2/2**; fence **4/4**; Layer 2 **5/5**; hook **9/9**; provenance **6/6**; templates **11/11**; blog **7/7**; Landing **293/0**; ACF **11/11**; Home SEO **9/9**; integration **8/8** |
+| Runtime | Independent product+packaging validation **PASS, no warnings**. builder **19/19**; activation **8/8**; required-step **2/2**; UI **2/2**; fence **4/4**; `tsc --noEmit` **0**; Layer 2 **5/5**; hook **9/9**; provenance **6/6**; templates **11/11**; Blog **7/7**; Landing **293/0**; ACF **11/11**; Home SEO **9/9**; integration **8/8**. Live visual admin boundary remains Local 502/untrusted HTTPS (external; not claimed passed). |
 
 Activation tests that need the ninth required step live only in `tests/wizard-internal-page-required-step-harness.php`. The 8-case activation harness must pass on both the PR8B tree (8 required steps) and the final tree (9 required steps).
 
-### Safe 4-PR chain (feature-branch-chain from `c5b02eb`)
+### Published 4-PR chain (merged on tracker `7296d1f`)
 
-Do **not** add `internal-page-builder` to `REQUIRED_STEPS` or to the wizard `$steps` / client `steps` arrays before PR8D.
+PR8A–PR8C omitted `internal-page-builder` from `REQUIRED_STEPS` and wizard `$steps` / client `steps` until PR8D.
 
 | PR | Base | Files / hunks | +/− | Churn | Intermediate | Command | Rollback |
 |---|---|---|---|---|---|---|---|
@@ -178,7 +185,7 @@ Do **not** add `internal-page-builder` to `REQUIRED_STEPS` or to the wizard `$st
 | **PR8C** | PR8B | `wizard-init.php` **excluding** `$steps`/`$descriptions` keys (**+60/−0**); `wizard.ts` **excluding** the `steps` array entry (**+213/−0**); `wizard.scss` (**+15/−0**); `tests/wizard-internal-page-ui-harness.php` (**103**) | 60+213+15+103 | **391** | Form renderer + TS helpers + SCSS exist; sidebar/`steps` array omit the ninth slug so it is not in the normal sequence; `complete()` still 8 steps; UI harness calls the form renderer directly | `php tests/wizard-internal-page-ui-harness.php` → **2/2**; `npx tsc --noEmit` → **0**; activation **8/8** still | revert those 4 files |
 | **PR8D** | PR8C | REQUIRED_STEPS comment+element (**+2/−2=4**); wizard-init `$steps`+`$descriptions` keys (**+2/−0**); TS `steps` array entry (**+1/−0**); `tests/wizard-internal-page-required-step-harness.php` (**45**) | 2/2 + 2/0 + 1/0 + 45/0 | **52** | Ninth step required and visible together; explicit Complete proven | `php tests/wizard-internal-page-required-step-harness.php` → **2/2**; activation **8/8**; UI **2/2** | revert those 4 hunks/files |
 
-Hunk map (practical `git add -p`):
+Packaging hunk map (executed):
 - PR8B controller: take DISPATCHABLE entry, skip-all flag, identity status restore, `case 'internal-page-builder'`, alias, `authorize_internal_builder`. Leave the REQUIRED_STEPS comment and `'internal-page-builder',` element for PR8D.
 - PR8C wizard-init: take `rms_wizard_render_internal_page_builder_form()` and the `elseif ( 'internal-page-builder' === $slug )` branch. Leave the two `$steps` / `$descriptions` keys for PR8D.
 - PR8C `wizard.ts`: take helpers, `runStep` branch, `collectPayload`. Leave `{ slug: 'internal-page-builder', label: 'Internal Page Builder' }` for PR8D.
@@ -187,4 +194,4 @@ Newest-first rollback: PR8D → PR8C → PR8B → PR8A.
 
 ## Status
 
-18/18 complete. Phase 8 uncommitted on `feat/internal-page-builder-activation` @ tracker `c5b02eb`. Combined prod+test **1195**. Ready for independent packaging validation. No archive.
+18/18 complete. Phase 8 merged on tracker `7296d1f`: PR8A #60 product `e00977e` merge `d2a0290`; PR8B #61 product `84c40d1` merge `d18b0b2`; PR8C #62 product `7a92117` merge `eed44ac`; PR8D #63 product `818845e` merge `7296d1f`. Independent product+packaging validation PASS, no warnings. Live visual admin boundary remains Local 502/untrusted HTTPS (external; not claimed passed). No archive.
