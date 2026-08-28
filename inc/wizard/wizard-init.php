@@ -362,6 +362,7 @@ function rms_wizard_render_admin_page(): void {
 		'ia-generation'        => __( 'IA Generation', 'simple-rms-theme' ),
 		'home-page-builder'    => __( 'Home Page Builder', 'simple-rms-theme' ),
 		'landing-page-builder' => __( 'Landing Page Builder', 'simple-rms-theme' ),
+		'internal-page-builder' => __( 'Internal Page Builder', 'simple-rms-theme' ),
 	];
 	$step_slugs = array_keys( $steps );
 	$descriptions = [
@@ -373,6 +374,7 @@ function rms_wizard_render_admin_page(): void {
 		'ia-generation'        => __( 'Configure the AI provider, model, and encrypted credentials for later content generation.', 'simple-rms-theme' ),
 		'home-page-builder'    => __( 'Choose Home page sections and build them from the saved client data.', 'simple-rms-theme' ),
 		'landing-page-builder' => __( 'Create SEO and Ads landing pages with keywords, reusable sections, and noindex controls.', 'simple-rms-theme' ),
+		'internal-page-builder' => __( 'Fill ACF sections on generated internal pages. Skip, resume, or convert only with an explicit choice. Completed sites stay locked until unlock.', 'simple-rms-theme' ),
 	];
 	?>
 	<div
