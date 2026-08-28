@@ -24,8 +24,9 @@ class Step_Internal_Page_Builder {
 	private $content_builder;
 	private $harness;
 	private $canonical_store;
-	private $section_assembler;
-	private $provenance;
+		private $section_assembler;
+		private $provenance;
+		private $mutation_owner = '';
 
 	public function __construct(
 		?Logger $logger = null,
@@ -45,8 +46,25 @@ class Step_Internal_Page_Builder {
 		$this->provenance        = $provenance ?? new Placeholder_Provenance_Store();
 	}
 
+	/**
+	 * Remember the live fence owner for this instance. Authorization still
+	 * requires Wizard_Mutation_Fence::authorize_agent() for this object.
+	 */
+	public function accept_mutation_owner( string $owner ): void {
+		$this->mutation_owner = $owner;
+	}
+
 	/** @param array<string,mixed> $payload @return array<string,mixed>|\WP_Error */
 	public function run( array $payload ) {
+		$fence = new Wizard_Mutation_Fence();
+		if ( ! $fence->agent_is_authorized( $this, $this->mutation_owner ) ) {
+			return new \WP_Error(
+				'rms_wizard_mutation_unfenced',
+				\__( 'Internal page builder mutations must run under the wizard mutation fence.', 'simple-rms-theme' ),
+				[ 'status' => 409 ]
+			);
+		}
+
 		if ( $this->truthy( $payload['skip_all'] ?? false ) ) {
 			return $this->run_skip_all();
 		}
@@ -101,33 +119,45 @@ class Step_Internal_Page_Builder {
 		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$fresh['internal_pages'] = $plan;
 		$this->state_manager->save_state( $fresh );
-		$pending = $this->is_pending( $plan );
-		$this->state_manager->set_step_status( self::STEP, $pending ? 'running' : 'complete' );
+		$status = $this->is_pending( $plan ) || null !== $this->next_actionable_type( $plan, $payload )
+			? 'running'
+			: $this->step_status_from_plan( $plan );
+		$this->state_manager->set_step_status( self::STEP, $status );
 
-		return [ 'internal_pages' => $plan, 'status' => $pending ? 'running' : 'complete' ];
+		return [ 'internal_pages' => $plan, 'status' => $status ];
 	}
 
 	/**
 	 * @param array<string,mixed> $payload
-	 * @return array<string,mixed>
+	 * @return array<string,mixed>|\WP_Error
 	 */
-	private function process( array $payload ): array {
+	private function process( array $payload ) {
 		$fresh = $this->state_manager->get_state();
 		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$type  = $this->next_actionable_type( $plan, $payload );
+		$mismatch = $this->identity_mismatch( $payload, $type, $plan, is_array( $fresh['generated_pages'] ?? null ) ? $fresh['generated_pages'] : [] );
+		if ( $mismatch ) {
+			return $mismatch;
+		}
 
 		if ( null === $type ) {
 			$fresh['internal_pages'] = $plan;
 			$this->state_manager->save_state( $fresh );
-			$this->state_manager->set_step_status( self::STEP, 'complete' );
+			$step_status = $this->step_status_from_plan( $plan );
+			$this->state_manager->set_step_status( self::STEP, $step_status );
 
 			foreach ( self::READY_TYPES as $ready ) {
 				if ( 'complete' === (string) ( ( is_array( $plan[ $ready ] ?? null ) ? $plan[ $ready ] : [] )['status'] ?? '' ) ) {
-					return [ 'internal_pages' => $plan, 'status' => 'complete' ];
+					return [ 'internal_pages' => $plan, 'status' => $step_status ];
 				}
 			}
 
-			return [ 'internal_pages' => $plan, 'status' => 'complete', 'unavailable' => true, 'reason' => 'unavailable' ];
+			return [
+				'internal_pages' => $plan,
+				'status'         => $step_status,
+				'unavailable'    => 'complete' === $step_status,
+				'reason'         => 'complete' === $step_status ? 'unavailable' : '',
+			];
 		}
 
 		$entry         = is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : State_Manager::INTERNAL_PAGE_ENTRY;
@@ -138,12 +168,10 @@ class Step_Internal_Page_Builder {
 			$this->type_requested( $payload['convert_legacy'] ?? [], $type )
 		);
 		$plan[ $type ] = $entry;
-		$fresh                    = $this->state_manager->get_state();
-		$fresh['internal_pages']  = $plan;
+		$fresh                   = $this->state_manager->get_state();
+		$fresh['internal_pages'] = $plan;
 		$this->state_manager->save_state( $fresh );
-		$pending = $this->is_pending( $plan );
-		$done    = in_array( (string) ( $entry['status'] ?? '' ), [ 'complete', 'skipped' ], true ) && ! $pending;
-		$this->state_manager->set_step_status( self::STEP, $done ? 'complete' : ( $pending ? 'running' : 'pending' ) );
+		$this->state_manager->set_step_status( self::STEP, $this->step_status_from_plan( $plan ) );
 
 		return [
 			'internal_pages' => $plan,
@@ -359,15 +387,92 @@ class Step_Internal_Page_Builder {
 	/**
 	 * @param array<string,array<string,mixed>> $plan
 	 */
+	private function has_failed( array $plan ): bool {
+		foreach ( self::READY_TYPES as $type ) {
+			$status = (string) ( ( is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : [] )['status'] ?? '' );
+			if ( 'failed' === $status ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Step is complete only when nothing is pending or failed.
+	 *
+	 * @param array<string,array<string,mixed>> $plan
+	 */
+	private function step_status_from_plan( array $plan ): string {
+		if ( $this->is_pending( $plan ) ) {
+			return 'running';
+		}
+
+		if ( $this->has_failed( $plan ) ) {
+			return 'failed';
+		}
+
+		return 'complete';
+	}
+
+	/**
+	 * @param array<string,array<string,mixed>> $plan
+	 */
 	private function next_pending_type( array $plan ): ?string {
 		foreach ( self::READY_TYPES as $type ) {
 			$status = (string) ( ( is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : [] )['status'] ?? '' );
-			if ( in_array( $status, [ 'pending', 'failed' ], true ) ) {
+			if ( 'pending' === $status ) {
 				return $type;
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * Reject forged page_type or post_id. Optional slug is a live post_name hint only.
+	 *
+	 * @param array<string,mixed>               $payload
+	 * @param array<string,array<string,mixed>> $plan
+	 * @param array<int,array<string,mixed>>    $generated_pages
+	 * @return \WP_Error|null
+	 */
+	private function identity_mismatch( array $payload, ?string $type, array $plan, array $generated_pages ) {
+		unset( $generated_pages );
+		$declared_type = \sanitize_key( (string) ( $payload['page_type'] ?? '' ) );
+		if ( '' !== $declared_type && $declared_type !== (string) $type ) {
+			return $this->identity_error();
+		}
+		if ( null === $type ) {
+			return null;
+		}
+		$entry = is_array( $plan[ $type ] ?? null ) ? $plan[ $type ] : [];
+		if ( array_key_exists( 'post_id', $payload ) && \absint( $payload['post_id'] ) !== \absint( $entry['post_id'] ?? 0 ) ) {
+			return $this->identity_error();
+		}
+		if ( array_key_exists( 'slug', $payload ) ) {
+			$supplied = \sanitize_title( (string) $payload['slug'] );
+			if ( '' !== $supplied ) {
+				$post = \get_post( \absint( $entry['post_id'] ?? 0 ) );
+				$live = $post ? \sanitize_title( (string) ( $post->post_name ?? '' ) ) : '';
+				if ( $supplied !== $live ) {
+					return $this->identity_error();
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return \WP_Error
+	 */
+	private function identity_error() {
+		return new \WP_Error(
+			'rms_wizard_internal_identity',
+			\__( 'That internal page action does not match the generated page identity.', 'simple-rms-theme' ),
+			[ 'status' => 400 ]
+		);
 	}
 
 	/**

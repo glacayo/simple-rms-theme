@@ -21,7 +21,19 @@ defined( 'ABSPATH' ) || exit;
  */
 class Wizard_Mutation_Fence {
 
-	public const OPTION_NAME = 'rms_wizard_mutation_fence';
+		public const OPTION_NAME = 'rms_wizard_mutation_fence';
+
+		/**
+		 * In-process mutation agent bound to the live fence owner.
+		 *
+		 * @var object|null
+		 */
+		private static $mutation_agent = null;
+
+		/**
+		 * @var string
+		 */
+		private static $mutation_agent_owner = '';
 
 	/**
 	 * Maximum PHP execution budget used by long wizard steps (seconds).
@@ -101,15 +113,84 @@ class Wizard_Mutation_Fence {
 	 * Whether a non-expired fence row is currently held.
 	 */
 	public function is_held(): bool {
+		return $this->is_held_by( $this->current_owner() );
+	}
+
+	/**
+	 * Whether the exact owner currently holds a non-expired fence row.
+	 */
+	public function is_held_by( string $owner ): bool {
+		if ( '' === $owner ) {
+			return false;
+		}
+
 		$existing = $this->read_record( self::OPTION_NAME );
 
 		if ( null === $existing || ! is_array( $existing['value'] ) ) {
 			return false;
 		}
 
+		if ( (string) ( $existing['value']['owner'] ?? '' ) !== $owner ) {
+			return false;
+		}
+
 		$expires = (int) ( $existing['value']['expires_at'] ?? 0 );
 
 		return $expires > time() || 0 === $expires;
+	}
+
+	/**
+	 * Bind one in-process agent to the live fence owner. A second instance cannot take over.
+	 *
+	 * @param object $agent
+	 */
+	public function authorize_agent( $agent, string $owner ): bool {
+		if ( ! is_object( $agent ) || ! $this->is_held_by( $owner ) ) {
+			return false;
+		}
+
+		if ( null !== self::$mutation_agent && self::$mutation_agent !== $agent ) {
+			return false;
+		}
+
+		if ( '' !== self::$mutation_agent_owner && self::$mutation_agent_owner !== $owner ) {
+			return false;
+		}
+
+		self::$mutation_agent       = $agent;
+		self::$mutation_agent_owner = $owner;
+
+		return true;
+	}
+
+	/**
+	 * @param object $agent
+	 */
+	public function agent_is_authorized( $agent, string $owner ): bool {
+		return is_object( $agent )
+			&& $agent === self::$mutation_agent
+			&& '' !== $owner
+			&& $owner === self::$mutation_agent_owner
+			&& $this->is_held_by( $owner );
+	}
+
+	public function clear_agent( string $owner ): void {
+		if ( '' === $owner || $owner !== self::$mutation_agent_owner ) {
+			return;
+		}
+
+		self::$mutation_agent       = null;
+		self::$mutation_agent_owner = '';
+	}
+
+	private function current_owner(): string {
+		$existing = $this->read_record( self::OPTION_NAME );
+
+		if ( null === $existing || ! is_array( $existing['value'] ) ) {
+			return '';
+		}
+
+		return (string) ( $existing['value']['owner'] ?? '' );
 	}
 
 	/**

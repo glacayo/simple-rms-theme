@@ -11,7 +11,7 @@ if ( ! class_exists( 'WP_Error', false ) ) {
 	class WP_Error { public $code; public $message; public $data; public function __construct( $c = '', $m = '', $d = '' ) { $this->code = $c; $this->message = $m; $this->data = $d; } }
 }
 if ( ! class_exists( 'WP_Post', false ) ) {
-	class WP_Post { public $ID; public $post_type = 'page'; public $post_content = ''; public function __construct( $id = 0 ) { $this->ID = (int) $id; } }
+	class WP_Post { public $ID; public $post_type = 'page'; public $post_content = ''; public $post_name = ''; public function __construct( $id = 0 ) { $this->ID = (int) $id; } }
 }
 $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array();
 $GLOBALS['_next_id'] = 20;
@@ -34,7 +34,50 @@ if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k, $
 if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $t ) { return $t instanceof WP_Error; } }
 if ( ! function_exists( 'get_template_directory_uri' ) ) { function get_template_directory_uri() { return 'https://example.test/theme'; } }
 if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $v ) { return rtrim( (string) $v, '/\\' ) . '/'; } }
-foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php', 'class-step-generate-pages.php' ) as $f ) {
+if ( ! function_exists( 'maybe_serialize' ) ) { function maybe_serialize( $v ) { return is_array( $v ) || is_object( $v ) ? serialize( $v ) : $v; } }
+if ( ! function_exists( 'maybe_unserialize' ) ) {
+	function maybe_unserialize( $v ) {
+		if ( ! is_string( $v ) ) { return $v; }
+		$d = @unserialize( $v );
+		return false === $d && 'b:0;' !== $v ? $v : $d;
+	}
+}
+if ( ! function_exists( 'wp_cache_delete' ) ) { function wp_cache_delete( $k, $g = '' ) { unset( $k, $g ); return true; } }
+if ( ! function_exists( 'wp_generate_uuid4' ) ) { function wp_generate_uuid4() { return 'owner-' . ( $GLOBALS['_wpdb_inserts'] + 1 ); } }
+$GLOBALS['_db_options'] = array();
+$GLOBALS['_wpdb_inserts'] = 0;
+$GLOBALS['_fence_owner'] = '';
+if ( ! isset( $GLOBALS['wpdb'] ) ) {
+	$GLOBALS['wpdb'] = new class {
+		public $options = 'wp_options';
+		public function prepare( $q, ...$a ) { return array( 'sql' => (string) $q, 'args' => $a ); }
+		public function get_var( $q ) {
+			$name = is_array( $q ) ? (string) ( $q['args'][0] ?? '' ) : '';
+			return $GLOBALS['_db_options'][ $name ] ?? null;
+		}
+		public function query( $q ) {
+			$sql  = is_array( $q ) ? (string) $q['sql'] : (string) $q;
+			$args = is_array( $q ) ? $q['args'] : array();
+			$name = (string) ( $args[0] ?? '' );
+			if ( false !== stripos( $sql, 'INSERT' ) ) {
+				if ( isset( $GLOBALS['_db_options'][ $name ] ) ) { return 0; }
+				$GLOBALS['_db_options'][ $name ] = (string) ( $args[1] ?? '' );
+				$GLOBALS['_wpdb_inserts']++;
+				return 1;
+			}
+			if ( false !== stripos( $sql, 'DELETE' ) ) {
+				$raw = (string) ( $args[1] ?? '' );
+				if ( ( $GLOBALS['_db_options'][ $name ] ?? null ) === $raw ) {
+					unset( $GLOBALS['_db_options'][ $name ] );
+					return 1;
+				}
+				return 0;
+			}
+			return 0;
+		}
+	};
+}
+foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-wizard-mutation-fence.php', 'class-step-controller.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php', 'class-step-generate-pages.php' ) as $f ) {
 	require_once $theme_root . '/inc/wizard/' . $f;
 }
 use Inc\Wizard\AI_Content_Harness;
@@ -44,8 +87,27 @@ use Inc\Wizard\Internal_Page_Blueprints;
 use Inc\Wizard\Logger;
 use Inc\Wizard\Placeholder_Provenance_Store;
 use Inc\Wizard\State_Manager;
+use Inc\Wizard\Step_Controller;
 use Inc\Wizard\Step_Generate_Pages;
 use Inc\Wizard\Step_Internal_Page_Builder;
+use Inc\Wizard\Wizard_Mutation_Fence;
+function rms_ipb_release_fence(): void {
+	$owner = (string) ( $GLOBALS['_fence_owner'] ?? '' );
+	if ( '' === $owner ) { return; }
+	$fence = new Wizard_Mutation_Fence();
+	$fence->clear_agent( $owner );
+	$fence->release( $owner );
+	$GLOBALS['_fence_owner'] = '';
+}
+function rms_ipb_authorize_instance( Step_Internal_Page_Builder $builder ): void {
+	rms_ipb_release_fence();
+	$fence = new Wizard_Mutation_Fence();
+	$owner = $fence->acquire();
+	rms_ipb_assert( ! is_wp_error( $owner ) && is_string( $owner ) && '' !== $owner, 'harness fence acquire' );
+	$builder->accept_mutation_owner( $owner );
+	rms_ipb_assert( $fence->authorize_agent( $builder, $owner ), 'harness authorize agent' );
+	$GLOBALS['_fence_owner'] = $owner;
+}
 class RMS_Internal_Fake_Builder extends Content_Builder {
 	public function build_page( array $page ): int {
 		if ( ! empty( $GLOBALS['_fail_build'] ) ) { return 0; }
@@ -58,20 +120,56 @@ class RMS_Internal_Fake_Builder extends Content_Builder {
 	}
 }
 function rms_ipb_assert( $c, string $m ): void { if ( ! $c ) { fwrite( STDERR, $m . "\n" ); exit( 1 ); } }
-function rms_ipb_reset(): void { $GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array(); $GLOBALS['_fail_build'] = false; $GLOBALS['_next_id'] = 20; }
+function rms_ipb_reset(): void {
+	rms_ipb_release_fence();
+	$GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array();
+	$GLOBALS['_fail_build'] = false;
+	$GLOBALS['_next_id'] = 20;
+	$GLOBALS['_db_options'] = array();
+	$GLOBALS['_wpdb_inserts'] = 0;
+}
 function rms_ipb_builder(): Step_Internal_Page_Builder {
 	$l = new Logger(); $s = new State_Manager();
-	return new Step_Internal_Page_Builder( $l, $s, new RMS_Internal_Fake_Builder( $l, $s ), new AI_Content_Harness(), new Canonical_Section_Store() );
+	$builder = new Step_Internal_Page_Builder( $l, $s, new RMS_Internal_Fake_Builder( $l, $s ), new AI_Content_Harness(), new Canonical_Section_Store() );
+	rms_ipb_authorize_instance( $builder );
+	return $builder;
 }
 function rms_ipb_seed_about(): void {
-	$GLOBALS['_posts'][12] = new WP_Post( 12 ); $sm = new State_Manager(); $st = $sm->get_state();
+	$GLOBALS['_posts'][12] = new WP_Post( 12 ); $GLOBALS['_posts'][12]->post_name = 'about'; $sm = new State_Manager(); $st = $sm->get_state();
 	$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'role' => '' ), array( 'id' => 99, 'slug' => 'home', 'role' => 'home' ) );
 	$sm->save_state( $st );
 }
 $passed = 0;
-$src = file_get_contents( $theme_root . '/inc/wizard/class-step-internal-page-builder.php' );
-rms_ipb_assert( is_string( $src ) && false === strpos( $src, '->replace(' ) && false === strpos( $src, 'acquire_lock' ), 'no replace/lock' );
-echo "PASS source-about-only-no-replace-no-fence-acquire\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][12] = new WP_Post( 12 ); $GLOBALS['_posts'][12]->post_name = 'about';
+$GLOBALS['_posts'][13] = new WP_Post( 13 ); $GLOBALS['_posts'][13]->post_name = 'services';
+$GLOBALS['_post_meta'][13]['page_sections'] = array( array( 'acf_fc_layout' => 'services-v1', 'services_v1_headline' => 'Do not touch' ) );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array(
+	array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ),
+	array( 'id' => 13, 'slug' => 'services', 'type' => 'services' ),
+);
+$sm->save_state( $st );
+$b = rms_ipb_builder();
+$b->run( array( 'action' => 'start' ) );
+$about = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'about' === ( $about['processed'] ?? '' ) && 'complete' === ( $about['status'] ?? '' ), 'about processed' );
+rms_ipb_assert( array( 12 ) === array_map( 'intval', array_column( $GLOBALS['_build_log'], 'id' ) ), 'only about was written' );
+rms_ipb_assert( 'Do not touch' === ( $GLOBALS['_post_meta'][13]['page_sections'][0]['services_v1_headline'] ?? '' ), 'services content preserved' );
+$raw = new Step_Internal_Page_Builder( new Logger(), new State_Manager(), new RMS_Internal_Fake_Builder( new Logger(), new State_Manager() ) );
+$unfenced = $raw->run( array( 'action' => 'process' ) );
+rms_ipb_assert( is_wp_error( $unfenced ) && 'rms_wizard_mutation_unfenced' === $unfenced->code, 'unauthorized instance rejected while fence held' );
+rms_ipb_assert( array( 12 ) === array_map( 'intval', array_column( $GLOBALS['_build_log'], 'id' ) ), 'unauthorized instance wrote nothing' );
+rms_ipb_assert( false === method_exists( $b, 'acquire' ) && false === method_exists( $b, 'acquire_lock' ), 'builder has no fence acquire' );
+$stolen = (string) $GLOBALS['_fence_owner'];
+$forged = new Step_Internal_Page_Builder( new Logger(), new State_Manager(), new RMS_Internal_Fake_Builder( new Logger(), new State_Manager() ) );
+$forged->accept_mutation_owner( $stolen );
+rms_ipb_assert( false === ( new Wizard_Mutation_Fence() )->authorize_agent( $forged, $stolen ), 'second instance cannot take the agent slot' );
+$forged_run = $forged->run( array( 'action' => 'process' ) );
+rms_ipb_assert( is_wp_error( $forged_run ) && 'rms_wizard_mutation_unfenced' === $forged_run->code, 'forged owner on other instance rejected' );
+$again = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( ! is_wp_error( $again ) && 'services' === ( $again['processed'] ?? '' ), 'same authorized instance can continue' );
+echo "PASS about-only-preserves-and-instance-bound-fence\n"; ++$passed;
 rms_ipb_reset(); $skip = rms_ipb_builder()->run( array( 'skip_all' => true ) );
 rms_ipb_assert( ! is_wp_error( $skip ) && ! empty( $skip['skipped'] ) && array() === $GLOBALS['_build_log'], 'skip-all' );
 echo "PASS skip-all-no-mutation\n"; ++$passed;
@@ -210,4 +308,53 @@ $about_prov = ( new Placeholder_Provenance_Store() )->query( 12 );
 rms_ipb_assert( ! isset( $about_prov['0:about_headline'] ), 'canonical row not recorded' );
 rms_ipb_assert( isset( $about_prov['1:vm_v2_headline'] ), 'non-canonical placeholder recorded' );
 echo "PASS real-facts-not-recorded-as-placeholders\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about();
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) );
+$bad_type = $b->run( array( 'action' => 'process', 'page_type' => 'services' ) );
+rms_ipb_assert( is_wp_error( $bad_type ) && 'rms_wizard_internal_identity' === $bad_type->code && array() === $GLOBALS['_build_log'], 'forged type' );
+$bad_id = $b->run( array( 'action' => 'process', 'post_id' => 99 ) );
+rms_ipb_assert( is_wp_error( $bad_id ) && array() === $GLOBALS['_build_log'], 'forged post id' );
+$bad_slug = $b->run( array( 'action' => 'process', 'slug' => 'home' ) );
+rms_ipb_assert( is_wp_error( $bad_slug ) && array() === $GLOBALS['_build_log'], 'forged slug' );
+$matched = $b->run( array( 'action' => 'process', 'page_type' => 'about', 'post_id' => 12, 'slug' => 'about' ) );
+rms_ipb_assert( ! is_wp_error( $matched ) && 'complete' === ( $matched['status'] ?? '' ), 'matching identity' );
+echo "PASS forged-identity-rejected\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][12] = new WP_Post( 12 ); $GLOBALS['_posts'][13] = new WP_Post( 13 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array(
+	array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ),
+	array( 'id' => 13, 'slug' => 'services', 'type' => 'services' ),
+);
+$sm->save_state( $st );
+$GLOBALS['_fail_build'] = true;
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $first = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'failed' === ( $first['status'] ?? '' ) && 'about' === ( $first['processed'] ?? '' ), 'about failed first' );
+$GLOBALS['_fail_build'] = false; $GLOBALS['_build_log'] = array();
+$second = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( 'services' === ( $second['processed'] ?? '' ) && 'complete' === ( $second['status'] ?? '' ), 'failed page does not block next' );
+$plan = ( new State_Manager() )->get_state()['internal_pages'];
+rms_ipb_assert( 'failed' === ( $plan['about']['status'] ?? '' ) && 'complete' === ( $plan['services']['status'] ?? '' ), 'about stays failed' );
+$step = (string) ( ( new State_Manager() )->get_state()['step_status']['internal-page-builder'] ?? '' );
+rms_ipb_assert( 'failed' === $step, 'failed about plus complete services does not complete the step' );
+$stuck = $b->run( array( 'action' => 'start' ) );
+rms_ipb_assert( 'failed' === ( $stuck['status'] ?? '' ) && 'failed' === ( ( new State_Manager() )->get_state()['step_status']['internal-page-builder'] ?? '' ), 'start with only failures is not complete' );
+$retry_start = $b->run( array( 'action' => 'start', 'retry_failed' => true ) );
+rms_ipb_assert( 'running' === ( $retry_start['status'] ?? '' ), 'retry start is running' );
+$final = $b->run( array( 'action' => 'process', 'retry_failed' => true ) );
+rms_ipb_assert( 'complete' === ( $final['status'] ?? '' ) && 'complete' === ( ( new State_Manager() )->get_state()['step_status']['internal-page-builder'] ?? '' ), 'final retry completes the step' );
+echo "PASS failed-page-does-not-block-next\n"; ++$passed;
+rms_ipb_reset(); rms_ipb_seed_about();
+$GLOBALS['_posts'][12]->post_name = 'our-story';
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) );
+$stale = $b->run( array( 'action' => 'process', 'slug' => 'about' ) );
+rms_ipb_assert( is_wp_error( $stale ) && array() === $GLOBALS['_build_log'], 'stale stored slug rejected' );
+$absent = $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( ! is_wp_error( $absent ) && 'complete' === ( $absent['status'] ?? '' ), 'absent slug is valid against live identity' );
+rms_ipb_reset(); rms_ipb_seed_about();
+$GLOBALS['_posts'][12]->post_name = 'our-story';
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) );
+$live = $b->run( array( 'action' => 'process', 'page_type' => 'about', 'post_id' => 12, 'slug' => 'our-story' ) );
+rms_ipb_assert( ! is_wp_error( $live ) && 'complete' === ( $live['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'live permalink slug accepted' );
+echo "PASS live-permalink-identity\n"; ++$passed;
 echo 'Harness passed: ' . $passed . " scenarios.\n";
