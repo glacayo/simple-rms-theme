@@ -30,8 +30,7 @@ class Step_Controller {
 	 * Single source of truth for currently required wizard steps.
 	 * Consumed by complete() and step services (e.g. maybe_mark_completed).
 	 *
-	 * Phase 3 activates `landing-page-builder` atomically with admin UI +
-	 * Ads noindex/menu final-state sync (tasks 3.1–3.7).
+	 * Phase 8 activates `internal-page-builder` atomically with admin UI.
 	 *
 	 * @var string[]
 	 */
@@ -44,6 +43,7 @@ class Step_Controller {
 		'ia-generation',
 		'home-page-builder',
 		'landing-page-builder',
+		'internal-page-builder',
 	];
 
 	/**

@@ -281,6 +281,7 @@ declare global {
     { slug: 'ia-generation', label: 'IA Generation' },
     { slug: 'home-page-builder', label: 'Home Page Builder' },
     { slug: 'landing-page-builder', label: 'Landing Page Builder' },
+    { slug: 'internal-page-builder', label: 'Internal Page Builder' },
   ];
 
   const destructiveWarnings: Record<string, { message: string; checkboxMessage: string }> = {
