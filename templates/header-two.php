@@ -2,7 +2,7 @@
 $header_phone       = rms_get_primary_phone();
 $header_phone_clean = rms_format_tel_uri($header_phone);
 $header_email       = trim(rms_get_primary_email());
-$header_cta_url     = rms_get_contact_page_url();
+$header_cta         = rms_get_header_primary_cta();
 ?>
 <header class="rms-header-v2" role="banner">
     <!-- Top Bar -->
@@ -50,7 +50,7 @@ $header_cta_url     = rms_get_contact_page_url();
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
-                    <a href="<?php echo esc_url($header_cta_url); ?>" class="btn rms-header-v2__cta-btn">Get a Free Estimate</a>
+                    <a href="<?php echo esc_url($header_cta['url']); ?>" class="btn rms-header-v2__cta-btn" target="<?php echo esc_attr($header_cta['target']); ?>"<?php if ('_blank' === $header_cta['target']) : ?> rel="noopener noreferrer"<?php endif; ?>><?php echo esc_html($header_cta['title']); ?></a>
                 </div>
             </div>
         </div>

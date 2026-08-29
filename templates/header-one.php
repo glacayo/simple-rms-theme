@@ -16,7 +16,7 @@ $header_address = implode(', ', array_filter(array(
     is_string($header_addr_zip) ? $header_addr_zip : '',
 )));
 
-$header_cta_url = rms_get_contact_page_url();
+$header_cta = rms_get_header_primary_cta();
 ?>
 <header class="rms-header" role="banner">
     <!-- Top Bar -->
@@ -24,7 +24,12 @@ $header_cta_url = rms_get_contact_page_url();
         <div class="container">
             <div class="rms-header__top-bar-inner">
                 <div class="rms-header__top-bar-left">
-                    <a href="<?php echo esc_url($header_cta_url); ?>" class="rms-header__cta-btn">GET A FREE ESTIMATE</a>
+                    <a
+                        href="<?php echo esc_url($header_cta['url']); ?>"
+                        class="rms-header__cta-btn"
+                        target="<?php echo esc_attr($header_cta['target']); ?>"
+                        <?php if ('_blank' === $header_cta['target']) : ?>rel="noopener noreferrer"<?php endif; ?>
+                    ><?php echo esc_html($header_cta['title']); ?></a>
                 </div>
                 <div class="rms-header__top-bar-right">
                     <span class="rms-header__social-label">Follow us on:</span>
