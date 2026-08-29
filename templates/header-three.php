@@ -1,3 +1,7 @@
+<?php
+$header_phone       = rms_get_primary_phone();
+$header_phone_clean = rms_format_tel_uri($header_phone);
+?>
 <header class="rms-header-v3" role="banner">
     <div class="rms-header-v3__inner">
         <!-- Logo Area -->
@@ -24,12 +28,14 @@
         <div class="rms-header-v3__menu-area">
             <!-- Meta row: phone + socials -->
             <div class="rms-header-v3__meta">
-                <a href="tel:+14075550199" class="rms-header-v3__phone">
+                <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
+                <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" class="rms-header-v3__phone">
                     <svg class="rms-header-v3__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
-                    <span>(407) 555-0199</span>
+                    <span><?php echo esc_html($header_phone); ?></span>
                 </a>
+                <?php endif; ?>
                 <?php
                         $socials = rms_get_social_links();
                         if (!empty($socials)) :
@@ -123,12 +129,14 @@
         ]);
         ?>
         <div class="rms-header-v3__mobile-footer">
-            <a href="tel:+14075550199" class="rms-header-v3__mobile-phone">
+            <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
+            <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" class="rms-header-v3__mobile-phone">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
-                <span>(407) 555-0199</span>
+                <span><?php echo esc_html($header_phone); ?></span>
             </a>
+            <?php endif; ?>
             <?php
                             $socials = rms_get_social_links();
                             if (!empty($socials)) :

@@ -1,10 +1,30 @@
+<?php
+$header_phone       = rms_get_primary_phone();
+$header_phone_clean = rms_format_tel_uri($header_phone);
+
+$header_addr_line1 = rms_get_option('company_address_line_1');
+$header_addr_line2 = rms_get_option('company_address_line_2');
+$header_addr_city  = rms_get_option('company_city');
+$header_addr_state = rms_get_option('company_state');
+$header_addr_zip   = rms_get_option('company_postal_code');
+
+$header_address = implode(', ', array_filter(array(
+    is_string($header_addr_line1) ? $header_addr_line1 : '',
+    is_string($header_addr_line2) ? $header_addr_line2 : '',
+    is_string($header_addr_city) ? $header_addr_city : '',
+    is_string($header_addr_state) ? $header_addr_state : '',
+    is_string($header_addr_zip) ? $header_addr_zip : '',
+)));
+
+$header_cta_url = rms_get_contact_page_url();
+?>
 <header class="rms-header" role="banner">
     <!-- Top Bar -->
     <div class="rms-header__top-bar">
         <div class="container">
             <div class="rms-header__top-bar-inner">
                 <div class="rms-header__top-bar-left">
-                    <a href="#" class="rms-header__cta-btn">GET A FREE ESTIMATE</a>
+                    <a href="<?php echo esc_url($header_cta_url); ?>" class="rms-header__cta-btn">GET A FREE ESTIMATE</a>
                 </div>
                 <div class="rms-header__top-bar-right">
                     <span class="rms-header__social-label">Follow us on:</span>
@@ -83,14 +103,18 @@
                 </div>
                 <div class="rms-header__contact-info">
                     <ul class="rms-header__contact-list">
+                        <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
                         <li>
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.82 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.73 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.78 5.78l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                            <span>(414) 246-8257</span>
+                            <a href="tel:<?php echo esc_attr($header_phone_clean); ?>"><?php echo esc_html($header_phone); ?></a>
                         </li>
+                        <?php endif; ?>
+                        <?php if ($header_address !== '') : ?>
                         <li>
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span>1234 Oak Ridge Ave, Milwaukee, WI 53211</span>
+                            <span><?php echo esc_html($header_address); ?></span>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>

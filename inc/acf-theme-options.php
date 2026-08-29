@@ -224,6 +224,52 @@ function rms_get_social_links(): array {
     return $active;
 }
 
+/**
+ * Format a phone number as a sanitized `tel:` URI fragment.
+ *
+ * Keeps digits and, when present, a single leading `+` (international dialing
+ * prefix). All other characters are dropped so the value is safe to place in a
+ * `tel:` href after attribute escaping.
+ *
+ * @param string $phone Raw phone number from Theme Options.
+ * @return string Digits (optionally preceded by a single leading `+`), or ''.
+ */
+function rms_format_tel_uri(string $phone): string {
+    $raw    = trim($phone);
+    $digits = preg_replace('/[^0-9+]/', '', $raw);
+    $digits = is_string($digits) ? $digits : '';
+
+    $has_leading_plus = ('' !== $digits && '+' === $digits[0]);
+    $digits           = str_replace('+', '', $digits);
+
+    return ($has_leading_plus ? '+' : '') . $digits;
+}
+
+/**
+ * Resolve the Contact page permalink for header estimate CTAs.
+ *
+ * Looks up the known contact slugs via the established `get_page_by_path`
+ * pattern and returns the first resolvable permalink. When no Contact page
+ * exists, falls back to the on-page `#contact` anchor on the site home URL.
+ *
+ * @return string Resolved URL (permalink or fallback). Never empty.
+ */
+function rms_get_contact_page_url(): string {
+    if (function_exists('get_page_by_path') && function_exists('get_permalink')) {
+        foreach (array('contact-us', 'contact') as $slug) {
+            $page = get_page_by_path($slug);
+            if (is_object($page) && !empty($page->ID)) {
+                $url = get_permalink($page->ID);
+                if (is_string($url) && '' !== $url) {
+                    return $url;
+                }
+            }
+        }
+    }
+
+    return home_url('/#contact');
+}
+
 // ─── Company Palette → CSS Custom Properties Bridge ────────────────────────
 
 /**
