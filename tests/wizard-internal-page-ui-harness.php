@@ -43,6 +43,17 @@ if ( ! function_exists( 'wp_json_encode' ) ) {
 		return json_encode( $d, $o );
 	}
 }
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $t ) {
+		return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $t, $d = null ) {
+		unset( $d );
+		echo esc_attr( $t );
+	}
+}
 if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $v ) {
 		return rtrim( (string) $v, '/\\' ) . '/';
@@ -97,6 +108,16 @@ rms_ipui_assert( false !== strpos( $markup, 'data-wizard-page-type' ), 'stable t
 rms_ipui_assert( false !== strpos( $markup, 'role="list"' ), 'list semantics' );
 rms_ipui_assert( false !== strpos( $markup, 'aria-live="polite"' ), 'live progress region' );
 rms_ipui_assert( false !== strpos( $markup, 'About' ) && false !== strpos( $markup, 'Services' ), 'escaped blueprint labels' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-preview' ), 'preview plan payload' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-map-type' ), 'explicit mapping control' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-map-confirm' ), 'mapping confirmation copy' );
+rms_ipui_assert( false !== strpos( $markup, 'Assign internal page type' ), 'accessible mapping label' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-map-dialog' ), 'independent mapping dialog node' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-map-dialog-accept' ), 'mapping dialog accept control' );
+rms_ipui_assert( false !== strpos( $markup, 'data-wizard-internal-map-dialog-cancel' ), 'mapping dialog cancel control' );
+rms_ipui_assert( false !== strpos( $markup, 'Confirm page type assignment' ), 'mapping dialog distinct title' );
+rms_ipui_assert( false !== strpos( $markup, 'Assign page types' ), 'mapping dialog distinct confirm label' );
+rms_ipui_assert( false !== strpos( $markup, 'aria-modal="true"' ), 'mapping dialog modal semantics' );
 echo "PASS server-rendered-form-accessibility\n";
 ++$passed;
 
