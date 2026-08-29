@@ -1,11 +1,21 @@
+<?php
+$header_phone       = rms_get_primary_phone();
+$header_phone_clean = rms_format_tel_uri($header_phone);
+$header_email       = trim(rms_get_primary_email());
+$header_cta_url     = rms_get_contact_page_url();
+?>
 <header class="rms-header-v2" role="banner">
     <!-- Top Bar -->
     <div class="rms-header-v2__top-bar">
         <div class="container">
             <div class="rms-header-v2__top-bar-inner">
                 <div class="rms-header-v2__top-bar-left">
-                    <span class="rms-header-v2__phone">(407) 555-0199</span>
-                    <span class="rms-header-v2__email">hello@example.com</span>
+                    <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
+                    <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" class="rms-header-v2__phone"><?php echo esc_html($header_phone); ?></a>
+                    <?php endif; ?>
+                    <?php if ($header_email !== '') : ?>
+                    <a href="mailto:<?php echo esc_attr($header_email); ?>" class="rms-header-v2__email"><?php echo esc_html($header_email); ?></a>
+                    <?php endif; ?>
                 </div>
                 <div class="rms-header-v2__top-bar-right">
                     <?php
@@ -40,7 +50,7 @@
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
-                    <a href="#" class="btn rms-header-v2__cta-btn">Get a Free Estimate</a>
+                    <a href="<?php echo esc_url($header_cta_url); ?>" class="btn rms-header-v2__cta-btn">Get a Free Estimate</a>
                 </div>
             </div>
         </div>
