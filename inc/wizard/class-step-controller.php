@@ -9,6 +9,8 @@ namespace Inc\Wizard;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-internal-page-identity.php';
+
 /**
  * Coordinates wizard step services, resume state, access checks, and locks.
  */
@@ -124,20 +126,68 @@ class Step_Controller {
 	 *
 	 * @return array<string,mixed>
 	 */
-	public function get_resume_state(): array {
-		$state                         = $this->state_manager->get_state();
-		$state['locked']               = $this->state_manager->is_completed();
-		$state['completed_flag']       = $this->state_manager->has_completion_flag();
-		$state['force_unlocked']       = Wizard_Unlock_Controller::is_force_unlocked();
-		$state['controlled_unlock_ui'] = Wizard_Unlock_Controller::is_controlled_unlock_enabled();
-		$state['unlocked']             = Wizard_Unlock_Controller::is_unlocked();
-		$state['has_unlock_marker']    = Wizard_Unlock_Controller::has_unlock_marker();
-		$state['unlocked_at']          = (string) \get_option( Wizard_Unlock_Controller::UNLOCKED_AT_OPTION, '' );
-		$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
-		$state['logs']                 = $this->logger->all();
+		public function get_resume_state(): array {
+			$state                         = $this->state_manager->get_state();
+			$state['locked']               = $this->state_manager->is_completed();
+			$state['completed_flag']       = $this->state_manager->has_completion_flag();
+			$state['force_unlocked']       = Wizard_Unlock_Controller::is_force_unlocked();
+			$state['controlled_unlock_ui'] = Wizard_Unlock_Controller::is_controlled_unlock_enabled();
+			$state['unlocked']             = Wizard_Unlock_Controller::is_unlocked();
+			$state['has_unlock_marker']    = Wizard_Unlock_Controller::has_unlock_marker();
+			$state['unlocked_at']          = (string) \get_option( Wizard_Unlock_Controller::UNLOCKED_AT_OPTION, '' );
+			$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
+			$state['logs']                 = $this->logger->all();
+			$state['completion_contract']  = self::completion_contract( $state );
+			$state['internal_page_preview'] = Internal_Page_Identity::preview_plan( $state );
 
-		return $this->with_public_landing_run( $state );
-	}
+			return $this->with_public_landing_run( $state );
+		}
+
+		/**
+		 * Backward-compatible completion progress. GET must not write step status.
+		 *
+		 * @param array<string,mixed> $state
+		 * @return array<string,mixed>
+		 */
+		public static function completion_contract( array $state ): array {
+			$completed_flag = (bool) \get_option( State_Manager::COMPLETED_OPTION, false );
+			$internal       = (string) ( $state['step_status']['internal-page-builder'] ?? '' );
+			$ran_internal   = in_array( $internal, [ 'complete', 'running', 'failed', 'skipped' ], true );
+			$grandfathered  = $completed_flag && ! $ran_internal;
+			$required       = self::REQUIRED_STEPS;
+			if ( $grandfathered ) {
+				$required = array_values(
+					array_filter(
+						$required,
+						static function ( string $step ): bool {
+							return 'internal-page-builder' !== $step;
+						}
+					)
+				);
+			}
+			$completed_count = 0;
+			foreach ( $required as $step ) {
+				if ( 'complete' === (string) ( $state['step_status'][ $step ] ?? '' ) ) {
+					++$completed_count;
+				}
+			}
+			if ( $completed_flag ) {
+				$completed_count = count( $required );
+			}
+			$total = count( $required );
+
+			return [
+				'completed'                     => $completed_flag,
+				'grandfathered_internal_pages'  => $grandfathered,
+				'required_steps'                => $required,
+				'completed_count'               => $completed_count,
+				'required_count'                => $total,
+				'progress_text'                 => $completed_flag
+					? 'Wizard complete'
+					: $completed_count . ' of ' . $total . ' steps complete',
+				'incomplete_notice'             => false,
+			];
+		}
 
 	/**
 	 * Execute a wizard step action.
