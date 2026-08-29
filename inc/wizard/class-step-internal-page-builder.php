@@ -11,14 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/class-section-assembler.php';
 require_once __DIR__ . '/class-placeholder-provenance-store.php';
+require_once __DIR__ . '/class-internal-page-identity.php';
 
 /** Start/process under execute_step. Does not acquire the fence. */
 class Step_Internal_Page_Builder {
 	private const STEP        = 'internal-page-builder';
-	private const READY_TYPES = [ 'about', 'services', 'contact', 'projects', 'testimonials', 'blog' ];
-	private const LEGACY_SLUGS = [
-		'about' => [ 'about', 'about-us' ],
-	];
+	private const READY_TYPES = Internal_Page_Identity::READY_TYPES;
 	private $logger;
 	private $state_manager;
 	private $content_builder;
@@ -54,6 +52,16 @@ class Step_Internal_Page_Builder {
 		$this->mutation_owner = $owner;
 	}
 
+	/**
+	 * Read-only preview/resume plan. GET and state hydration must not write.
+	 *
+	 * @param array<string,mixed> $state
+	 * @return array{types:array<string,array<string,mixed>>,unmapped:array<int,array<string,mixed>>}
+	 */
+	public function preview_plan( array $state ): array {
+		return Internal_Page_Identity::preview_plan( $state );
+	}
+
 	/** @param array<string,mixed> $payload @return array<string,mixed>|\WP_Error */
 	public function run( array $payload ) {
 		$fence = new Wizard_Mutation_Fence();
@@ -70,6 +78,14 @@ class Step_Internal_Page_Builder {
 		}
 
 		$action = \sanitize_key( (string) ( $payload['action'] ?? '' ) );
+		$map    = is_array( $payload['map_pages'] ?? null ) ? $payload['map_pages'] : [];
+
+		// Map-only requests are metadata-only: they persist identity types but
+		// never start/process, never write step status, and never mark the step
+		// complete/running/failed. The controller skips progress writes for them.
+		if ( [] !== $map && ! in_array( $action, [ 'start', 'process' ], true ) ) {
+			return $this->map_only( $payload );
+		}
 
 		if ( 'start' === $action ) {
 			return $this->start( $payload );
@@ -84,6 +100,39 @@ class Step_Internal_Page_Builder {
 			\__( 'An action (start or process) is required.', 'simple-rms-theme' ),
 			[ 'status' => 400 ]
 		);
+	}
+
+	/**
+	 * Metadata-only identity mapping. Persists resolved types onto
+	 * generated_pages without touching current_step/step_status and without
+	 * any page/ACF/template/canonical/log write. Returns a distinct
+	 * authoritative action so the client never paints a false completion.
+	 *
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function map_only( array $payload ) {
+		$fresh = $this->apply_identity_writes( $this->state_manager->get_state(), $payload );
+		if ( \is_wp_error( $fresh ) ) {
+			return $fresh;
+		}
+		$plan     = is_array( $fresh['internal_pages'] ?? null ) ? $fresh['internal_pages'] : [];
+		$assigned = [];
+		foreach ( is_array( $payload['map_pages'] ?? null ) ? $payload['map_pages'] : [] as $row ) {
+			$type = \sanitize_key( (string) ( is_array( $row ) ? ( $row['type'] ?? '' ) : '' ) );
+			if ( in_array( $type, self::READY_TYPES, true ) ) {
+				$assigned[] = $type;
+			}
+		}
+		$assigned = array_values( array_unique( $assigned ) );
+		$fresh['internal_pages'] = $plan;
+		$this->state_manager->save_state( $fresh );
+
+		return [
+			'action'              => 'mapped',
+			'page_types_assigned' => $assigned,
+			'internal_pages'      => $plan,
+		];
 	}
 
 	/**
@@ -112,10 +161,13 @@ class Step_Internal_Page_Builder {
 
 	/**
 	 * @param array<string,mixed> $payload
-	 * @return array<string,mixed>
+	 * @return array<string,mixed>|\WP_Error
 	 */
-	private function start( array $payload ): array {
-		$fresh = $this->state_manager->get_state();
+	private function start( array $payload ) {
+		$fresh = $this->apply_identity_writes( $this->state_manager->get_state(), $payload );
+		if ( \is_wp_error( $fresh ) ) {
+			return $fresh;
+		}
 		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$fresh['internal_pages'] = $plan;
 		$this->state_manager->save_state( $fresh );
@@ -132,7 +184,10 @@ class Step_Internal_Page_Builder {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	private function process( array $payload ) {
-		$fresh = $this->state_manager->get_state();
+		$fresh = $this->apply_identity_writes( $this->state_manager->get_state(), $payload );
+		if ( \is_wp_error( $fresh ) ) {
+			return $fresh;
+		}
 		$plan  = $this->ensure_plan( $fresh, $this->truthy( $payload['retry_failed'] ?? false ) );
 		$type  = $this->next_actionable_type( $plan, $payload );
 		$mismatch = $this->identity_mismatch( $payload, $type, $plan, is_array( $fresh['generated_pages'] ?? null ) ? $fresh['generated_pages'] : [] );
@@ -168,9 +223,10 @@ class Step_Internal_Page_Builder {
 			$this->type_requested( $payload['convert_legacy'] ?? [], $type )
 		);
 		$plan[ $type ] = $entry;
-		$fresh                   = $this->state_manager->get_state();
-		$fresh['internal_pages'] = $plan;
-		$this->state_manager->save_state( $fresh );
+		$latest                   = $this->state_manager->get_state();
+		$latest['generated_pages'] = is_array( $fresh['generated_pages'] ?? null ) ? $fresh['generated_pages'] : ( $latest['generated_pages'] ?? [] );
+		$latest['internal_pages']  = $plan;
+		$this->state_manager->save_state( $latest );
 		$this->state_manager->set_step_status( self::STEP, $this->step_status_from_plan( $plan ) );
 
 		return [
@@ -190,7 +246,7 @@ class Step_Internal_Page_Builder {
 		$pages = is_array( $state['generated_pages'] ?? null ) ? $state['generated_pages'] : [];
 
 		foreach ( self::READY_TYPES as $type ) {
-			$shell = $this->find_shell( $type, $pages );
+			$shell = Internal_Page_Identity::find_shell( $type, $pages, $plan );
 			$entry = is_array( $plan[ $type ] ?? null )
 				? array_merge( State_Manager::INTERNAL_PAGE_ENTRY, $plan[ $type ] )
 				: State_Manager::INTERNAL_PAGE_ENTRY;
@@ -219,35 +275,35 @@ class Step_Internal_Page_Builder {
 	}
 
 	/**
-	 * @param array<int,array<string,mixed>> $generated_pages
-	 * @return array{id:int,slug:string}|null
+	 * Persist resolved types and explicit maps. Never called from GET/preview.
+	 *
+	 * @param array<string,mixed> $state
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>|\WP_Error
 	 */
-	private function find_shell( string $want, array $generated_pages ) {
-		$aliases = self::LEGACY_SLUGS[ $want ] ?? [ $want ];
-
-		foreach ( $generated_pages as $page ) {
-			if ( ! is_array( $page ) ) {
-				continue;
-			}
-			$slug = \sanitize_title( (string) ( $page['slug'] ?? '' ) );
-			$type = \sanitize_title( (string) ( $page['type'] ?? '' ) );
-			if ( '' !== $type && $want !== $type ) {
-				continue;
-			}
-			if ( '' === $type && ! in_array( $slug, $aliases, true ) ) {
-				continue;
-			}
-			$id = \absint( $page['id'] ?? 0 );
-			if ( $id <= 0 ) {
-				continue;
-			}
-			$post = \get_post( $id );
-			if ( $post && 'page' === $post->post_type ) {
-				return [ 'id' => $id, 'slug' => $slug ];
+	private function apply_identity_writes( array $state, array $payload ) {
+		$pages = is_array( $state['generated_pages'] ?? null ) ? $state['generated_pages'] : [];
+		$plan  = is_array( $state['internal_pages'] ?? null ) ? $state['internal_pages'] : [];
+		$map   = is_array( $payload['map_pages'] ?? null ) ? $payload['map_pages'] : [];
+		if ( [] !== $map ) {
+			$pages = Internal_Page_Identity::apply_map( $pages, $map, $plan, $payload );
+			if ( \is_wp_error( $pages ) ) {
+				return $pages;
 			}
 		}
+		$resolved = [];
+		foreach ( self::READY_TYPES as $type ) {
+			$shell = Internal_Page_Identity::find_shell( $type, $pages, $plan );
+			if ( ! $shell ) {
+				continue;
+			}
+			if ( in_array( (string) $shell['source'], [ 'legacy_slug', 'template', 'role' ], true ) ) {
+				$resolved[ (int) $shell['id'] ] = $type;
+			}
+		}
+		$state['generated_pages'] = Internal_Page_Identity::persist_types( $pages, $resolved, $plan );
 
-		return null;
+		return $state;
 	}
 
 	/**
@@ -335,7 +391,9 @@ class Step_Internal_Page_Builder {
 	 * @return array{rows:array<int,array<string,mixed>>,layouts:array<int,string>}
 	 */
 	private function assemble_rows( array $blueprint, int $post_id ): array {
-		$client  = is_array( $this->state_manager->get_state()['client_data'] ?? null ) ? $this->state_manager->get_state()['client_data'] : [];
+		$client  = $this->harness->compose_factual_context(
+			is_array( $this->state_manager->get_state()['client_data'] ?? null ) ? $this->state_manager->get_state()['client_data'] : []
+		);
 		$rows    = [];
 		$layouts = [];
 
@@ -357,6 +415,9 @@ class Step_Internal_Page_Builder {
 			$placeholders = $this->section_assembler->placeholder_fields( $layout, $client, $count );
 			$row          = $this->content_builder->prepare_image_fallbacks( $this->section_assembler->section_data( $layout, $client, [], $count ) );
 			$rows[]       = $row;
+			if ( 'copy' === (string) ( $blueprint['canonical'] ?? '' ) && [] === $placeholders && $this->harness->is_reusable_layout( $layout ) ) {
+				$this->canonical_store->set_if_empty( $layout, $row );
+			}
 			foreach ( $placeholders as $field => $_unused ) {
 				$field = (string) $field;
 				if ( isset( $row[ $field ] ) ) {

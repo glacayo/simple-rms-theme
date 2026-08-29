@@ -18,6 +18,9 @@ if ( ! class_exists( 'WP_Error', false ) ) {
 		public function get_error_code() {
 			return $this->code;
 		}
+		public function get_error_message() {
+			return $this->message;
+		}
 	}
 }
 if ( ! class_exists( 'WP_Post', false ) ) {
@@ -26,6 +29,8 @@ if ( ! class_exists( 'WP_Post', false ) ) {
 		public $post_type    = 'page';
 		public $post_content = '';
 		public $post_name    = '';
+		public $post_title   = '';
+		public $post_status  = 'publish';
 		public function __construct( $id = 0 ) {
 			$this->ID = (int) $id;
 		}
@@ -53,6 +58,23 @@ if ( ! function_exists( 'current_user_can' ) ) { function current_user_can( $c )
 if ( ! function_exists( 'get_current_user_id' ) ) { function get_current_user_id() { return 1; } }
 if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $t ) { return $t instanceof WP_Error; } }
 if ( ! function_exists( 'wp_json_encode' ) ) { function wp_json_encode( $d, $o = 0 ) { return json_encode( $d, $o ); } }
+if ( ! function_exists( 'wp_kses_post' ) ) { function wp_kses_post( $v ) { return (string) $v; } }
+if ( ! function_exists( 'get_template_directory_uri' ) ) { function get_template_directory_uri() { return 'https://example.test/theme'; } }
+if ( ! function_exists( 'get_template_directory' ) ) { function get_template_directory() { return dirname( __DIR__ ); } }
+if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $v ) { return rtrim( (string) $v, '/\\' ) . '/'; } }
+if ( ! function_exists( 'locate_template' ) ) {
+	function locate_template( $templates, $load = false, $require_once = true ) {
+		unset( $load, $require_once );
+		$root = trailingslashit( get_template_directory() );
+		foreach ( is_array( $templates ) ? $templates : array( $templates ) as $rel ) {
+			$path = $root . ltrim( (string) $rel, '/' );
+			if ( is_readable( $path ) ) {
+				return $path;
+			}
+		}
+		return '';
+	}
+}
 if ( ! function_exists( 'maybe_serialize' ) ) { function maybe_serialize( $v ) { return is_array( $v ) || is_object( $v ) ? serialize( $v ) : $v; } }
 if ( ! function_exists( 'maybe_unserialize' ) ) {
 	function maybe_unserialize( $v ) {
@@ -63,11 +85,21 @@ if ( ! function_exists( 'maybe_unserialize' ) ) {
 }
 if ( ! function_exists( 'wp_cache_delete' ) ) { function wp_cache_delete( $k, $g = '' ) { unset( $k, $g ); return true; } }
 if ( ! function_exists( 'wp_generate_uuid4' ) ) { function wp_generate_uuid4() { return 'owner-' . ( $GLOBALS['_wpdb_inserts'] + 1 ); } }
+if ( ! function_exists( 'wp_count_posts' ) ) {
+	function wp_count_posts( $type = 'post' ) {
+		unset( $type );
+		$n = (int) ( $GLOBALS['_posts_count'] ?? 0 );
+		return (object) array( 'publish' => $n );
+	}
+}
 if ( ! function_exists( 'get_post' ) ) { function get_post( $id ) { return $GLOBALS['_posts'][ (int) $id ] ?? null; } }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k, $s = false ) { unset( $s ); return $GLOBALS['_post_meta'][ (int) $id ][ $k ] ?? ''; } }
 if ( ! function_exists( 'wp_update_post' ) ) {
 	function wp_update_post( $data, $wp_error = false ) {
 		unset( $wp_error );
+		if ( ! empty( $GLOBALS['_fail_build'] ) ) {
+			return new WP_Error( 'persist_failed', 'forced persistence failure' );
+		}
 		$GLOBALS['_page_writes']++;
 		$id = absint( $data['ID'] ?? 0 );
 		return $id > 0 ? $id : new WP_Error( 'update_failed', 'missing id' );
@@ -117,6 +149,7 @@ foreach ( array(
 	'class-wizard-unlock-controller.php',
 	'class-step-controller.php',
 	'class-internal-page-blueprints.php',
+	'class-internal-page-identity.php',
 	'class-ai-content-harness.php',
 	'class-canonical-section-store.php',
 	'class-yoast-meta-writer.php',
@@ -146,6 +179,7 @@ if ( ! function_exists( 'rms_ipa_reset' ) ) {
 		$GLOBALS['_post_meta']    = array();
 		$GLOBALS['_page_writes']  = 0;
 		$GLOBALS['_can']          = true;
+		$GLOBALS['_posts_count']  = 0;
 	}
 }
 
