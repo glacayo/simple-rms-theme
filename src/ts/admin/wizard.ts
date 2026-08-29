@@ -16,6 +16,19 @@ import {
   type GeneratePagePayloadItem,
 } from './wizard-helpers';
 import {
+  buildInternalCardViews,
+  displayStepStatus,
+  exclusiveMapSelections,
+  formatWizardProgress,
+  internalPageProgress,
+  mapOnlyOutcome,
+  openMapConfirmationDialog,
+  planStepFinish,
+  takenMapTypes,
+  type CompletionContract,
+  type InternalPagePreview,
+} from './wizard-internal-preview';
+import {
   applyHomeSeoTargetingUi,
   clearHomeSeoDirty,
   collectHomeSeoTargetingFromForm,
@@ -24,7 +37,6 @@ import {
   isHomeSeoValidationError,
   markHomeSeoDirty,
   presentHomeSeoCollectionResult,
-  shouldReloadWizardStateOnStepFinish,
   shouldReplaceHomeSeoOnStepFinish,
 } from './wizard-home-seo';
 
@@ -182,6 +194,8 @@ interface WizardState {
   controlled_unlock_ui?: boolean;
   has_unlock_marker?: boolean;
   logs?: WizardLogEntry[];
+  completion_contract?: CompletionContract;
+  internal_page_preview?: InternalPagePreview;
 }
 
 interface StepConfig {
@@ -352,7 +366,8 @@ declare global {
 
   const updateProgress = (): void => {
     const completed = steps.filter((step) => statusFor(step.slug) === 'complete').length;
-    const percent = Math.round((completed / steps.length) * 100);
+    const formatted = formatWizardProgress(state.completion_contract, completed, steps.length);
+    const percent = formatted.total > 0 ? Math.round((formatted.completed / formatted.total) * 100) : 0;
 
     if (progressBar) {
       progressBar.style.width = `${percent}%`;
@@ -360,17 +375,17 @@ declare global {
     }
 
     if (progressText) {
-      progressText.textContent = `${completed} of ${steps.length} steps complete`;
+      progressText.textContent = formatted.text;
     }
   };
 
   const updateNav = (): void => {
     navButtons.forEach((button) => {
       const step = button.dataset.wizardStepNav ?? '';
-      const status = statusFor(step);
+      const status = displayStepStatus(step, statusFor(step), state.completion_contract);
       const statusNode = button.querySelector<HTMLElement>('[data-wizard-step-status]');
 
-      button.classList.remove('is-pending', 'is-running', 'is-complete', 'is-failed');
+      button.classList.remove('is-pending', 'is-running', 'is-complete', 'is-failed', 'is-optional');
       button.classList.add(`is-${status}`);
 
       if (statusNode) {
@@ -491,66 +506,71 @@ declare global {
     }
 
     const plan = state.internal_pages ?? {};
-    const pages = Array.isArray(state.generated_pages) ? state.generated_pages : [];
+    let preview = state.internal_page_preview;
+    if (!preview) {
+      try {
+        preview = JSON.parse(form.querySelector<HTMLScriptElement>('[data-wizard-internal-preview]')?.textContent ?? '{}') as InternalPagePreview;
+      } catch {
+        preview = { types: {}, unmapped: [] };
+      }
+    }
+    if (!preview.plan) {
+      preview.plan = plan;
+    }
+    const views = buildInternalCardViews(blueprints, preview);
     list.replaceChildren();
     let visible = 0;
-    let pending = 0;
-    let complete = 0;
 
-    blueprints.forEach((blueprint) => {
-      const entry = plan[blueprint.type] ?? {};
-      const postId = Number(entry.post_id ?? 0);
-      const generated = pages.find((page) => (page.type || '') === blueprint.type);
-      if (!generated && postId <= 0 && !entry.status) {
-        return;
-      }
-
+    views.forEach((view) => {
       const node = template.content.firstElementChild?.cloneNode(true);
       if (!(node instanceof HTMLElement)) {
         return;
       }
 
       visible += 1;
-      const status = String(entry.status ?? (generated ? 'pending' : 'skipped'));
-      if (status === 'pending' || status === 'failed') {
-        pending += 1;
-      }
-      if (status === 'complete') {
-        complete += 1;
-      }
 
-      node.dataset.wizardPageType = blueprint.type;
+      node.dataset.wizardPageType = view.type;
+      if (view.postId > 0) {
+        node.dataset.wizardPostId = String(view.postId);
+      }
       const typeInput = node.querySelector<HTMLInputElement>('[data-wizard-internal-type]');
       const labelNode = node.querySelector('[data-wizard-internal-label]');
       const layoutNode = node.querySelector('[data-wizard-internal-layouts]');
       const statusNode = node.querySelector('[data-wizard-internal-status]');
       const overwriteWrap = node.querySelector<HTMLElement>('[data-wizard-internal-overwrite-wrap]');
       const convertWrap = node.querySelector<HTMLElement>('[data-wizard-internal-convert-wrap]');
+      const mapWrap = node.querySelector<HTMLElement>('[data-wizard-internal-map-wrap]');
       const editLink = node.querySelector<HTMLAnchorElement>('[data-wizard-internal-edit]');
 
       if (typeInput) {
-        typeInput.value = blueprint.type;
+        typeInput.value = view.type;
       }
       if (labelNode) {
-        labelNode.textContent = blueprint.label;
+        labelNode.textContent = view.label;
       }
       if (layoutNode) {
-        layoutNode.textContent = (Array.isArray(entry.layouts) && entry.layouts.length > 0 ? entry.layouts : blueprint.layouts).join(', ');
+        layoutNode.textContent = view.layouts.join(', ');
       }
       if (statusNode) {
-        const reason = String(entry.reason ?? '');
-        statusNode.textContent = reason && status !== 'complete' ? `${status} (${reason})` : status;
+        statusNode.textContent = view.reason && view.status !== 'complete' ? `${view.status} (${view.reason})` : view.status;
       }
       if (overwriteWrap) {
-        overwriteWrap.hidden = status !== 'complete';
+        overwriteWrap.hidden = !view.showOverwrite;
       }
       if (convertWrap) {
-        convertWrap.hidden = !(status === 'skipped' && String(entry.reason ?? '') === 'legacy_unconfirmed');
+        convertWrap.hidden = !view.showConvert;
+      }
+      if (mapWrap) {
+        mapWrap.hidden = !view.mappingNeeded;
+        const mapSelect = mapWrap.querySelector<HTMLSelectElement>('[data-wizard-internal-map-type]');
+        if (mapSelect && view.mappingNeeded) {
+          mapSelect.setAttribute('aria-label', `Assign internal page type for ${view.label}`);
+        }
       }
       if (editLink) {
-        const canEdit = postId > 0;
+        const canEdit = view.postId > 0;
         editLink.hidden = !canEdit;
-        editLink.href = canEdit ? `post.php?post=${postId}&action=edit` : '#';
+        editLink.href = canEdit ? `post.php?post=${view.postId}&action=edit` : '#';
       }
 
       list.append(node);
@@ -560,8 +580,38 @@ declare global {
       empty.hidden = visible > 0;
     }
     if (progress) {
-      progress.textContent = visible > 0 ? `${complete} of ${visible} internal pages complete` : '';
+      const tally = internalPageProgress(views);
+      progress.textContent = tally.total > 0 ? `${tally.complete} of ${tally.total} internal pages complete` : '';
     }
+    if (!form.dataset.wizardMapExclusive) {
+      form.dataset.wizardMapExclusive = '1';
+      form.addEventListener('change', (event) => {
+        const target = event.target;
+        if (target instanceof HTMLSelectElement && target.matches('[data-wizard-internal-map-type]')) {
+          syncInternalMapExclusivity(form);
+        }
+      });
+    }
+    syncInternalMapExclusivity(form);
+  };
+
+  const syncInternalMapExclusivity = (form: HTMLFormElement): void => {
+    const selects = Array.from(form.querySelectorAll<HTMLSelectElement>('[data-wizard-internal-map-type]'));
+    let selections = selects.map((select) => ({
+      postId: Number((select.closest('[data-wizard-internal-card]') as HTMLElement | null)?.dataset.wizardPostId ?? 0),
+      type: select.value,
+    }));
+    selections = exclusiveMapSelections(selections);
+    selects.forEach((select, index) => {
+      const next = selections[index];
+      if (next && select.value !== next.type) {
+        select.value = next.type;
+      }
+      const taken = takenMapTypes(selections, next?.postId);
+      select.querySelectorAll('option').forEach((option) => {
+        option.disabled = option.value !== '' && taken.includes(option.value);
+      });
+    });
   };
 
   const render = (options?: { replaceHomeSeo?: boolean }): void => {
@@ -723,6 +773,35 @@ declare global {
       return;
     }
 
+    const mapPages = Array.isArray(payload.map_pages) ? payload.map_pages as Array<{ post_id: number; type: string }> : [];
+    const overwrite = Array.isArray(payload.overwrite) ? payload.overwrite : [];
+    const convertLegacy = Array.isArray(payload.convert_legacy) ? payload.convert_legacy : [];
+
+    // Map-only requests are metadata-only: persist identity types without
+    // starting/processing, without touching step status, and without a false
+    // "Step completed" outcome. The server returns action 'mapped'.
+    if (mapPages.length > 0 && overwrite.length === 0 && convertLegacy.length === 0) {
+      const mapped = await request<StepResponse>(`steps/${step}/run`, {
+        method: 'POST',
+        body: JSON.stringify({
+          map_pages: mapPages,
+          confirm_map: payload.confirm_map,
+          confirm_map_types: payload.confirm_map_types,
+        }),
+      }, 1);
+
+      if (mapped.state) {
+        state = mapped.state;
+      }
+
+      hydrateInternalPageCards();
+      setStepResult(step, mapped.result ?? mapped);
+      const outcome = mapOnlyOutcome();
+      setStepActionStatus(step, outcome.statusMessage, 'success');
+      setNotice(outcome.noticeMessage, 'success');
+      return;
+    }
+
     const startResponse = await request<StepResponse>(`steps/${step}/run`, {
       method: 'POST',
       body: JSON.stringify({
@@ -772,13 +851,13 @@ declare global {
 
     let persisted = false;
     let validationBlocked = false;
+    let canceled = false;
 
     try {
       const payload = collectPayload(step);
 
       if (!await ensureDestructiveConfirmation(step, payload)) {
-        setStepActionStatus(step, 'Step canceled before changes were made.', 'info');
-        setNotice('Step canceled before changes were made.', 'info');
+        canceled = true;
         return;
       }
 
@@ -851,7 +930,9 @@ declare global {
     } finally {
       runningStep = null;
 
-      if (shouldReloadWizardStateOnStepFinish({ validationBlocked })) {
+      const finish = planStepFinish({ canceled, validationBlocked });
+
+      if (finish.reload) {
         await loadState({
           replaceHomeSeo: shouldReplaceHomeSeoOnStepFinish({
             step,
@@ -860,6 +941,10 @@ declare global {
           }),
         });
       } else {
+        if (canceled) {
+          setStepActionStatus(step, '', 'info');
+          setNotice('', 'info');
+        }
         updateButtons();
       }
     }
@@ -1488,9 +1573,15 @@ declare global {
 
     const overwrite: string[] = [];
     const convertLegacy: string[] = [];
+    const mapPages: Array<{ post_id: number; type: string }> = [];
 
     form.querySelectorAll<HTMLElement>('[data-wizard-internal-card]').forEach((card) => {
       const type = card.dataset.wizardPageType || card.querySelector<HTMLInputElement>('[data-wizard-internal-type]')?.value || '';
+      const mappedType = card.querySelector<HTMLSelectElement>('[data-wizard-internal-map-type]')?.value || '';
+      const postId = Number(card.dataset.wizardPostId ?? 0);
+      if (mappedType && postId > 0) {
+        mapPages.push({ post_id: postId, type: mappedType });
+      }
       if (!type) {
         return;
       }
@@ -1505,11 +1596,42 @@ declare global {
     return {
       overwrite,
       convert_legacy: convertLegacy,
+      map_pages: mapPages,
     };
   };
 
   const ensureDestructiveConfirmation = async (step: string, payload: StepPayload): Promise<boolean> => {
     if (step === 'internal-page-builder') {
+      const mapPages = Array.isArray(payload.map_pages) ? payload.map_pages as Array<{ post_id: number; type: string }> : [];
+      if (mapPages.length > 0) {
+        const copy = root.querySelector('[data-wizard-internal-map-confirm]')?.textContent?.trim()
+          || 'Assigning a page type links that generated page to one Internal Page Builder type. This does not convert or overwrite page content.';
+        const dialog = root.querySelector<HTMLElement>('[data-wizard-internal-map-dialog]');
+        const message = dialog?.querySelector<HTMLElement>('[data-wizard-internal-map-dialog-message]');
+        const accept = dialog?.querySelector<HTMLButtonElement>('[data-wizard-internal-map-dialog-accept]');
+        const cancel = dialog ? Array.from(dialog.querySelectorAll<HTMLElement>('[data-wizard-internal-map-dialog-cancel]')) : [];
+
+        if (!dialog || !message || !accept) {
+          return false;
+        }
+
+        const decision = await openMapConfirmationDialog(
+          {
+            dialog: dialog as unknown as { hidden: boolean },
+            message,
+            accept,
+            cancel,
+            doc: document as unknown as import('./wizard-internal-preview').MapDialogDoc,
+          },
+          copy,
+          mapPages
+        );
+        if (!decision.confirm_map) {
+          return false;
+        }
+        Object.assign(payload, decision);
+      }
+
       const overwrite = Array.isArray(payload.overwrite) ? payload.overwrite : [];
       const convertLegacy = Array.isArray(payload.convert_legacy) ? payload.convert_legacy : [];
       if (overwrite.length === 0 && convertLegacy.length === 0) {

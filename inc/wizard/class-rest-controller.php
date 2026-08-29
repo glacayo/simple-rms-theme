@@ -66,9 +66,38 @@ class Rest_Controller {
 		);
 	}
 
-	public function permission_callback(): bool {
-		return $this->step_controller->can_access();
-	}
+		public function permission_callback( $request = null ): bool {
+			if ( ! $this->step_controller->can_access() ) {
+				return false;
+			}
+
+			if ( function_exists( 'wp_verify_nonce' ) ) {
+				return $this->rest_nonce_is_valid( $request );
+			}
+
+			return true;
+		}
+
+		/**
+		 * Cookie REST nonce check. Never accepts a nonce without wp_verify_nonce().
+		 *
+		 * @param mixed $request Optional REST request.
+		 */
+		public function rest_nonce_is_valid( $request = null ): bool {
+			if ( ! function_exists( 'wp_verify_nonce' ) ) {
+				return false;
+			}
+
+			$nonce = '';
+			if ( is_object( $request ) && method_exists( $request, 'get_header' ) ) {
+				$nonce = (string) $request->get_header( 'X-WP-Nonce' );
+			}
+			if ( '' === $nonce && isset( $_SERVER['HTTP_X_WP_NONCE'] ) ) {
+				$nonce = (string) $_SERVER['HTTP_X_WP_NONCE'];
+			}
+
+			return false !== \wp_verify_nonce( $nonce, 'wp_rest' );
+		}
 
 	public function get_state(): \WP_REST_Response {
 		return new \WP_REST_Response( $this->step_controller->get_resume_state(), 200 );
