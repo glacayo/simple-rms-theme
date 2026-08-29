@@ -640,8 +640,8 @@ PROMPT;
 			$primary       = $normalized['primary_keyword'];
 			$subkeywords   = implode( ', ', $normalized['subkeywords'] );
 			$keyword_block = "\n\nKEYWORD CONTEXT (mandatory for this section only):\n"
-				. '- Primary keyword: {{primary_keyword}}' . "\n"
-				. '- Subkeywords: {{subkeywords}}' . "\n"
+				. '- Primary keyword: ' . ( '' !== $primary ? $primary : '(none provided)' ) . "\n"
+				. '- Subkeywords: ' . ( '' !== $subkeywords ? $subkeywords : '(none)' ) . "\n"
 				. "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n"
 				. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
 				. "- Do not invent services, locations, or proof to force keyword usage.";
