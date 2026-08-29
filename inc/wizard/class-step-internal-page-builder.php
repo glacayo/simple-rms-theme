@@ -182,9 +182,10 @@ class Step_Internal_Page_Builder {
 			$this->type_requested( $payload['convert_legacy'] ?? [], $type )
 		);
 		$plan[ $type ] = $entry;
-		$fresh                   = $this->state_manager->get_state();
-		$fresh['internal_pages'] = $plan;
-		$this->state_manager->save_state( $fresh );
+		$latest                   = $this->state_manager->get_state();
+		$latest['generated_pages'] = is_array( $fresh['generated_pages'] ?? null ) ? $fresh['generated_pages'] : ( $latest['generated_pages'] ?? [] );
+		$latest['internal_pages']  = $plan;
+		$this->state_manager->save_state( $latest );
 		$this->state_manager->set_step_status( self::STEP, $this->step_status_from_plan( $plan ) );
 
 		return [
@@ -349,7 +350,9 @@ class Step_Internal_Page_Builder {
 	 * @return array{rows:array<int,array<string,mixed>>,layouts:array<int,string>}
 	 */
 	private function assemble_rows( array $blueprint, int $post_id ): array {
-		$client  = is_array( $this->state_manager->get_state()['client_data'] ?? null ) ? $this->state_manager->get_state()['client_data'] : [];
+		$client  = $this->harness->compose_factual_context(
+			is_array( $this->state_manager->get_state()['client_data'] ?? null ) ? $this->state_manager->get_state()['client_data'] : []
+		);
 		$rows    = [];
 		$layouts = [];
 
@@ -371,6 +374,9 @@ class Step_Internal_Page_Builder {
 			$placeholders = $this->section_assembler->placeholder_fields( $layout, $client, $count );
 			$row          = $this->content_builder->prepare_image_fallbacks( $this->section_assembler->section_data( $layout, $client, [], $count ) );
 			$rows[]       = $row;
+			if ( 'copy' === (string) ( $blueprint['canonical'] ?? '' ) && [] === $placeholders && $this->harness->is_reusable_layout( $layout ) ) {
+				$this->canonical_store->set_if_empty( $layout, $row );
+			}
 			foreach ( $placeholders as $field => $_unused ) {
 				$field = (string) $field;
 				if ( isset( $row[ $field ] ) ) {
