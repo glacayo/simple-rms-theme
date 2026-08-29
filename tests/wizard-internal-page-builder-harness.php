@@ -26,8 +26,14 @@ if ( ! function_exists( 'current_time' ) ) { function current_time( $t, $g = fal
 if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = false ) { return $GLOBALS['_options'][ $n ] ?? $d; } }
 if ( ! function_exists( 'update_option' ) ) { function update_option( $n, $v, $a = null ) { unset( $a ); $GLOBALS['_options'][ $n ] = $v; return true; } }
 if ( ! function_exists( 'get_post' ) ) { function get_post( $id ) { return $GLOBALS['_posts'][ (int) $id ] ?? null; } }
-if ( ! function_exists( 'get_page_by_path' ) ) { function get_page_by_path( $s, $o = null, $t = 'page' ) { unset( $s, $o, $t ); return null; } }
+if ( ! function_exists( 'get_page_by_path' ) ) {
+	function get_page_by_path( $s, $o = null, $t = 'page' ) {
+		unset( $o, $t );
+		return $GLOBALS['_page_by_path'][ (string) $s ] ?? null;
+	}
+}
 if ( ! function_exists( 'get_posts' ) ) { function get_posts( $a = array() ) { unset( $a ); return array(); } }
+if ( ! function_exists( 'wp_delete_post' ) ) { function wp_delete_post( $id, $force = false ) { unset( $id, $force ); return true; } }
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $t ) { return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' ); } }
 if ( ! defined( 'OBJECT' ) ) { define( 'OBJECT', 'OBJECT' ); }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k, $s = false ) { unset( $s ); return $GLOBALS['_post_meta'][ (int) $id ][ $k ] ?? ''; } }
@@ -77,7 +83,7 @@ if ( ! isset( $GLOBALS['wpdb'] ) ) {
 		}
 	};
 }
-foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-wizard-mutation-fence.php', 'class-step-controller.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-step-internal-page-builder.php', 'class-step-generate-pages.php' ) as $f ) {
+foreach ( array( 'class-logger.php', 'class-state-manager.php', 'class-wizard-mutation-fence.php', 'class-step-controller.php', 'class-ai-content-harness.php', 'class-canonical-section-store.php', 'class-yoast-meta-writer.php', 'class-content-builder.php', 'class-section-assembler.php', 'class-placeholder-provenance-store.php', 'class-internal-page-blueprints.php', 'class-internal-page-identity.php', 'class-step-internal-page-builder.php', 'class-step-generate-pages.php' ) as $f ) {
 	require_once $theme_root . '/inc/wizard/' . $f;
 }
 use Inc\Wizard\AI_Content_Harness;
@@ -125,6 +131,7 @@ function rms_ipb_reset(): void {
 	$GLOBALS['_options'] = $GLOBALS['_posts'] = $GLOBALS['_post_meta'] = $GLOBALS['_build_log'] = array();
 	$GLOBALS['_fail_build'] = false;
 	$GLOBALS['_next_id'] = 20;
+	$GLOBALS['_page_by_path'] = array();
 	$GLOBALS['_db_options'] = array();
 	$GLOBALS['_wpdb_inserts'] = 0;
 }
@@ -357,4 +364,117 @@ $b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) );
 $live = $b->run( array( 'action' => 'process', 'page_type' => 'about', 'post_id' => 12, 'slug' => 'our-story' ) );
 rms_ipb_assert( ! is_wp_error( $live ) && 'complete' === ( $live['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'live permalink slug accepted' );
 echo "PASS live-permalink-identity\n"; ++$passed;
+rms_ipb_reset();
+foreach ( array( 12 => 'about', 13 => 'services', 14 => 'contact', 15 => 'projects' ) as $id => $type ) {
+	$GLOBALS['_posts'][ $id ] = new WP_Post( $id );
+}
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array(
+	array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ),
+	array( 'id' => 13, 'slug' => 'services', 'type' => 'services' ),
+	array( 'id' => 14, 'slug' => 'contact', 'type' => 'contact' ),
+	array( 'id' => 15, 'slug' => 'projects', 'type' => 'projects' ),
+);
+$sm->save_state( $st );
+$b = rms_ipb_builder();
+$b->run( array( 'action' => 'start' ) );
+$b->run( array( 'action' => 'process' ) );
+$b->run( array( 'action' => 'process' ) );
+$writes_after_two = count( $GLOBALS['_build_log'] );
+$plan = ( new State_Manager() )->get_state()['internal_pages'];
+rms_ipb_assert( 'complete' === ( $plan['about']['status'] ?? '' ) && 'complete' === ( $plan['services']['status'] ?? '' ), 'two pages complete before interrupt' );
+$b2 = rms_ipb_builder();
+$b2->run( array( 'action' => 'start' ) );
+$b2->run( array( 'action' => 'process' ) );
+$b2->run( array( 'action' => 'process' ) );
+$plan = ( new State_Manager() )->get_state()['internal_pages'];
+rms_ipb_assert( 'complete' === ( $plan['contact']['status'] ?? '' ) && 'complete' === ( $plan['projects']['status'] ?? '' ), 'remaining pages processed on resume' );
+rms_ipb_assert( 2 === count( array_slice( $GLOBALS['_build_log'], $writes_after_two ) ), 'completed pages were not rebuilt after interrupt' );
+echo "PASS run-resumes-after-interruption\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][15] = new WP_Post( 15 );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 15, 'slug' => 'projects', 'type' => 'projects' ) );
+$sm->save_state( $st );
+rms_ipb_assert( false === ( new Canonical_Section_Store() )->has( 'gallery-grid' ), 'canonical empty before first write' );
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( true === ( new Canonical_Section_Store() )->has( 'gallery-grid' ), 'empty canonical first-written' );
+echo "PASS empty-canonical-first-write\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][12] = new WP_Post( 12 );
+$c = new Canonical_Section_Store();
+$c->set_if_empty( 'about-us', array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Keep Canonical' ) );
+$before = $c->get( 'about-us' );
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 12, 'slug' => 'about', 'type' => 'about' ) );
+$st['internal_pages']['about'] = array_merge( State_Manager::INTERNAL_PAGE_ENTRY, array( 'post_id' => 12, 'status' => 'complete' ) );
+$sm->save_state( $st );
+$GLOBALS['_post_meta'][12]['page_sections'] = array( array( 'acf_fc_layout' => 'about-us', 'about_headline' => 'Old page' ) );
+$over = rms_ipb_builder()->run( array( 'action' => 'process', 'overwrite' => array( 'about' ) ) );
+rms_ipb_assert( 'complete' === ( $over['status'] ?? '' ) && 1 === count( $GLOBALS['_build_log'] ), 'confirmed overwrite regenerates page' );
+rms_ipb_assert( $before === ( new Canonical_Section_Store() )->get( 'about-us' ), 'canonical unchanged after overwrite' );
+echo "PASS confirmed-overwrite-canonical-unchanged\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][18] = new WP_Post( 18 );
+$GLOBALS['_posts_count'] = 2;
+if ( ! function_exists( 'wp_count_posts' ) ) {
+	function wp_count_posts( $type = 'post' ) {
+		unset( $type );
+		$n = (int) ( $GLOBALS['_posts_count'] ?? 0 );
+		return (object) array( 'publish' => $n );
+	}
+}
+$sm = new State_Manager(); $st = $sm->get_state();
+$st['generated_pages'] = array( array( 'id' => 18, 'slug' => 'blog', 'type' => 'blog', 'role' => 'blog' ) );
+$sm->save_state( $st );
+$before_posts = (int) wp_count_posts( 'post' )->publish;
+$b = rms_ipb_builder(); $b->run( array( 'action' => 'start' ) ); $b->run( array( 'action' => 'process' ) );
+rms_ipb_assert( $before_posts === (int) wp_count_posts( 'post' )->publish, 'blog blueprint does not generate posts' );
+echo "PASS blog-post-count-invariance\n"; ++$passed;
+rms_ipb_reset();
+$store = new Placeholder_Provenance_Store();
+$store->record( 12, 'about-us', 0, 'about_headline', 'missing_client_fact', 'PLACEHOLDER HEADLINE' );
+$harness = new AI_Content_Harness();
+$ctx = $harness->compose_factual_context(
+	array( 'company_name' => 'Acme' ),
+	array( 'about_headline' => 'PLACEHOLDER HEADLINE', 'invented_stat' => '12 years' )
+);
+rms_ipb_assert( 'Acme' === ( $ctx['company_name'] ?? '' ), 'client facts remain' );
+rms_ipb_assert( ! isset( $ctx['about_headline'] ), 'placeholder excluded from later factual context' );
+echo "PASS placeholder-not-reused-as-factual-context\n"; ++$passed;
+rms_ipb_reset();
+$GLOBALS['_posts'][50] = new WP_Post( 50 );
+$GLOBALS['_posts'][50]->post_name = 'about';
+$l = new Logger(); $sm = new State_Manager();
+$GLOBALS['_page_by_path'] = array( 'about' => $GLOBALS['_posts'][50] );
+$gen = new Step_Generate_Pages( $l, $sm, new class( $l, $sm ) extends Content_Builder {
+	public function build_page( array $page ): int {
+		$id = absint( $page['id'] ?? 0 );
+		if ( $id <= 0 ) {
+			$GLOBALS['_next_id'] = ( $GLOBALS['_next_id'] ?? 80 ) + 1;
+			$id = $GLOBALS['_next_id'];
+		}
+		$GLOBALS['_build_log'][] = $page;
+		if ( isset( $page['meta_input']['_wp_page_template'] ) ) {
+			$GLOBALS['_post_meta'][ $id ]['_wp_page_template'] = $page['meta_input']['_wp_page_template'];
+		}
+		return $id;
+	}
+} );
+$out = $gen->run( array(
+	'pages' => array(
+		'home'  => array( 'type' => 'home', 'slug' => 'home', 'title' => 'Home', 'role' => 'home', 'generate' => true ),
+		'about' => array( 'type' => 'about', 'slug' => 'about', 'title' => 'About', 'generate' => true ),
+	),
+	'confirm_cleanup' => true,
+) );
+rms_ipb_assert( ! is_wp_error( $out ), 'generate existing run' );
+$by = array();
+foreach ( $out['generated_pages'] as $row ) {
+	$by[ (string) $row['slug'] ] = (int) $row['id'];
+}
+rms_ipb_assert( 50 === (int) ( $by['about'] ?? 0 ), 'existing blueprinted page updated in place' );
+rms_ipb_assert( 2 === count( $GLOBALS['_build_log'] ), 'home created and about updated without extras' );
+rms_ipb_assert( 'pages/about-us.php' === ( $GLOBALS['_post_meta'][50]['_wp_page_template'] ?? '' ), 'blueprint template applied on update' );
+echo "PASS existing-blueprinted-page-update-no-duplicate\n"; ++$passed;
 echo 'Harness passed: ' . $passed . " scenarios.\n";
