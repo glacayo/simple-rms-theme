@@ -45,6 +45,6 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Testing & Verification
 
-- [ ] 4.1 Write tests for `Menu_Builder` creation and deletion logic.
-- [ ] 4.2 Write tests for `Step_Generate_Pages` destructive cleanup and `Step_Home_Page_Builder` section assembly.
-- [ ] 4.3 Verify full 7-step UI progression in browser, ensuring `wizard-prd.html` remains unmodified and image fallbacks load.
+- [x] 4.1 Write tests for `Menu_Builder` creation and deletion logic.
+- [x] 4.2 Write tests for `Step_Generate_Pages` destructive cleanup and `Step_Home_Page_Builder` section assembly.
+- [x] 4.3 Verify full 7-step UI progression in browser, ensuring `wizard-prd.html` remains unmodified and image fallbacks load.
