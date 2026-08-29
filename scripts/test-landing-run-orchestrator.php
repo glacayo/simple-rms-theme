@@ -184,11 +184,12 @@ namespace {
 	function wp_cache_delete( $key, $group = '' ) { return true; }
 	function get_permalink( $id ) { return ''; }
 	function add_theme_page( ...$args ) {}
-	function add_action( ...$args ) {}
+	function add_action( ...$args ) { $GLOBALS['_wp_actions'][] = $args; }
 	function add_filter( ...$args ) {}
 	function register_rest_route( ...$args ) {}
 
 	$GLOBALS['_options'] = [];
+	$GLOBALS['_wp_actions'] = [];
 	$GLOBALS['_options_added'] = [];
 	$GLOBALS['_posts'] = [];
 	$GLOBALS['_updated_posts'] = [];
@@ -555,6 +556,24 @@ namespace {
 	require_once __DIR__ . '/../inc/wizard/class-yoast-meta-writer.php';
 	require_once __DIR__ . '/../inc/wizard/class-menu-builder.php';
 	require_once __DIR__ . '/../inc/wizard/class-content-builder.php';
+	require_once __DIR__ . '/../inc/wizard/class-section-assembler.php';
+	require_once __DIR__ . '/../inc/wizard/class-placeholder-provenance-store.php';
+	\Inc\Wizard\Placeholder_Provenance_Store::register();
+	$provenance_hook = false;
+	foreach ( $GLOBALS['_wp_actions'] as $args ) {
+		if ( 'acf/save_post' === ( $args[0] ?? '' )
+			&& array( \Inc\Wizard\Placeholder_Provenance_Store::class, 'handle_acf_save_post' ) === ( $args[1] ?? null )
+			&& 20 === ( $args[2] ?? 0 )
+			&& 1 === ( $args[3] ?? 0 )
+		) {
+			$provenance_hook = true;
+			break;
+		}
+	}
+	if ( ! $provenance_hook ) {
+		fwrite( STDERR, "FAIL provenance acf/save_post registration was not recorded by add_action fake\n" );
+		exit( 1 );
+	}
 
 	// Stubs for AI/provider classes that are needed but not included.
 	if ( ! class_exists( 'Inc\Wizard\AI_Provider_Registry' ) ) {

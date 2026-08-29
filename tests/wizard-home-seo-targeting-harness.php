@@ -311,8 +311,9 @@ rms_home_seo_assert(
 );
 $landing_hero = $harness->get_layer3( 'hero', 1, $client, AI_Content_Harness::PAGE_LANDING, $landing_keywords );
 rms_home_seo_assert( false !== strpos( $landing_hero, 'KEYWORD CONTEXT (mandatory for this section only)' ), 'landing keyword contract changed' );
-rms_home_seo_assert( false !== strpos( $landing_hero, '- Primary keyword: {{primary_keyword}}' ), 'landing primary placeholder contract changed' );
-rms_home_seo_assert( false !== strpos( $landing_hero, '- Subkeywords: {{subkeywords}}' ), 'landing subkeyword placeholder contract changed' );
+rms_home_seo_assert( false !== strpos( $landing_hero, '- Primary keyword: kitchen remodel near me' ), 'landing prompt does not resolve the primary keyword value' );
+rms_home_seo_assert( false !== strpos( $landing_hero, '- Subkeywords: Kitchen Remodel Near Me, cabinets, Kitchen Remodel Near Me' ), 'landing prompt does not resolve the subkeyword values' );
+rms_home_seo_assert( false === strpos( $landing_hero, '{{primary_keyword}}' ) && false === strpos( $landing_hero, '{{subkeywords}}' ), 'landing prompt leaked literal keyword tokens' );
 rms_home_seo_assert( false === strpos( $landing_hero, 'KEYWORD INTENT (editorial only' ), 'landing prompt picked up homepage contract' );
 rms_home_seo_assert( false === strpos( $landing_hero, 'never evidence' ), 'landing prompt picked up homepage evidence language' );
 

@@ -1,12 +1,13 @@
 <?php
-/*
+/**
  * Template Name: Project / Gallery
+ *
+ * @package Simple_RMS_Theme
  */
 
 get_header();
-?>
 
-<?php get_template_part('templates/breadcrumb'); ?>
-<?php get_template_part('templates/gallery-grid'); ?>
+get_template_part( 'templates/breadcrumb' );
+get_template_part( 'templates/page-sections-loop' );
 
-<?php get_footer(); ?>
+get_footer();

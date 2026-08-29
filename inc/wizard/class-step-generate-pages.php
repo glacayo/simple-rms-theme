@@ -9,6 +9,8 @@ namespace Inc\Wizard;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-internal-page-blueprints.php';
+
 /**
  * Creates the wizard-selected pages and stores Home/Blog assignments.
  */
@@ -82,15 +84,23 @@ class Step_Generate_Pages {
 				return $this->landing_slug_conflict_error( $slug, (int) $existing->ID );
 			}
 
-			$post_id = $this->content_builder->build_page(
-				[
-					'id'      => $existing ? (int) $existing->ID : 0,
-					'title'   => $page['title'],
-					'slug'    => $slug,
-					'status'  => 'publish',
-					'content' => $this->generate_page_content( $page['title'], $slug, $client_data, $ai_config ),
-				]
-			);
+			$page_def = [
+				'id'      => $existing ? (int) $existing->ID : 0,
+				'title'   => $page['title'],
+				'slug'    => $slug,
+				'status'  => 'publish',
+				'content' => $this->generate_page_content( $page['title'], $slug, $client_data, $ai_config ),
+			];
+
+			$type      = \sanitize_title( (string) ( $page['type'] ?? '' ) );
+			$blueprint = $this->shell_blueprint( $type );
+			if ( is_array( $blueprint ) && ! empty( $blueprint['template'] ) ) {
+				$page_def['meta_input'] = [
+					'_wp_page_template' => (string) $blueprint['template'],
+				];
+			}
+
+			$post_id = $this->content_builder->build_page( $page_def );
 
 			if ( $post_id <= 0 ) {
 				$this->state_manager->set_step_status( self::STEP, 'failed' );
@@ -117,6 +127,7 @@ class Step_Generate_Pages {
 				'title' => $page['title'],
 				'slug'  => $slug,
 				'role'  => $role,
+				'type'  => \sanitize_title( (string) ( $page['type'] ?? '' ) ),
 			];
 		}
 
@@ -173,13 +184,38 @@ class Step_Generate_Pages {
 				continue;
 			}
 
+			$type = $this->resolve_page_type( $config, is_string( $key ) ? $key : '', $slug, $available );
+
 			$selected[ $slug ] = [
-				'title' => \sanitize_text_field( (string) ( $config['title'] ?? $available[ $slug ] ?? ucwords( str_replace( '-', ' ', $slug ) ) ) ),
+				'title' => \sanitize_text_field( (string) ( $config['title'] ?? $available[ $type ] ?? $available[ $slug ] ?? ucwords( str_replace( '-', ' ', $slug ) ) ) ),
 				'role'  => \sanitize_key( (string) ( $config['role'] ?? '' ) ),
+				'type'  => $type,
 			];
 		}
 
 		return $selected;
+	}
+
+	/**
+	 * Prefer a valid explicit type; ignore unknown types; fall back to legacy keys/slugs.
+	 *
+	 * @param array<string,mixed>      $config    Page payload item.
+	 * @param array<string,string>     $available Catalog keyed by immutable type.
+	 */
+	private function resolve_page_type( array $config, string $key, string $slug, array $available ): string {
+		$explicit = \sanitize_title( (string) ( $config['type'] ?? '' ) );
+
+		if ( '' !== $explicit && isset( $available[ $explicit ] ) ) {
+			return $explicit;
+		}
+
+		$from_key = \sanitize_title( $key );
+
+		if ( '' !== $from_key && isset( $available[ $from_key ] ) ) {
+			return $from_key;
+		}
+
+		return isset( $available[ $slug ] ) ? $slug : '';
 	}
 
 	private function resolve_roles( array $pages, array $payload ) {
@@ -414,6 +450,21 @@ class Step_Generate_Pages {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Blueprint used at shell creation, or null when the type is not shell-ready.
+	 *
+	 * @return array{template:string,layouts:array<int,string>,page_type:string,canonical:string}|null
+	 */
+	private function shell_blueprint( string $type ) {
+		if ( ! in_array( $type, Internal_Page_Blueprints::shell_ready_types(), true ) ) {
+			return null;
+		}
+
+		$all = Internal_Page_Blueprints::all();
+
+		return is_array( $all[ $type ] ?? null ) ? $all[ $type ] : null;
 	}
 
 	private function available_pages(): array {

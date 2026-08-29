@@ -85,3 +85,44 @@ npm run build
 ```
 
 Result: all PHP syntax checks reported `No syntax errors detected`; targeted TypeScript check emitted no errors; `npm run build` completed successfully.
+
+## Phase 4: Tests & Browser Verification
+
+Applied in an isolated worktree at the change's committed base (`2caa6bc`, detached HEAD at `simple-rms-theme-wizard-phase4`) so the uncommitted verified `wizard-internal-page-builder` Phase 9 work in the main worktree was preserved untouched. No commits, pushes, or branch changes were made; the Phase 4 harness deliverables live in that worktree's `tests/` directory for the dedicated `sdd-verify` phase to consume. The worktree contains no `.codegraph` index (a fresh checkout; nothing was copied or reused).
+
+### 4.1 Menu_Builder tests
+
+- Created `tests/wizard-menu-builder-harness.php` (5 scenarios): menu creation + reuse by name, item replacement in display order with non-page filtering and stale-item cleanup, location assignment/clearing, `delete_all_menus()` full removal, and item-failure isolation.
+- Result: `Harness passed: 5 scenarios.`
+
+### 4.2 Step_Generate_Pages + Step_Home_Page_Builder tests
+
+- Created `tests/wizard-content-flow-steps-harness.php` (12 scenarios): destructive cleanup confirmation gating, confirmed cleanup deleting only unselected pages, landing-page protection, Home required, Blog optional (`page_for_posts` reset), AI-config dependency, empty-sections block, ordered section assembly with `cta-bar`→`cta-v1` alias and unknown-layout rejection, client-data fallback copy, image placeholder fallback, section-only save to the Home post ID, canonical first-write, Home-not-found error, missing client data error, item-count clamp (1–12), and AI-copy whitelist (blocked/invented fields dropped).
+- Shared stub bootstrap: `tests/wizard-user-friendly-content-flow-bootstrap.php`.
+- Result: `Harness passed: 12 scenarios.`
+
+### 4.3 Browser verification (simple-rms-theme.local only)
+
+- Full 7-step progression is present and complete in the live wizard (Dependencies → ACF Import → Client Data → Generate Pages → Menu Setup → IA Generation → Home Page Builder), force-unlocked via `RMS_WIZARD_FORCE`; steps 8/9 (Landing/Internal Page Builder) are later-phase steps and remain untouched.
+- Generate Pages panel: custom page rows with editable title/slug, Home/Blog radios, "Add common pages" quick-start (appends rows without replacing), destructive warning + confirmation checkbox.
+- Menu Setup panel: generated-pages-only candidates + menu-eligible SEO landings, primary/mobile assignment, destructive warning.
+- IA Generation panel: provider dropdown, masked credential status, saved model (`glm-5.2`) surfaced.
+- Home Page Builder panel: Homepage SEO targeting, layout dropdown exposing all 27 ACF Flexible Content layouts from `group_rms_page_sections.json`, "Add common Home sections" quick-start, add/remove section rows.
+- Destructive gate: clicking "Run step" on Generate Pages without the confirmation checkbox blocks client-side with "Confirm that existing pages can be deleted or replaced before continuing."; no REST mutation occurred (wizard state unchanged after the attempt).
+- Image fallbacks: `wizard-placeholder.svg` returns HTTP 200 with `image/svg+xml`; frontend Home has no broken wizard section images (only the theme's empty lightbox placeholder, which is filled on open).
+- `wizard-prd.html`: SHA-256 unchanged before and after (`E238D1D6...A83D6F`).
+- Console: 0 errors on the wizard page.
+
+### Phase 4 Verification
+
+```text
+php -l tests/wizard-user-friendly-content-flow-bootstrap.php
+php -l tests/wizard-menu-builder-harness.php
+php -l tests/wizard-content-flow-steps-harness.php
+php tests/wizard-menu-builder-harness.php
+php tests/wizard-content-flow-steps-harness.php
+npx tsc --noEmit --pretty false
+npm run build
+```
+
+Result: all PHP syntax checks reported `No syntax errors detected`; both harnesses passed (5 + 12 scenarios); TypeScript check emitted no errors; `npm run build` completed successfully (wizard JS/CSS emitted). Independent final `sdd-verify` is intentionally not performed per apply scope.

@@ -9,6 +9,8 @@ namespace Inc\Wizard;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/class-internal-page-identity.php';
+
 /**
  * Coordinates wizard step services, resume state, access checks, and locks.
  */
@@ -30,8 +32,7 @@ class Step_Controller {
 	 * Single source of truth for currently required wizard steps.
 	 * Consumed by complete() and step services (e.g. maybe_mark_completed).
 	 *
-	 * Phase 3 activates `landing-page-builder` atomically with admin UI +
-	 * Ads noindex/menu final-state sync (tasks 3.1–3.7).
+	 * Phase 8 activates `internal-page-builder` atomically with admin UI.
 	 *
 	 * @var string[]
 	 */
@@ -44,6 +45,7 @@ class Step_Controller {
 		'ia-generation',
 		'home-page-builder',
 		'landing-page-builder',
+		'internal-page-builder',
 	];
 
 	/**
@@ -61,6 +63,7 @@ class Step_Controller {
 		'ia-generation',
 		'home-page-builder',
 		'landing-page-builder',
+		'internal-page-builder',
 		'unlock',
 		'relock',
 	];
@@ -123,20 +126,68 @@ class Step_Controller {
 	 *
 	 * @return array<string,mixed>
 	 */
-	public function get_resume_state(): array {
-		$state                         = $this->state_manager->get_state();
-		$state['locked']               = $this->state_manager->is_completed();
-		$state['completed_flag']       = $this->state_manager->has_completion_flag();
-		$state['force_unlocked']       = Wizard_Unlock_Controller::is_force_unlocked();
-		$state['controlled_unlock_ui'] = Wizard_Unlock_Controller::is_controlled_unlock_enabled();
-		$state['unlocked']             = Wizard_Unlock_Controller::is_unlocked();
-		$state['has_unlock_marker']    = Wizard_Unlock_Controller::has_unlock_marker();
-		$state['unlocked_at']          = (string) \get_option( Wizard_Unlock_Controller::UNLOCKED_AT_OPTION, '' );
-		$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
-		$state['logs']                 = $this->logger->all();
+		public function get_resume_state(): array {
+			$state                         = $this->state_manager->get_state();
+			$state['locked']               = $this->state_manager->is_completed();
+			$state['completed_flag']       = $this->state_manager->has_completion_flag();
+			$state['force_unlocked']       = Wizard_Unlock_Controller::is_force_unlocked();
+			$state['controlled_unlock_ui'] = Wizard_Unlock_Controller::is_controlled_unlock_enabled();
+			$state['unlocked']             = Wizard_Unlock_Controller::is_unlocked();
+			$state['has_unlock_marker']    = Wizard_Unlock_Controller::has_unlock_marker();
+			$state['unlocked_at']          = (string) \get_option( Wizard_Unlock_Controller::UNLOCKED_AT_OPTION, '' );
+			$state['unlocked_by']          = (int) \get_option( Wizard_Unlock_Controller::UNLOCKED_BY_OPTION, 0 );
+			$state['logs']                 = $this->logger->all();
+			$state['completion_contract']  = self::completion_contract( $state );
+			$state['internal_page_preview'] = Internal_Page_Identity::preview_plan( $state );
 
-		return $this->with_public_landing_run( $state );
-	}
+			return $this->with_public_landing_run( $state );
+		}
+
+		/**
+		 * Backward-compatible completion progress. GET must not write step status.
+		 *
+		 * @param array<string,mixed> $state
+		 * @return array<string,mixed>
+		 */
+		public static function completion_contract( array $state ): array {
+			$completed_flag = (bool) \get_option( State_Manager::COMPLETED_OPTION, false );
+			$internal       = (string) ( $state['step_status']['internal-page-builder'] ?? '' );
+			$ran_internal   = in_array( $internal, [ 'complete', 'running', 'failed', 'skipped' ], true );
+			$grandfathered  = $completed_flag && ! $ran_internal;
+			$required       = self::REQUIRED_STEPS;
+			if ( $grandfathered ) {
+				$required = array_values(
+					array_filter(
+						$required,
+						static function ( string $step ): bool {
+							return 'internal-page-builder' !== $step;
+						}
+					)
+				);
+			}
+			$completed_count = 0;
+			foreach ( $required as $step ) {
+				if ( 'complete' === (string) ( $state['step_status'][ $step ] ?? '' ) ) {
+					++$completed_count;
+				}
+			}
+			if ( $completed_flag ) {
+				$completed_count = count( $required );
+			}
+			$total = count( $required );
+
+			return [
+				'completed'                     => $completed_flag,
+				'grandfathered_internal_pages'  => $grandfathered,
+				'required_steps'                => $required,
+				'completed_count'               => $completed_count,
+				'required_count'                => $total,
+				'progress_text'                 => $completed_flag
+					? 'Wizard complete'
+					: $completed_count . ' of ' . $total . ' steps complete',
+				'incomplete_notice'             => false,
+			];
+		}
 
 	/**
 	 * Execute a wizard step action.
@@ -176,7 +227,7 @@ class Step_Controller {
 			return $fence_owner;
 		}
 
-		$this->mutation_fence_owner = (string) $fence_owner;
+		$this->enter_authorized_mutation_scope( (string) $fence_owner );
 
 		// Orchestrated landing actions keep the per-run lease for run ownership.
 		// The legacy UI state lock is compatibility-only and is not acquired for
@@ -200,10 +251,21 @@ class Step_Controller {
 			}
 		}
 
+		$is_internal_skip_all = 'internal-page-builder' === $step
+			&& $this->payload_is_truthy( $payload['skip_all'] ?? false );
+
+		// Map-only identity requests are metadata-only: they persist resolved
+		// types but never start/process, so they must not write current_step or
+		// step_status (analogous to pseudo-steps and skip-all). Capability,
+		// nonce, locks, and the mutation fence still apply.
+		$is_internal_map_only = 'internal-page-builder' === $step
+			&& is_array( $payload['map_pages'] ?? null )
+			&& [] !== $payload['map_pages']
+			&& ! in_array( \sanitize_key( (string) ( $payload['action'] ?? '' ) ), [ 'start', 'process' ], true );
+
 		if ( ! $is_landing_orchestrated ) {
 			if ( ! $this->state_manager->acquire_lock( self::LOCK_NAME ) ) {
-				$mutation_fence->release( (string) $fence_owner );
-				$this->mutation_fence_owner = '';
+				$this->leave_authorized_mutation_scope( $mutation_fence, (string) $fence_owner );
 
 				return new \WP_Error( 'rms_wizard_busy', \__( 'Another setup wizard action is already running.', 'simple-rms-theme' ), [ 'status' => 409 ] );
 			}
@@ -212,12 +274,17 @@ class Step_Controller {
 		}
 
 		$progress_status_written = false;
+		$prior_step_status       = (string) ( $this->state_manager->get_state()['step_status'][ $step ] ?? 'pending' );
+		if ( '' === $prior_step_status ) {
+			$prior_step_status = 'pending';
+		}
 
 		try {
 			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
 			// Landing start/process persist their own run/public state.
 			// Skip-all either 409s without mutation or marks complete itself.
-			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all ) {
+			// Internal map-only is metadata-only and must not touch progress.
+			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all && ! $is_internal_skip_all && ! $is_internal_map_only ) {
 				$this->state_manager->set_current_step( $step );
 				$this->state_manager->set_step_status( $step, 'running' );
 				$progress_status_written = true;
@@ -226,6 +293,10 @@ class Step_Controller {
 			$result = $this->dispatch_step( $step, $payload );
 
 			if ( \is_wp_error( $result ) ) {
+				if ( $progress_status_written && 'internal-page-builder' === $step ) {
+					$this->state_manager->set_step_status( $step, $prior_step_status );
+				}
+
 				return $result;
 			}
 
@@ -296,6 +367,7 @@ class Step_Controller {
 					$this->state_manager->release_lock( self::LOCK_NAME );
 				}
 			} finally {
+				$mutation_fence->clear_agent( (string) $fence_owner );
 				$mutation_fence->release( (string) $fence_owner );
 				$this->mutation_fence_owner = '';
 			}
@@ -437,6 +509,11 @@ class Step_Controller {
 			case 'landing-page-builder':
 				return ( new Step_Landing_Page_Builder( $this->logger, $this->state_manager ) )->run( $payload );
 
+			case 'internal-page-builder':
+				$builder = new Step_Internal_Page_Builder( $this->logger, $this->state_manager );
+				$this->authorize_internal_builder( $builder );
+				return $builder->run( $payload );
+
 			case 'unlock':
 				return ( new Wizard_Unlock_Controller( $this->state_manager, $this->logger ) )->unlock();
 
@@ -537,6 +614,29 @@ class Step_Controller {
 		return true === $value || 1 === $value || '1' === $value || 'true' === $value || 'yes' === $value || 'on' === $value;
 	}
 
+	private function enter_authorized_mutation_scope( string $owner ): void {
+		$this->mutation_fence_owner = $owner;
+	}
+
+	private function leave_authorized_mutation_scope( Wizard_Mutation_Fence $fence, string $owner ): void {
+		$fence->clear_agent( $owner );
+		$fence->release( $owner );
+
+		if ( $this->mutation_fence_owner === $owner ) {
+			$this->mutation_fence_owner = '';
+		}
+	}
+
+	private function authorize_internal_builder( Step_Internal_Page_Builder $builder ): void {
+		$owner = $this->mutation_fence_owner;
+		if ( '' === $owner ) {
+			return;
+		}
+
+		$builder->accept_mutation_owner( $owner );
+		( new Wizard_Mutation_Fence() )->authorize_agent( $builder, $owner );
+	}
+
 	private function normalize_step( string $step ): string {
 		$step = \sanitize_key( $step );
 
@@ -550,6 +650,7 @@ class Step_Controller {
 			'menu_setup'        => 'menu-setup',
 			'home_page_builder' => 'home-page-builder',
 			'landing_page_builder' => 'landing-page-builder',
+			'internal_page_builder' => 'internal-page-builder',
 		];
 
 		return $aliases[ $step ] ?? $step;

@@ -13,12 +13,14 @@ defined( 'ABSPATH' ) || exit;
  * Encodes prompt contracts and validates AI section copy against layout field rules.
  */
 final class AI_Content_Harness {
-	public const PAGE_HOME    = 'PAGE_HOME';
-	public const PAGE_ABOUT   = 'PAGE_ABOUT';
-	public const PAGE_SERVICE = 'PAGE_SERVICE';
-	public const PAGE_LANDING = 'PAGE_LANDING';
-	public const PAGE_BLOG    = 'PAGE_BLOG';
-	public const PAGE_CONTACT = 'PAGE_CONTACT';
+	public const PAGE_HOME         = 'PAGE_HOME';
+	public const PAGE_ABOUT        = 'PAGE_ABOUT';
+	public const PAGE_SERVICE      = 'PAGE_SERVICE';
+	public const PAGE_LANDING      = 'PAGE_LANDING';
+	public const PAGE_BLOG         = 'PAGE_BLOG';
+	public const PAGE_CONTACT      = 'PAGE_CONTACT';
+	public const PAGE_PROJECTS     = 'PAGE_PROJECTS';
+	public const PAGE_TESTIMONIALS = 'PAGE_TESTIMONIALS';
 
 	private const APPROVED_CONTEXT_FIELDS = [
 		'company_name', 'company_covered_areas', 'company_services',
@@ -358,6 +360,11 @@ Write for visitors who already have intent. Content should feel purposeful and c
 PROMPT;
 		}
 
+		$internal = $this->internal_layer2( $page_type );
+		if ( '' !== $internal ) {
+			return $internal;
+		}
+
 		if ( self::PAGE_HOME !== $page_type ) {
 			$this->log_warning( sprintf( 'Unsupported AI content harness page type "%s"; falling back to PAGE_HOME.', $page_type ) );
 		}
@@ -377,6 +384,19 @@ Tone: Professional, approachable, confident, local, and human. Never corporate, 
 
 Write for a general audience discovering this business. Content should feel like a strong first impression, not a hard sales pitch.
 PROMPT;
+	}
+
+	private function internal_layer2( string $page_type ): string {
+		$map = [
+			self::PAGE_ABOUT        => "PAGE CONTEXT: About\n\nWrite the company story and trust sections. Order: about-us, then vision/mission. Use only client-supplied facts. Do not invent years, awards, or proof.\n\nTone: Honest, local, human.",
+			self::PAGE_SERVICE      => "PAGE CONTEXT: Services\n\nOverview of services from client data only. Order: services list, then CTA. Do not invent services, prices, or guarantees.\n\nTone: Clear and specific.",
+			self::PAGE_CONTACT      => "PAGE CONTEXT: Contact\n\nHelp visitors reach the business. Use only provided contact fields. Do not invent addresses, maps, hours, or phone numbers.\n\nTone: Direct and helpful.",
+			self::PAGE_BLOG         => "PAGE CONTEXT: Blog index\n\nWrite posts-index chrome only (headline/CTA). Do not write post bodies, authors, dates, or invent posts.\n\nTone: Inviting, not salesy.",
+			self::PAGE_PROJECTS     => "PAGE CONTEXT: Projects\n\nPortfolio index chrome only. Do not invent projects, galleries, media, labels, or dates.\n\nTone: Factual and restrained.",
+			self::PAGE_TESTIMONIALS => "PAGE CONTEXT: Testimonials\n\nSocial-proof chrome only (headlines). Do not invent quotes, authors, roles, stars, or testimonial items.\n\nTone: Credible, no hype.",
+		];
+
+		return $map[ $page_type ] ?? '';
 	}
 
 	/**
@@ -620,8 +640,8 @@ PROMPT;
 			$primary       = $normalized['primary_keyword'];
 			$subkeywords   = implode( ', ', $normalized['subkeywords'] );
 			$keyword_block = "\n\nKEYWORD CONTEXT (mandatory for this section only):\n"
-				. '- Primary keyword: {{primary_keyword}}' . "\n"
-				. '- Subkeywords: {{subkeywords}}' . "\n"
+				. '- Primary keyword: ' . ( '' !== $primary ? $primary : '(none provided)' ) . "\n"
+				. '- Subkeywords: ' . ( '' !== $subkeywords ? $subkeywords : '(none)' ) . "\n"
 				. "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n"
 				. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
 				. "- Do not invent services, locations, or proof to force keyword usage.";
@@ -878,6 +898,56 @@ RULES,
 			}
 
 			$context[ $field ] = 'company_services' === $field ? $this->service_context( $client_data[ $field ] ) : $this->sanitize_context_value( $client_data[ $field ] );
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Factual context for later generation. Placeholder values are never supplied as facts.
+	 *
+	 * @param array<string,mixed> $client_data Approved client facts.
+	 * @param array<string,mixed> $extra       Optional extra candidates (page fields, priors).
+	 * @return array<string,mixed>
+	 */
+	public function compose_factual_context( array $client_data, array $extra = [] ): array {
+		if ( ! class_exists( Placeholder_Provenance_Store::class, false ) ) {
+			require_once __DIR__ . '/class-placeholder-provenance-store.php';
+		}
+		$context    = $this->get_harness_context( $client_data );
+		$provenance = new Placeholder_Provenance_Store();
+		$hashes     = [];
+		foreach ( $provenance->queue() as $item ) {
+			$post_id = (int) ( $item['post_id'] ?? 0 );
+			$field   = (string) ( $item['field'] ?? '' );
+			if ( $post_id <= 0 || '' === $field ) {
+				continue;
+			}
+			$page = $provenance->query( $post_id, $field );
+			foreach ( $page as $entry ) {
+				$hash = (string) ( $entry['value_hash'] ?? '' );
+				if ( '' !== $hash ) {
+					$hashes[] = $hash;
+				}
+			}
+		}
+
+		foreach ( $extra as $key => $value ) {
+			$key = (string) $key;
+			if ( isset( $context[ $key ] ) ) {
+				continue;
+			}
+			$skip = false;
+			foreach ( $hashes as $hash ) {
+				if ( $provenance->is_placeholder_payload( $value, $hash ) ) {
+					$skip = true;
+					break;
+				}
+			}
+			if ( $skip ) {
+				continue;
+			}
+			$context[ $key ] = is_array( $value ) ? $this->sanitize_context_value( $value ) : $this->sanitize_copy( $value );
 		}
 
 		return $context;

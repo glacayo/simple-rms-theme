@@ -79,6 +79,39 @@ export const summarizeDependencyResult = (result: unknown): string => {
   return `${activeCount} of ${plugins.length} dependencies active. ${lines.join(' ')}`;
 };
 
+export type GeneratePagePayloadItem = {
+  slug: string;
+  title: string;
+  generate: true;
+  role: string;
+  type?: string;
+};
+
+export const sanitizeWizardPageType = (value: string): string => (
+  value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '').replace(/^-+|-+$/g, '')
+);
+
+export const buildGeneratePagePayloadItem = (input: {
+  slug: string;
+  title: string;
+  role: string;
+  type?: string;
+}): GeneratePagePayloadItem => {
+  const item: GeneratePagePayloadItem = {
+    slug: input.slug,
+    title: input.title,
+    generate: true,
+    role: input.role,
+  };
+  const type = sanitizeWizardPageType(input.type ?? '');
+
+  if (type !== '') {
+    item.type = type;
+  }
+
+  return item;
+};
+
 export const inputContainsSecret = (input: ApiKeyInputLike, sentinel: string): boolean => {
   if (input.value.includes(sentinel)) {
     return true;
