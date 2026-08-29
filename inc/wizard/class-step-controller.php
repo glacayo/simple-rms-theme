@@ -254,6 +254,15 @@ class Step_Controller {
 		$is_internal_skip_all = 'internal-page-builder' === $step
 			&& $this->payload_is_truthy( $payload['skip_all'] ?? false );
 
+		// Map-only identity requests are metadata-only: they persist resolved
+		// types but never start/process, so they must not write current_step or
+		// step_status (analogous to pseudo-steps and skip-all). Capability,
+		// nonce, locks, and the mutation fence still apply.
+		$is_internal_map_only = 'internal-page-builder' === $step
+			&& is_array( $payload['map_pages'] ?? null )
+			&& [] !== $payload['map_pages']
+			&& ! in_array( \sanitize_key( (string) ( $payload['action'] ?? '' ) ), [ 'start', 'process' ], true );
+
 		if ( ! $is_landing_orchestrated ) {
 			if ( ! $this->state_manager->acquire_lock( self::LOCK_NAME ) ) {
 				$this->leave_authorized_mutation_scope( $mutation_fence, (string) $fence_owner );
@@ -274,7 +283,8 @@ class Step_Controller {
 			// Pseudo-steps (unlock/relock) must not pollute current_step or step_status.
 			// Landing start/process persist their own run/public state.
 			// Skip-all either 409s without mutation or marks complete itself.
-			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all && ! $is_internal_skip_all ) {
+			// Internal map-only is metadata-only and must not touch progress.
+			if ( ! $this->is_completed_gate_allowlisted( $step ) && ! $is_landing_orchestrated && ! $is_landing_skip_all && ! $is_internal_skip_all && ! $is_internal_map_only ) {
 				$this->state_manager->set_current_step( $step );
 				$this->state_manager->set_step_status( $step, 'running' );
 				$progress_status_written = true;
