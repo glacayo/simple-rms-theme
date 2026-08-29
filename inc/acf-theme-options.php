@@ -270,6 +270,58 @@ function rms_get_contact_page_url(): string {
     return home_url('/#contact');
 }
 
+/**
+ * Resolve the site-wide Header Primary CTA (link) from Theme Options.
+ *
+ * Reads the optional `company_header_primary_cta` ACF link field (array return
+ * format) and returns a normalized `[url, title, target]` contract. Empty or
+ * malformed link data falls back to the Contact page permalink (or
+ * `home_url('/#contact')`) with the default "Get a Free Estimate" label and
+ * `_self` target. The target is restricted to `_self`/`_blank`; any other value
+ * becomes `_self`.
+ *
+ * @return array{url:string,title:string,target:string}
+ */
+function rms_get_header_primary_cta(): array {
+    $default = array(
+        'url'    => rms_get_contact_page_url(),
+        'title'  => __('Get a Free Estimate', 'simple-rms-theme'),
+        'target' => '_self',
+    );
+
+    if (!function_exists('get_field')) {
+        return $default;
+    }
+
+    $link = get_field('company_header_primary_cta', 'option');
+
+    if (!is_array($link)) {
+        return $default;
+    }
+
+    $url = isset($link['url']) && is_string($link['url']) ? trim($link['url']) : '';
+
+    // A bare fragment is a dead link; treat it like an empty value.
+    if ('' === $url || '#' === $url) {
+        return $default;
+    }
+
+    $title = isset($link['title']) && is_string($link['title']) && '' !== trim($link['title'])
+        ? trim($link['title'])
+        : $default['title'];
+
+    $target = isset($link['target']) && is_string($link['target']) ? $link['target'] : '';
+    if ('_blank' !== $target && '_self' !== $target) {
+        $target = '_self';
+    }
+
+    return array(
+        'url'    => $url,
+        'title'  => $title,
+        'target' => $target,
+    );
+}
+
 // ─── Company Palette → CSS Custom Properties Bridge ────────────────────────
 
 /**
