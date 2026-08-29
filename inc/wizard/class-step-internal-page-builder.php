@@ -78,6 +78,14 @@ class Step_Internal_Page_Builder {
 		}
 
 		$action = \sanitize_key( (string) ( $payload['action'] ?? '' ) );
+		$map    = is_array( $payload['map_pages'] ?? null ) ? $payload['map_pages'] : [];
+
+		// Map-only requests are metadata-only: they persist identity types but
+		// never start/process, never write step status, and never mark the step
+		// complete/running/failed. The controller skips progress writes for them.
+		if ( [] !== $map && ! in_array( $action, [ 'start', 'process' ], true ) ) {
+			return $this->map_only( $payload );
+		}
 
 		if ( 'start' === $action ) {
 			return $this->start( $payload );
@@ -92,6 +100,39 @@ class Step_Internal_Page_Builder {
 			\__( 'An action (start or process) is required.', 'simple-rms-theme' ),
 			[ 'status' => 400 ]
 		);
+	}
+
+	/**
+	 * Metadata-only identity mapping. Persists resolved types onto
+	 * generated_pages without touching current_step/step_status and without
+	 * any page/ACF/template/canonical/log write. Returns a distinct
+	 * authoritative action so the client never paints a false completion.
+	 *
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>|\WP_Error
+	 */
+	private function map_only( array $payload ) {
+		$fresh = $this->apply_identity_writes( $this->state_manager->get_state(), $payload );
+		if ( \is_wp_error( $fresh ) ) {
+			return $fresh;
+		}
+		$plan     = is_array( $fresh['internal_pages'] ?? null ) ? $fresh['internal_pages'] : [];
+		$assigned = [];
+		foreach ( is_array( $payload['map_pages'] ?? null ) ? $payload['map_pages'] : [] as $row ) {
+			$type = \sanitize_key( (string) ( is_array( $row ) ? ( $row['type'] ?? '' ) : '' ) );
+			if ( in_array( $type, self::READY_TYPES, true ) ) {
+				$assigned[] = $type;
+			}
+		}
+		$assigned = array_values( array_unique( $assigned ) );
+		$fresh['internal_pages'] = $plan;
+		$this->state_manager->save_state( $fresh );
+
+		return [
+			'action'              => 'mapped',
+			'page_types_assigned' => $assigned,
+			'internal_pages'      => $plan,
+		];
 	}
 
 	/**
