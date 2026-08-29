@@ -470,9 +470,15 @@ function rms_wizard_render_admin_page(): void {
 				</div>
 
 				<ol class="rms-wizard-steps">
-					<?php $index = 1; ?>
-					<?php foreach ( $steps as $slug => $label ) : ?>
-						<?php $status = (string) ( $state['step_status'][ $slug ] ?? 'pending' ); ?>
+						<?php $index = 1; ?>
+						<?php $contract = is_array( $state['completion_contract'] ?? null ) ? $state['completion_contract'] : []; ?>
+						<?php foreach ( $steps as $slug => $label ) : ?>
+							<?php
+							$status = (string) ( $state['step_status'][ $slug ] ?? 'pending' );
+							if ( ! empty( $contract['grandfathered_internal_pages'] ) && 'internal-page-builder' === $slug && in_array( $status, [ 'pending', '' ], true ) ) {
+								$status = 'optional';
+							}
+							?>
 						<li>
 							<button type="button" class="rms-wizard-step-nav is-<?php echo esc_attr( $status ); ?>" data-wizard-step-nav="<?php echo esc_attr( $slug ); ?>">
 								<span class="rms-wizard-step-nav__index"><?php echo esc_html( (string) $index ); ?></span>
@@ -524,8 +530,8 @@ function rms_wizard_render_admin_page(): void {
 							<?php rms_wizard_render_home_page_builder_form(); ?>
 						<?php elseif ( 'landing-page-builder' === $slug ) : ?>
 							<?php rms_wizard_render_landing_page_builder_form(); ?>
-						<?php elseif ( 'internal-page-builder' === $slug ) : ?>
-							<?php rms_wizard_render_internal_page_builder_form(); ?>
+							<?php elseif ( 'internal-page-builder' === $slug ) : ?>
+								<?php rms_wizard_render_internal_page_builder_form( is_array( $state['internal_page_preview'] ?? null ) ? $state['internal_page_preview'] : [] ); ?>
 						<?php endif; ?>
 
 						<div class="rms-wizard-actions rms-wizard-step-actions">
@@ -1018,7 +1024,7 @@ function rms_wizard_render_landing_page_builder_form(): void {
  *
  * @return void
  */
-function rms_wizard_render_internal_page_builder_form(): void {
+function rms_wizard_render_internal_page_builder_form( array $preview = [] ): void {
 	$labels = [
 		'about'         => __( 'About', 'simple-rms-theme' ),
 		'services'      => __( 'Services', 'simple-rms-theme' ),
@@ -1038,7 +1044,7 @@ function rms_wizard_render_internal_page_builder_form(): void {
 	?>
 	<form class="rms-wizard-fields rms-wizard-guided-form" data-wizard-internal-page-builder-form>
 		<p class="rms-wizard-fields__intro">
-			<?php esc_html_e( 'Build sections on pages already created in Generate Pages. Resume continues pending pages. Regeneration and legacy conversion need an explicit, confirmed choice and never run from a slug guess.', 'simple-rms-theme' ); ?>
+			<?php esc_html_e( 'Build sections on pages already created in Generate Pages. Resume continues pending pages. Regeneration, mapping, and legacy conversion need an explicit, confirmed choice and never run from a slug guess.', 'simple-rms-theme' ); ?>
 		</p>
 		<p class="rms-wizard-internal-progress" data-wizard-internal-progress aria-live="polite"></p>
 		<label class="rms-wizard-landing-skip-all">
@@ -1046,6 +1052,21 @@ function rms_wizard_render_internal_page_builder_form(): void {
 			<span><?php esc_html_e( 'Skip internal pages for now (complete this step without changing pages)', 'simple-rms-theme' ); ?></span>
 		</label>
 		<script type="application/json" data-wizard-internal-blueprints><?php echo wp_json_encode( $blueprints, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+		<script type="application/json" data-wizard-internal-preview><?php echo wp_json_encode( $preview, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ); ?></script>
+		<p class="screen-reader-text" data-wizard-internal-map-confirm>
+			<?php esc_html_e( 'Assigning a page type links that generated page to one Internal Page Builder type. This does not convert or overwrite page content. Confirm each selected type before continuing.', 'simple-rms-theme' ); ?>
+		</p>
+		<div class="rms-wizard-confirmation-modal" data-wizard-internal-map-dialog hidden>
+			<div class="rms-wizard-confirmation-modal__backdrop" data-wizard-internal-map-dialog-cancel></div>
+			<section class="rms-wizard-confirmation-modal__panel" role="dialog" aria-modal="true" aria-labelledby="rms-wizard-internal-map-dialog-title" aria-describedby="rms-wizard-internal-map-dialog-message">
+				<h2 id="rms-wizard-internal-map-dialog-title"><?php esc_html_e( 'Confirm page type assignment', 'simple-rms-theme' ); ?></h2>
+				<p id="rms-wizard-internal-map-dialog-message" data-wizard-internal-map-dialog-message></p>
+				<div class="rms-wizard-confirmation-modal__actions">
+					<button type="button" class="button" data-wizard-internal-map-dialog-cancel><?php esc_html_e( 'Cancel', 'simple-rms-theme' ); ?></button>
+					<button type="button" class="button button-primary" data-wizard-internal-map-dialog-accept><?php esc_html_e( 'Assign page types', 'simple-rms-theme' ); ?></button>
+				</div>
+			</section>
+		</div>
 		<div class="rms-wizard-page-rows" data-wizard-internal-cards role="list"></div>
 		<p class="rms-wizard-page-builder__empty" data-wizard-internal-empty><?php esc_html_e( 'No generated internal pages are available yet.', 'simple-rms-theme' ); ?></p>
 		<template data-wizard-internal-card-template>
@@ -1063,6 +1084,15 @@ function rms_wizard_render_internal_page_builder_form(): void {
 				<label class="rms-wizard-internal-card__action" data-wizard-internal-convert-wrap hidden>
 					<input type="checkbox" data-wizard-internal-convert>
 					<span><?php esc_html_e( 'Convert legacy content on this page', 'simple-rms-theme' ); ?></span>
+				</label>
+				<label class="rms-wizard-internal-card__action" data-wizard-internal-map-wrap hidden>
+					<span class="screen-reader-text"><?php esc_html_e( 'Assign internal page type', 'simple-rms-theme' ); ?></span>
+					<select data-wizard-internal-map-type aria-label="<?php esc_attr_e( 'Assign internal page type', 'simple-rms-theme' ); ?>">
+						<option value=""><?php esc_html_e( 'Assign page type…', 'simple-rms-theme' ); ?></option>
+						<?php foreach ( $labels as $type => $label ) : ?>
+							<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
 				</label>
 				<a class="button-link" data-wizard-internal-edit hidden><?php esc_html_e( 'Edit page', 'simple-rms-theme' ); ?></a>
 			</article>
