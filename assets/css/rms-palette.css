@@ -235,9 +235,21 @@ body {
     color: var(--rms-color-accent-2);
 }
 
-/* Slider subheadline (eyebrow on dark hero) — was amber, now accent-2. */
+/* Slider subheadline (eyebrow on dark hero) — was amber, now accent-2.
+   Per-slide override via the scoped property set on .slider__slide. */
 .slider__subheadline {
-    color: var(--rms-color-accent-2);
+    color: var(--slide-subheadline-color, var(--rms-color-accent-2));
+}
+
+/* Per-slide slider text color overrides. Fallbacks match the compiled slider
+   literals (#ffffff headline, #cbd5e1 body) so absent values stay inert and
+   the existing palette bridge chain is preserved. */
+.slider__headline {
+    color: var(--slide-headline-color, #ffffff);
+}
+
+.slider__text {
+    color: var(--slide-text-color, #cbd5e1);
 }
 
 /* ─── Surface: white/light surfaces + on-dark foreground ────────────── */

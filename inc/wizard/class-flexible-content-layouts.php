@@ -212,6 +212,7 @@ class Flexible_Content_Layouts {
 			case 'range':
 			case 'select':
 			case 'radio':
+			case 'color_picker':
 				return '';
 
 			case 'true_false':
