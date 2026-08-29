@@ -63,9 +63,9 @@ The harness MUST enable guide-supported text repeaters where the builder already
 
 ### Requirement: Versioned Prompt Contracts
 
-The harness MUST encode Layer 1 (global editorial system prompt), Layer 2 (page-type context), and Layer 3 (per-layout section contract) as PHP class constants or method return values. The harness MUST NOT read from any external file, markdown guide, or runtime-resolved path. Layer 1 MUST include full editorial standards: paragraph rules, headline/subheadline/eyebrow word counts, CTA text conventions, body copy density, FAQ pair structure, and services copy guidelines. Layer 2 for PAGE_HOME MUST include page purpose, tone, and section-ordering guidance from the guide. Layer 3 MUST include per-layout field descriptions, word-count constraints, and structural rules.
+The harness MUST encode Layer 1 (global editorial system prompt), Layer 2 (page-type context), and Layer 3 (per-layout section contract) as PHP class constants or method return values. The harness MUST NOT read from any external file, markdown guide, or runtime-resolved path. Layer 1 MUST include full editorial standards: paragraph rules, headline/subheadline/eyebrow word counts, CTA text conventions, body copy density, FAQ pair structure, and services copy guidelines. Layer 2 for PAGE_HOME MUST include page purpose, tone, and section-ordering guidance from the guide. Layer 2 MUST return a dedicated context block for every implemented page type, and MUST fall back to PAGE_HOME only when no page type is supplied or the supplied type is unimplemented. Layer 3 MUST include per-layout field descriptions, word-count constraints, and structural rules.
 
-(Previously: Layers were single-sentence placeholders without word counts, structural guidance, or editorial standards.)
+(Previously: Layer 2 was specified for PAGE_HOME only, so every other page type resolved to the Home context.)
 
 #### Scenario: Prompts delivered without guide file present
 
@@ -84,6 +84,12 @@ The harness MUST encode Layer 1 (global editorial system prompt), Layer 2 (page-
 - GIVEN no page type argument is passed to Layer 2
 - WHEN the method executes
 - THEN the PAGE_HOME context with purpose and tone guidance is returned
+
+#### Scenario: Implemented page type does not fall back
+
+- GIVEN an implemented internal page type is passed to Layer 2
+- WHEN the method executes
+- THEN that page type's own context is returned instead of PAGE_HOME
 
 ---
 
@@ -136,3 +142,93 @@ The harness MUST keep prompt calibration compact while steering generated copy t
 - WHEN the harness composes the generation prompt for another section
 - THEN the AI is instructed to vary the wording
 - AND to give the section a distinct job or angle
+
+---
+
+### Requirement: Landing Page Type Context (Layer 2)
+
+The harness MUST provide a `PAGE_LANDING` Layer 2 context block that encodes landing purpose (single conversion goal), tone, section-ordering guidance aligned with `pages/landing-page.php`, and ads-vs-seo intent branching. `get_layer2()` MUST continue to return the `PAGE_HOME` block by default and MUST return the `PAGE_LANDING` block only when the active page type is landing. Existing `PAGE_HOME` behavior MUST remain unchanged.
+
+#### Scenario: Landing page type returns landing context
+
+- GIVEN a caller requests Layer 2 with page type `PAGE_LANDING`
+- WHEN `get_layer2()` executes
+- THEN the landing context (purpose, tone, ordering, ads/seo intent) is returned
+
+#### Scenario: Default page type stays Home
+
+- GIVEN no page type or `PAGE_HOME` is passed
+- WHEN `get_layer2()` executes
+- THEN the existing PAGE_HOME block is returned unchanged
+
+---
+
+### Requirement: Landing Keyword Injection (Layer 3)
+
+When the active page type is `PAGE_LANDING` AND the layout is `hero` or `seo-content`, `get_layer3()` MUST replace `{{primary_keyword}}` and `{{subkeywords}}` with the landing's keyword context, with subkeywords clamped to the 0–10 range. For any other layout, and for any non-landing page type, the harness MUST NOT inject keyword placeholders — including reusable rows regenerated via `override_canonical`. The existing `{{item_count}}` and `{{client_json}}` replacement behavior MUST remain unchanged.
+
+#### Scenario: Hero on landing receives keyword context
+
+- GIVEN page type `PAGE_LANDING` and layout `hero`
+- WHEN `get_layer3()` composes the prompt
+- THEN `{{primary_keyword}}` and `{{subkeywords}}` are replaced with the landing's keyword context
+
+#### Scenario: Reusable layout never receives keyword
+
+- GIVEN page type `PAGE_LANDING` and layout `about-us`
+- WHEN `get_layer3()` composes the prompt
+- THEN no keyword placeholders are injected
+
+#### Scenario: Override row stays keyword-neutral
+
+- GIVEN a reusable layout regenerated with `override_canonical = true`
+- WHEN the harness composes the prompt
+- THEN no keyword placeholders are injected
+
+#### Scenario: Home page type unaffected
+
+- GIVEN page type `PAGE_HOME` for any layout
+- WHEN `get_layer3()` composes the prompt
+- THEN no keyword placeholders are injected and item_count/client_json behavior is unchanged
+
+---
+
+### Requirement: Internal Page Type Contexts
+
+The harness MUST implement Layer 2 contexts for `PAGE_ABOUT`, `PAGE_SERVICE`, `PAGE_CONTACT`, and `PAGE_BLOG`, each encoding that page's purpose, tone, and section-ordering guidance. The `PAGE_BLOG` context MUST describe posts-index chrome only and MUST NOT instruct the model to write post bodies. Keyword placeholders MUST NOT be injected for these page types.
+
+#### Scenario: About context returned
+
+- GIVEN Layer 2 is requested for `PAGE_ABOUT`
+- WHEN the method executes
+- THEN the About purpose, tone, and ordering guidance are returned and no warning is logged
+
+#### Scenario: Blog context covers index chrome only
+
+- GIVEN Layer 2 is requested for `PAGE_BLOG`
+- WHEN the method executes
+- THEN the context describes index chrome and does not request post bodies
+
+#### Scenario: Internal types stay keyword-neutral
+
+- GIVEN any internal page type and any layout
+- WHEN Layer 3 composes the prompt
+- THEN no keyword placeholders are injected
+
+---
+
+### Requirement: Projects and Testimonials Page Types
+
+The harness MUST define `PAGE_PROJECTS` and `PAGE_TESTIMONIALS` page-type identifiers with their own Layer 2 contexts. Project, gallery, media, and testimonial-item fields MUST remain blocked for these page types, so only headline-level and descriptive copy is fillable.
+
+#### Scenario: Testimonials headlines fillable, items blocked
+
+- GIVEN Layer 3 is composed for a testimonials layout under `PAGE_TESTIMONIALS`
+- WHEN the fillable list is built
+- THEN headline fields are fillable and testimonial item repeaters remain blocked
+
+#### Scenario: Projects gallery stays blocked
+
+- GIVEN Layer 3 is composed for a gallery layout under `PAGE_PROJECTS`
+- WHEN the fillable list is built
+- THEN no gallery, media, or project-label field is fillable
