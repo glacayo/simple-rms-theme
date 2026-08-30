@@ -72,7 +72,7 @@ $slide_count = count($slides_to_render);
                 <div class="slider__content container">
                     <p class="slider__subheadline"><?php echo $subheadline; ?></p>
                     <<?php echo $tag; ?> class="slider__headline"><?php echo $headline; ?></<?php echo $tag; ?>>
-                    <p class="slider__text"><?php echo $text; ?></p>
+                    <div class="slider__text"><?php echo $text; ?></div>
                     <a href="<?php echo $cta_url; ?>" class="btn btn--outline-white slider__cta"><?php echo $cta_text; ?></a>
                 </div>
             </div>
