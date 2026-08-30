@@ -63,10 +63,11 @@ $slide_count = count($slides_to_render);
                 $cta_url     = esc_url($slide['cta_url']);
             }
 
-            $tag = ($index === 0) ? 'h1' : 'h2';
+            $tag         = ($index === 0) ? 'h1' : 'h2';
+            $color_style = rms_get_slide_color_style($slide);
             ?>
             <!-- Slide <?php echo (int) $index + 1; ?><?php echo ($index === 0) ? ' — only h1 on the page' : ''; ?> -->
-            <div class="slider__slide" style="--slide-bg: url('<?php echo $bg; ?>');">
+            <div class="slider__slide" style="--slide-bg: url('<?php echo $bg; ?>');<?php echo $color_style; ?>">
                 <div class="slider__overlay slider__overlay--dark"></div>
                 <div class="slider__content container">
                     <p class="slider__subheadline"><?php echo $subheadline; ?></p>

@@ -375,6 +375,51 @@ function rms_sanitize_palette_hex($value): ?string {
 }
 
 /**
+ * Resolve the optional per-slide text color overrides to sanitized hex values.
+ *
+ * Reads the three optional slider color fields and accepts only strict hex
+ * values (via rms_sanitize_palette_hex()). Invalid, empty, non-string, and
+ * malicious values resolve to null so callers emit no override.
+ *
+ * @param array<string,mixed> $slide ACF slider row.
+ * @return array{subheadline:?string,headline:?string,text:?string}
+ */
+function rms_get_slide_text_colors(array $slide): array {
+    return [
+        'subheadline' => rms_sanitize_palette_hex($slide['slide_subheadline_color'] ?? null),
+        'headline'    => rms_sanitize_palette_hex($slide['slide_headline_color'] ?? null),
+        'text'        => rms_sanitize_palette_hex($slide['slide_text_color'] ?? null),
+    ];
+}
+
+/**
+ * Build the scoped inline-style fragment for a slide's text color overrides.
+ *
+ * Emits CSS custom properties only for valid hex values so each slide's text
+ * elements can consume them without leaking to other slides. Returns an empty
+ * string when no valid override exists, preserving the palette/default chain.
+ *
+ * @param array<string,mixed> $slide ACF slider row.
+ * @return string Inline style fragment (may be empty).
+ */
+function rms_get_slide_color_style(array $slide): string {
+    $colors = rms_get_slide_text_colors($slide);
+    $parts  = [];
+
+    if (null !== $colors['subheadline']) {
+        $parts[] = '--slide-subheadline-color:' . $colors['subheadline'];
+    }
+    if (null !== $colors['headline']) {
+        $parts[] = '--slide-headline-color:' . $colors['headline'];
+    }
+    if (null !== $colors['text']) {
+        $parts[] = '--slide-text-color:' . $colors['text'];
+    }
+
+    return [] === $parts ? '' : implode(';', $parts) . ';';
+}
+
+/**
  * Resolve the four ACF company_palette_color_* fields to sanitized hex values.
  *
  * Values are read through rms_get_option() and accepted only when they are
