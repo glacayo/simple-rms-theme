@@ -1,0 +1,86 @@
+name: Bug report
+description: Report reproducible behavior that differs from the expected theme behavior.
+title: "[Bug]: "
+labels:
+  - type:bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Simple RMS Theme. Please provide reproducible evidence and remove sensitive data before submitting.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the user-visible problem and its impact.
+      placeholder: What happened, and why does it matter?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Go to ...
+        2. Configure ...
+        3. Run ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe the result that should occur.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Describe the result that occurs instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add sanitized logs, screenshots, measurements, or relevant code references. Do not include credentials or private data.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Theme version or commit
+      description: Provide the affected release, branch, or commit SHA.
+      placeholder: main at <commit SHA>
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Select where the problem was observed.
+      options:
+        - Local development
+        - Staging
+        - Production
+        - Multiple environments
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed fix
+      description: Optional root-cause analysis or implementation direction.
+    validations:
+      required: false
