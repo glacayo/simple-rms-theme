@@ -555,6 +555,69 @@
                             "media_upload": 0
                         },
                         {
+                            "key": "field_rms_area_eyebrow_color",
+                            "label": "Eyebrow Color",
+                            "name": "area_eyebrow_color",
+                            "aria-label": "",
+                            "type": "color_picker",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "33",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "enable_opacity": false,
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true,
+                            "return_format": "string"
+                        },
+                        {
+                            "key": "field_rms_area_headline_color",
+                            "label": "Headline Color",
+                            "name": "area_headline_color",
+                            "aria-label": "",
+                            "type": "color_picker",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "33",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "enable_opacity": false,
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true,
+                            "return_format": "string"
+                        },
+                        {
+                            "key": "field_rms_area_text_color",
+                            "label": "Text Color",
+                            "name": "area_text_color",
+                            "aria-label": "",
+                            "type": "color_picker",
+                            "instructions": "",
+                            "required": 0,
+                            "conditional_logic": false,
+                            "wrapper": {
+                                "width": "33",
+                                "class": "",
+                                "id": ""
+                            },
+                            "default_value": "",
+                            "enable_opacity": false,
+                            "custom_palette_source": "",
+                            "palette_colors": "",
+                            "show_color_wheel": true,
+                            "return_format": "string"
+                        },
+                        {
                             "key": "field_rms_area_radius",
                             "label": "Service Radius",
                             "name": "area_radius",
@@ -2652,5 +2715,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1788045199
+    "modified": 1788796863
 }
