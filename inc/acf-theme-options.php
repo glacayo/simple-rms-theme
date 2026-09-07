@@ -420,6 +420,53 @@ function rms_get_slide_color_style(array $slide): string {
 }
 
 /**
+ * Resolve the optional area coverage text color overrides to sanitized hex values.
+ *
+ * Reads the three optional area-coverage-v1 color fields and accepts only
+ * strict hex values (via rms_sanitize_palette_hex()). Invalid, empty,
+ * non-string, and malicious values resolve to null so callers emit no
+ * override.
+ *
+ * @param array<string,mixed> $section ACF area-coverage-v1 layout row.
+ * @return array{eyebrow:?string,headline:?string,text:?string}
+ */
+function rms_get_area_coverage_text_colors(array $section): array {
+    return [
+        'eyebrow'  => rms_sanitize_palette_hex($section['area_eyebrow_color'] ?? null),
+        'headline' => rms_sanitize_palette_hex($section['area_headline_color'] ?? null),
+        'text'     => rms_sanitize_palette_hex($section['area_text_color'] ?? null),
+    ];
+}
+
+/**
+ * Build the scoped inline-style fragment for an area coverage section's text color overrides.
+ *
+ * Emits CSS custom properties only for valid hex values so each section's
+ * text elements can consume them without leaking to other sections.
+ * Returns an empty string when no valid override exists, preserving the
+ * palette/default chain.
+ *
+ * @param array<string,mixed> $section ACF area-coverage-v1 layout row.
+ * @return string Inline style fragment (may be empty).
+ */
+function rms_get_area_coverage_color_style(array $section): string {
+    $colors = rms_get_area_coverage_text_colors($section);
+    $parts  = [];
+
+    if (null !== $colors['eyebrow']) {
+        $parts[] = '--area-eyebrow-color:' . $colors['eyebrow'];
+    }
+    if (null !== $colors['headline']) {
+        $parts[] = '--area-headline-color:' . $colors['headline'];
+    }
+    if (null !== $colors['text']) {
+        $parts[] = '--area-text-color:' . $colors['text'];
+    }
+
+    return [] === $parts ? '' : implode(';', $parts) . ';';
+}
+
+/**
  * Resolve the four ACF company_palette_color_* fields to sanitized hex values.
  *
  * Values are read through rms_get_option() and accepted only when they are

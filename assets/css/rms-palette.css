@@ -436,6 +436,25 @@ body {
     color: var(--rms-color-surface);
 }
 
+/* Per-section area-coverage text color overrides (issue #101). Custom
+   properties are scoped to .area-coverage-v1 by the template inline style.
+   Fallbacks preserve the live cascade: surface-token eyebrow, compiled
+   #ffffff headline, and the compiled #e2e8f0 body — absent or invalid
+   values stay inert. Descendant selectors only: the radius badge is a
+   paragraph sibling of the description, so no sibling selectors here. */
+.area-coverage-v1__eyebrow {
+    color: var(--area-eyebrow-color, var(--rms-color-surface));
+}
+
+.area-coverage-v1__headline {
+    color: var(--area-headline-color, #ffffff);
+}
+
+.area-coverage-v1__description,
+.area-coverage-v1__description p {
+    color: var(--area-text-color, #e2e8f0);
+}
+
 /* ─── Header One — selectable global chrome ─────────────────────────── */
 /* Compiled Header One still uses $color-primary literals. Bridge rest,
    hover, and focus on the shipped nav bar, CTA, social, dropdown, and
