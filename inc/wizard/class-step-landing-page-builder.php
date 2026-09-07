@@ -1305,6 +1305,7 @@ class Step_Landing_Page_Builder {
 		$local_priors = $prior_payloads;
 		$section_rows = is_array( $row['sections'] ?? null ) ? $row['sections'] : [];
 		$existing_id  = (int) $row['id'];
+		$seo_sections_seen = 0;
 
 		foreach ( $section_rows as $section_row ) {
 			$layout   = $this->normalize_layout( (string) ( $section_row['layout'] ?? '' ) );
@@ -1319,6 +1320,15 @@ class Step_Landing_Page_Builder {
 			$section_context['layout']  = $layout;
 
 			if ( $this->harness->is_keyword_layout( $layout ) ) {
+				// Deterministic placement scope: hero, first SEO block, or later SEO blocks.
+				$occurrence = 'hero' === $layout
+					? 'hero'
+					: ( 0 === $seo_sections_seen ? 'first_seo' : 'later_seo' );
+
+				if ( 'seo-content' === $layout ) {
+					++$seo_sections_seen;
+				}
+
 				$copy = $this->generate_section_copy(
 					$layout,
 					$count,
@@ -1328,7 +1338,8 @@ class Step_Landing_Page_Builder {
 					$keywords,
 					$local_priors,
 					true,
-					$section_context
+					$section_context,
+					$occurrence
 				);
 
 				if ( \is_wp_error( $copy ) ) {
@@ -1892,12 +1903,30 @@ class Step_Landing_Page_Builder {
 		array $keywords,
 		array $prior_section_payloads,
 		bool $require_ai = false,
-		array $log_context = []
+		array $log_context = [],
+		string $occurrence = ''
 	) {
 		$fillable = $this->harness->get_fillable_fields( $section_key );
 
 		if ( [] === $fillable ) {
 			return [];
+		}
+
+		// Landing keyword sections carry page-scoped intent into review and the
+		// deterministic fidelity gate. Blank keywords stay untracked (neutral prompt).
+		$keyword_intent = [];
+
+		if ( AI_Content_Harness::PAGE_LANDING === $page_type && '' !== $occurrence ) {
+			$normalized_keywords = $this->harness->normalize_keywords( $keywords );
+
+			if ( '' !== $normalized_keywords['primary_keyword'] ) {
+				$keyword_intent = [
+					'primary_keyword' => $normalized_keywords['primary_keyword'],
+					'subkeywords'     => $normalized_keywords['subkeywords'],
+					'page_type'       => AI_Content_Harness::PAGE_LANDING,
+					'occurrence'      => $occurrence,
+				];
+			}
 		}
 
 		$context = array_merge(
@@ -1916,7 +1945,7 @@ class Step_Landing_Page_Builder {
 		$provider = \sanitize_key( (string) $ai_config['provider'] );
 		$model    = \sanitize_text_field( (string) $ai_config['model'] );
 		$system   = $this->harness->get_layer1() . "\n\n" . $this->harness->get_layer2( $page_type );
-		$prompt   = $this->harness->get_layer3( $section_key, $item_count, $client_context, $page_type, $keywords );
+		$prompt   = $this->harness->get_layer3( $section_key, $item_count, $client_context, $page_type, $keywords, $occurrence );
 		$result   = AI_Provider_Registry::make_provider( $provider )->generate(
 			$model,
 			$prompt,
@@ -1990,11 +2019,32 @@ class Step_Landing_Page_Builder {
 			$client_context,
 			$item_count,
 			$require_ai,
-			$context
+			$context,
+			$keyword_intent
 		);
 
 		if ( \is_wp_error( $reviewed ) ) {
 			return $reviewed;
+		}
+
+		// Deterministic keyword fidelity gate: never publish a landing section that
+		// is missing its required primary keyword occurrence after review.
+		if ( [] !== $keyword_intent && ! $this->harness->check_landing_keyword_fidelity( $section_key, $reviewed, $keywords, $occurrence ) ) {
+			$this->logger->log(
+				'error',
+				'Wizard landing keyword fidelity check failed after review.',
+				array_merge( $context, [ 'occurrence' => $occurrence ] )
+			);
+
+			return new \WP_Error(
+				'rms_wizard_landing_keyword_fidelity_failed',
+				sprintf(
+					/* translators: %s: layout key. */
+					\__( 'Keyword section "%s" is missing its required primary keyword occurrence. Landing was not published with deficient copy.', 'simple-rms-theme' ),
+					$section_key
+				),
+				array_merge( [ 'status' => 502, 'provider' => $provider ], $context )
+			);
 		}
 
 		$validated = $this->harness->validate_fields( $section_key, $reviewed );
@@ -2026,6 +2076,7 @@ class Step_Landing_Page_Builder {
 	 * @param array<string,mixed>            $ai_config
 	 * @param array<string,mixed>            $client_context
 	 * @param array<string,mixed>            $log_context
+	 * @param array<string,mixed>            $keyword_intent Landing keyword intent threaded into review config.
 	 *
 	 * @return array<string,mixed>|\WP_Error
 	 */
@@ -2037,7 +2088,8 @@ class Step_Landing_Page_Builder {
 		array $client_context,
 		int $item_count,
 		bool $require_ai = false,
-		array $log_context = []
+		array $log_context = [],
+		array $keyword_intent = []
 	) {
 		if ( ! $this->is_review_enabled() ) {
 			return $decoded;
@@ -2046,6 +2098,10 @@ class Step_Landing_Page_Builder {
 		$review_config                   = $ai_config;
 		$review_config['client_context'] = $client_context;
 		$review_config['item_count']     = $item_count;
+
+		if ( [] !== $keyword_intent ) {
+			$review_config['keyword_intent'] = $keyword_intent;
+		}
 
 		try {
 			$result = $this->reviewer()->review( $section_key, $decoded, $prior_section_payloads, $review_config );
