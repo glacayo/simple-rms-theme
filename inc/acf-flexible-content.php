@@ -1752,6 +1752,19 @@ function rms_register_acf_page_sections(): void {
                                 'return_format' => 'url',
                                 'wrapper'       => ['width' => '50'],
                             ],
+                            [
+                                'key'           => 'field_rms_seo_header_alignment',
+                                'label'         => 'Header Alignment',
+                                'name'          => 'seo_header_alignment',
+                                'type'          => 'select',
+                                'wrapper'       => ['width' => '25'],
+                                'choices'       => [
+                                    'left'   => 'Left',
+                                    'center' => 'Center',
+                                    'right'  => 'Right',
+                                ],
+                                'default_value' => 'left',
+                            ],
                         ],
                     ],
                     'layout_services_v1' => [
