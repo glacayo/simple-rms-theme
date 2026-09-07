@@ -17,6 +17,8 @@
 
 require_once __DIR__ . '/wizard-landing-phase4-bootstrap.php';
 
+use Inc\Wizard\AI_Content_Harness;
+use Inc\Wizard\AI_Content_Reviewer;
 use Inc\Wizard\Canonical_Section_Store;
 use Inc\Wizard\Logger;
 use Inc\Wizard\Step_Generate_Pages;
@@ -319,6 +321,108 @@ function rms_run_landing_lifecycle_protection_tests(): int {
 	echo "PASS generate-pages-landing-deletion-guard\n";
 	++$passed;
 
+	// =========================================================================
+	// 7. Keyword fidelity: deterministic placement rules per occurrence scope
+	// =========================================================================
+
+	rms_lpb_reset();
+	$fidelity_harness = new AI_Content_Harness();
+	$kw               = array( 'primary_keyword' => 'Concrete   Repair', 'subkeywords' => array( 'driveway' ) );
+
+	// hero: exactly one normalized occurrence in hero_title.
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Expert concrete repair that lasts' ), $kw, 'hero' ), 'hero fidelity matches case-insensitively' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Expert  Concrete	Repair today' ), $kw, 'hero' ), 'hero fidelity collapses whitespace and case' );
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Expert patios that last' ), $kw, 'hero' ), 'hero fidelity fails when the keyword is missing' );
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Concrete Repair and Concrete Repair' ), $kw, 'hero' ), 'hero fidelity requires exactly one occurrence' );
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array(), $kw, 'hero' ), 'hero fidelity fails on missing hero_title' );
+
+	// Exact-phrase edges: embedded words and joined variants never count; the exact
+	// phrase bounded by punctuation or normalized in case/whitespace always does.
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Expert concrete repairman at work' ), $kw, 'hero' ), 'hero fidelity rejects the keyword embedded in a larger word' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Trusted "Concrete   Repair", done right' ), $kw, 'hero' ), 'hero fidelity counts the punctuation-bounded exact phrase' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'CONCRETE REPAIR experts on call' ), $kw, 'hero' ), 'hero fidelity counts the case-normalized exact phrase' );
+
+	// first_seo: seo_headline, or within the first 100 words of seo_text.
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'seo-content', array( 'seo_headline' => 'concrete repair done right', 'seo_text' => 'no keyword here' ), $kw, 'first_seo' ), 'first_seo fidelity passes via headline' );
+	$later_fill = implode( ' ', array_fill( 0, 110, 'filler' ) );
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'seo-content', array( 'seo_headline' => 'No keyword', 'seo_text' => $later_fill . ' concrete repair' ), $kw, 'first_seo' ), 'first_seo fails when the keyword only appears after 100 words' );
+	$early_body = '<p>we do concrete repair work daily</p> ' . $later_fill;
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'seo-content', array( 'seo_headline' => 'No keyword', 'seo_text' => $early_body ), $kw, 'first_seo' ), 'first_seo passes when the keyword is within the first 100 body words' );
+	rms_lpb_assert( false === $fidelity_harness->check_landing_keyword_fidelity( 'seo-content', array( 'seo_headline' => 'No keyword', 'seo_text' => 'nothing useful' ), $kw, 'first_seo' ), 'first_seo fails without any occurrence' );
+
+	// later_seo and non-applicable scopes never gate.
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'seo-content', array( 'seo_headline' => 'No keyword' ), $kw, 'later_seo' ), 'later_seo does not force repetition' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Neutral' ), $kw, '' ), 'no occurrence scope imposes no gate' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Neutral' ), array( 'primary_keyword' => '   ' ), 'hero' ), 'empty keyword imposes no gate' );
+
+	// Occurrence-aware prompt contract.
+	$hero_prompt  = $fidelity_harness->get_layer3( 'hero', 1, array( 'company_name' => 'Acme' ), AI_Content_Harness::PAGE_LANDING, $kw, 'hero' );
+	$first_prompt = $fidelity_harness->get_layer3( 'seo-content', 1, array( 'company_name' => 'Acme' ), AI_Content_Harness::PAGE_LANDING, $kw, 'first_seo' );
+	$later_prompt = $fidelity_harness->get_layer3( 'seo-content', 1, array( 'company_name' => 'Acme' ), AI_Content_Harness::PAGE_LANDING, $kw, 'later_seo' );
+	rms_lpb_assert( false !== strpos( $hero_prompt, '- Place the exact primary keyword once in hero_title.' ), 'hero prompt carries the deterministic placement rule' );
+	rms_lpb_assert( false !== strpos( $first_prompt, '- Place the exact primary keyword in seo_headline or within the first 100 words of seo_text.' ), 'first SEO prompt carries the deterministic placement rule' );
+	rms_lpb_assert( false !== strpos( $later_prompt, '- Do not force the primary keyword here' ), 'later SEO prompt forbids forced repetition' );
+	rms_lpb_assert( false === strpos( $later_prompt, '- Place the exact primary keyword' ), 'later SEO prompt does not require placement' );
+
+	// Nested tokens cannot survive keyword_block interpolation.
+	$token_kw     = array( 'primary_keyword' => '{{layout}} concrete repair', 'subkeywords' => array() );
+	$token_prompt = $fidelity_harness->get_layer3( 'hero', 1, array( 'company_name' => 'Acme' ), AI_Content_Harness::PAGE_LANDING, $token_kw, 'hero' );
+	rms_lpb_assert( false !== strpos( $token_prompt, '- Primary keyword: {{layout}} concrete repair' ), 'keyword containing token-like text stays verbatim' );
+	rms_lpb_assert( false === strpos( $token_prompt, '{{primary_keyword}}' ), 'no unresolved primary keyword token survives' );
+	rms_lpb_assert( true === $fidelity_harness->check_landing_keyword_fidelity( 'hero', array( 'hero_title' => 'Expert {{LAYOUT}} Concrete Repair today' ), $token_kw, 'hero' ), 'token-like keyword fidelity matches normalized text' );
+	echo "PASS keyword-fidelity-deterministic-placement\n";
+	++$passed;
+
+	// =========================================================================
+	// 8. Reviewer keyword context: landing authorization + preservation directive
+	// =========================================================================
+
+	rms_lpb_reset();
+	$reviewer        = new AI_Content_Reviewer();
+	$prompt_method   = new ReflectionMethod( AI_Content_Reviewer::class, 'json_prompt' );
+	$prompt_method->setAccessible( true );
+
+	$landing_intent_config = array(
+		'client_context' => array( 'company_name' => 'Acme' ),
+		'keyword_intent' => array(
+			'primary_keyword' => 'concrete repair',
+			'subkeywords'     => array( 'driveway' ),
+			'page_type'       => AI_Content_Harness::PAGE_LANDING,
+			'occurrence'      => 'hero',
+		),
+	);
+	$landing_rewrite_json = $prompt_method->invoke(
+		$reviewer,
+		'Rewrite only the diagnosed failures using these directives.',
+		'hero',
+		array( 'hero_title' => 'Headline' ),
+		array(),
+		$landing_intent_config,
+		array( 'intent_mismatch' => 'Realign the copy to the required keyword placement.' )
+	);
+	$landing_rewrite_data = json_decode( $landing_rewrite_json, true );
+	rms_lpb_assert( is_array( $landing_rewrite_data ) && isset( $landing_rewrite_data['declared_keyword_intent'] ), 'landing rewrite prompt carries declared keyword intent' );
+	rms_lpb_assert( 'PAGE_LANDING' === ( $landing_rewrite_data['declared_keyword_intent']['page_type'] ?? '' ), 'landing keyword intent declares the page type' );
+	rms_lpb_assert( 'hero' === ( $landing_rewrite_data['declared_keyword_intent']['occurrence'] ?? '' ), 'landing keyword intent declares the occurrence' );
+	rms_lpb_assert( false !== strpos( (string) ( $landing_rewrite_data['declared_keyword_intent']['role'] ?? '' ), 'One or two natural exact occurrences are not keyword stuffing' ), 'landing role authorizes 1-2 natural occurrences' );
+	rms_lpb_assert( false !== strpos( (string) ( $landing_rewrite_data['declared_keyword_intent']['role'] ?? '' ), 'intent_mismatch' ), 'landing role names intent_mismatch for missing required occurrence' );
+	rms_lpb_assert( false !== strpos( (string) ( $landing_rewrite_data['keyword_preservation_directive'] ?? '' ), 'Preserve all valid existing copy' ), 'landing rewrite prompt carries the preservation directive' );
+
+	$home_intent_config = array(
+		'client_context' => array( 'company_name' => 'Acme' ),
+		'keyword_intent' => array( 'primary_keyword' => 'deck builder', 'subkeywords' => array() ),
+	);
+	$home_json = $prompt_method->invoke( $reviewer, 'Review this section and diagnose failures before any rewrite.', 'hero', array( 'hero_title' => 'Headline' ), array(), $home_intent_config, array() );
+	$home_data = json_decode( $home_json, true );
+	rms_lpb_assert( false !== strpos( (string) ( $home_data['declared_keyword_intent']['role'] ?? '' ), 'Not evidence' ), 'home keyword role keeps non-evidence language' );
+	rms_lpb_assert( ! isset( $home_data['declared_keyword_intent']['page_type'] ), 'home keyword intent does not gain a landing page type' );
+	rms_lpb_assert( ! isset( $home_data['keyword_preservation_directive'] ), 'home prompts do not gain the landing preservation directive' );
+
+	$neutral_json = $prompt_method->invoke( $reviewer, 'Review this section and diagnose failures before any rewrite.', 'about-us', array( 'about_headline' => 'Story' ), array(), array( 'client_context' => array( 'company_name' => 'Acme' ) ), array() );
+	$neutral_data = json_decode( $neutral_json, true );
+	rms_lpb_assert( ! isset( $neutral_data['declared_keyword_intent'] ), 'neutral sections stay keyword-free' );
+	echo "PASS reviewer-keyword-context-authorization\n";
+	++$passed;
 	return $passed;
 }
 

@@ -327,6 +327,77 @@ if ( ! function_exists( 'get_sub_field' ) ) { function get_sub_field( $s = null 
 if ( ! function_exists( 'get_template_part' ) ) { function get_template_part( $slug, $name = null ) { unset( $name ); $GLOBALS['_template_parts'][] = (string) $slug; } }
 if ( ! function_exists( 'locate_template' ) ) { function locate_template( $t, $l = false, $r = true ) { unset( $l, $r ); return ''; } }
 
+/**
+ * Parse the primary keyword out of a landing KEYWORD CONTEXT generation prompt.
+ *
+ * Returns '' for neutral prompts, homepage KEYWORD INTENT prompts, later SEO
+ * blocks (no forced repetition), and empty keyword placeholders.
+ */
+function rms_lpb_parse_landing_keyword( string $prompt ): string {
+	if ( false === strpos( $prompt, 'KEYWORD CONTEXT (mandatory' ) || false !== strpos( $prompt, '- Do not force the primary keyword here' ) ) {
+		return '';
+	}
+
+	if ( preg_match( '/- Primary keyword: ([^\r\n]+)/', $prompt, $m ) ) {
+		$keyword = trim( (string) $m[1] );
+
+		return in_array( $keyword, array( '(none provided)', '(none)' ), true ) ? '' : $keyword;
+	}
+
+	return '';
+}
+
+/**
+ * Parse the declared primary keyword out of a landing reviewer rewrite JSON prompt.
+ */
+function rms_lpb_parse_declared_keyword( string $prompt ): string {
+	if ( false === strpos( $prompt, '"page_type":"PAGE_LANDING"' ) || ! preg_match( '/"primary_keyword":"([^"]+)"/', $prompt, $m ) ) {
+		return '';
+	}
+
+	return (string) $m[1];
+}
+
+/**
+ * Layout-scoped fake payload; $keyword is echoed into the keyword-required fields.
+ */
+function rms_lpb_fake_layout_payload( string $layout, string $keyword ): array {
+	if ( 'hero' === $layout ) {
+		return array( 'hero_title' => '' !== $keyword ? 'Expert ' . $keyword . ' That Lasts' : 'Hero Headline', 'hero_description' => 'Hero body copy for the landing hero.' );
+	}
+
+	if ( 'seo-content' === $layout ) {
+		return array( 'seo_headline' => '' !== $keyword ? $keyword . ' Done Right' : 'SEO Headline', 'seo_subheadline' => 'SEO subheadline', 'seo_text' => 'SEO body copy.' );
+	}
+
+	return array( 'headline' => 'Section Headline', 'subheadline' => 'Section subheadline', 'text' => 'Section body copy.' );
+}
+
+/**
+ * Deterministic fake provider response.
+ *
+ * The test-only model sentinel 'test-keyword-miss' persistently omits the primary
+ * keyword from generation AND rewrite stages. Normal models echo the parsed landing
+ * keyword into hero_title / seo_headline for hero and first SEO generation prompts;
+ * later SEO blocks and neutral prompts stay neutral.
+ */
+function rms_lpb_fake_ai_content( string $model, string $prompt, array $context ): array {
+	$static = array( 'hero_title' => 'Hero Headline', 'hero_description' => 'Hero body copy for the landing hero.', 'seo_headline' => 'SEO Headline', 'seo_subheadline' => 'SEO subheadline', 'seo_text' => 'SEO body copy.', 'headline' => 'Section Headline', 'subheadline' => 'Section subheadline', 'text' => 'Section body copy.', 'verdict' => 'pass', 'diagnoses' => array() );
+
+	if ( 'test-keyword-miss' === $model ) {
+		return $static;
+	}
+
+	if ( 'rewrite' === (string) ( $context['review_stage'] ?? '' ) ) {
+		// Rewrites must return only layout-allowed keys to survive reviewer guardrails.
+		return rms_lpb_fake_layout_payload( (string) ( $context['section_key'] ?? '' ), rms_lpb_parse_declared_keyword( $prompt ) );
+	}
+
+	$keyword = rms_lpb_parse_landing_keyword( $prompt );
+
+	return '' === $keyword ? $static : rms_lpb_fake_layout_payload( (string) ( $context['section_key'] ?? '' ), $keyword );
+}
+
 // AI provider registry stubs.
 if ( ! class_exists( 'Inc\Wizard\AI_Credential_Store' ) ) {
 	eval( 'namespace Inc\Wizard; class AI_Credential_Store { public static function has($p){ return "test" === $p; } public static function save($p,$k){ return true; } public static function status($p){ return ["has_key"=>true,"status"=>"saved"]; } public static function mask_status($p){ return "saved"; } public static function normalize_api_key($k){ return (string) $k; } }' );
@@ -340,7 +411,7 @@ if ( ! class_exists( 'Inc\Wizard\AI_Provider_Registry' ) ) {
 	eval(
 		'namespace Inc\Wizard; class AI_Provider_Registry { ' .
 		'public static function make_provider($p,$k=""){ return new class extends AI_Provider { ' .
-		'public function generate($model, $prompt, $context = [], $system = "") { $GLOBALS["_ai_prompt_log"][] = ["model"=>$model,"prompt"=>$prompt,"context"=>$context,"system"=>$system]; if ( ! empty( $GLOBALS["_ai_fail"] ) ) { return ["success"=>false,"content"=>"","error"=>"HTTP 500 provider error"]; } return ["success"=>true,"content"=>json_encode(["hero_title"=>"Hero Headline","hero_description"=>"Hero body copy for the landing hero.","seo_headline"=>"SEO Headline","seo_subheadline"=>"SEO subheadline","seo_text"=>"SEO body copy.","headline"=>"Section Headline","subheadline"=>"Section subheadline","text"=>"Section body copy.","verdict"=>"pass","diagnoses"=>[]])]; } }; } ' .
+		'public function generate($model, $prompt, $context = [], $system = "") { $GLOBALS["_ai_prompt_log"][] = ["model"=>$model,"prompt"=>$prompt,"context"=>$context,"system"=>$system]; if ( ! empty( $GLOBALS["_ai_fail"] ) ) { return ["success"=>false,"content"=>"","error"=>"HTTP 500 provider error"]; } return ["success"=>true,"content"=>json_encode(rms_lpb_fake_ai_content((string) $model, (string) $prompt, is_array($context) ? $context : []))]; } }; } ' .
 		'public static function provider_exists($p){ return "test" === $p; } ' .
 		'public static function default_provider(){ return "test"; } ' .
 		'public static function get_provider_label($p){ return "Test"; } ' .

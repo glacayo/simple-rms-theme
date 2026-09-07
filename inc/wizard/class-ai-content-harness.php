@@ -614,12 +614,115 @@ PROMPT;
 	}
 
 	/**
+	 * Landing keyword prompt block; keywords are interpolated directly (never
+	 * through a placeholder token) so nested tokens cannot survive the template pass.
+	 *
+	 * @param array<string,mixed> $keywords   Raw keyword payload.
+	 * @param string              $occurrence Deterministic placement scope: hero, first_seo, later_seo, or ''.
+	 *
+	 * @return string
+	 */
+	public function keyword_block( array $keywords, string $occurrence = '' ): string {
+		$normalized = $this->normalize_keywords( $keywords );
+		$primary    = $normalized['primary_keyword'];
+		$secondary  = implode( ', ', $normalized['subkeywords'] );
+
+		$placement = "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n";
+
+		if ( 'hero' === $occurrence ) {
+			$placement = "- Place the exact primary keyword once in hero_title.\n";
+		} elseif ( 'first_seo' === $occurrence ) {
+			$placement = "- Place the exact primary keyword in seo_headline or within the first 100 words of seo_text.\n";
+		} elseif ( 'later_seo' === $occurrence ) {
+			$placement = "- Do not force the primary keyword here; write naturally without repeating it.\n";
+		}
+
+		return "KEYWORD CONTEXT (mandatory for this section only):\n"
+			. '- Primary keyword: ' . ( '' !== $primary ? $primary : '(none provided)' ) . "\n"
+			. '- Subkeywords: ' . ( '' !== $secondary ? $secondary : '(none)' ) . "\n"
+			. $placement
+			. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
+			. '- Do not invent services, locations, or proof to force keyword usage.';
+	}
+
+	/**
+	 * Deterministic landing keyword placement check.
+	 *
+	 * hero: hero_title contains the exact primary keyword exactly once.
+	 * first_seo: seo_headline contains it, or the first 100 words of seo_text do.
+	 * later_seo, empty occurrence, or empty keyword: nothing is forced, so true.
+	 *
+	 * @param string              $layout     Layout key.
+	 * @param array<string,mixed> $payload    Decoded section payload.
+	 * @param array<string,mixed> $keywords   Keyword payload (normalized internally).
+	 * @param string              $occurrence Placement scope.
+	 *
+	 * @return bool True when the required placement is satisfied.
+	 */
+	public function check_landing_keyword_fidelity( string $layout, array $payload, array $keywords, string $occurrence ): bool {
+		$occurrence = in_array( $occurrence, [ 'hero', 'first_seo', 'later_seo' ], true ) ? $occurrence : '';
+
+		if ( '' === $occurrence || 'later_seo' === $occurrence ) {
+			return true;
+		}
+
+		$normalized = $this->normalize_keywords( $keywords );
+		$needle     = $this->keyword_identity( $this->collapse_keyword( (string) ( $normalized['primary_keyword'] ?? '' ) ) );
+
+		if ( '' === $needle ) {
+			return true;
+		}
+
+		if ( 'hero' === $occurrence ) {
+			if ( 'hero' !== $layout ) {
+				return true;
+			}
+
+			return 1 === $this->count_keyword_occurrences( (string) ( $payload['hero_title'] ?? '' ), $needle );
+		}
+
+		if ( 'seo-content' !== $layout ) {
+			return true;
+		}
+
+		if ( $this->count_keyword_occurrences( (string) ( $payload['seo_headline'] ?? '' ), $needle ) >= 1 ) {
+			return true;
+		}
+
+		return $this->count_keyword_occurrences( $this->first_words( (string) ( $payload['seo_text'] ?? '' ), 100 ), $needle ) >= 1;
+	}
+
+	/**
+	 * Exact-phrase occurrence count bounded by Unicode letter/number edges: the
+	 * keyword never matches inside a larger word, but punctuation-separated
+	 * occurrences count. Fails closed to 0 when the subject is not valid UTF-8.
+	 */
+	private function count_keyword_occurrences( string $haystack, string $needle ): int {
+		if ( '' === $needle ) {
+			return 0;
+		}
+
+		$haystack = $this->keyword_identity( $this->collapse_keyword( $haystack ) );
+		$matches  = preg_match_all( '/(?<![\\p{L}\\p{N}])' . preg_quote( $needle, '/' ) . '(?![\\p{L}\\p{N}])/u', $haystack );
+
+		return is_int( $matches ) ? $matches : 0;
+	}
+
+	private function first_words( string $text, int $limit ): string {
+		$words = preg_split( '/\s+/u', trim( (string) preg_replace( '/<[^>]+>/', ' ', $text ) ), -1, PREG_SPLIT_NO_EMPTY );
+
+		return is_array( $words ) ? implode( ' ', array_slice( $words, 0, max( 0, $limit ) ) ) : '';
+	}
+
+	/**
 	 * @param array<string,mixed> $client_context Approved client context.
 	 * @param array<string,mixed> $keywords       Optional keywords. Landing uses PAGE_LANDING + keyword layouts.
 	 *                                            Homepage injects only when PAGE_HOME, layout is keyword-eligible,
 	 *                                            and a primary keyword is present.
+	 * @param string              $occurrence     Landing deterministic placement scope: hero, first_seo,
+	 *                                            later_seo, or ''.
 	 */
-	public function get_layer3( string $layout, int $item_count, array $client_context, string $page_type = self::PAGE_HOME, array $keywords = [] ): string {
+	public function get_layer3( string $layout, int $item_count, array $client_context, string $page_type = self::PAGE_HOME, array $keywords = [], string $occurrence = '' ): string {
 		$layout        = $this->normalize_layout_key( $layout );
 		$fillable      = $this->get_fillable_fields( $layout );
 		$blocked       = $this->get_blocked_fields( $layout );
@@ -639,12 +742,7 @@ PROMPT;
 			$normalized    = $this->normalize_keywords( $keywords );
 			$primary       = $normalized['primary_keyword'];
 			$subkeywords   = implode( ', ', $normalized['subkeywords'] );
-			$keyword_block = "\n\nKEYWORD CONTEXT (mandatory for this section only):\n"
-				. '- Primary keyword: ' . ( '' !== $primary ? $primary : '(none provided)' ) . "\n"
-				. '- Subkeywords: ' . ( '' !== $subkeywords ? $subkeywords : '(none)' ) . "\n"
-				. "- Naturally incorporate the primary keyword in headlines and body copy where it fits.\n"
-				. "- Use subkeywords sparingly and only when natural. Do not keyword-stuff.\n"
-				. "- Do not invent services, locations, or proof to force keyword usage.";
+				$keyword_block = "\n\n" . $this->keyword_block( $keywords, $occurrence );
 		} elseif ( $inject_home ) {
 			$normalized    = $home_keywords;
 			$primary       = $normalized['primary_keyword'];
