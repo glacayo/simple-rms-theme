@@ -16,22 +16,27 @@ $cities    = get_sub_field( 'area_cities' );
 $cta_text  = get_sub_field( 'area_cta_text' ) ?: 'Check Your Location';
 $cta_url   = get_sub_field( 'area_cta_url' ) ?: '#';
 $map_image = get_sub_field( 'area_map_image' ) ?: 'https://placehold.co/800x600';
+$color_style = rms_get_area_coverage_color_style( array(
+'area_eyebrow_color'  => get_sub_field( 'area_eyebrow_color' ),
+'area_headline_color' => get_sub_field( 'area_headline_color' ),
+'area_text_color'     => get_sub_field( 'area_text_color' ),
+) );
 ?>
 <!-- Area Coverage V1 — Regional Service Footprint -->
-<section class="area-coverage-v1" aria-labelledby="area-coverage-v1-heading">
+<section class="area-coverage-v1"<?php echo '' !== $color_style ? ' style="' . esc_attr( $color_style ) . '"' : ''; ?> aria-labelledby="area-coverage-v1-heading">
     <div class="container">
         <div class="area-coverage-v1__layout">
             <div class="area-coverage-v1__content">
                 <p class="area-coverage-v1__eyebrow"><?php echo esc_html( $eyebrow ); ?></p>
                 <h2 id="area-coverage-v1-heading" class="area-coverage-v1__headline"><?php echo esc_html( $headline ); ?></h2>
                 <?php if ( $description ) : ?>
-                    <p class="area-coverage-v1__description">
+                    <div class="area-coverage-v1__description">
                         <?php echo wp_kses_post( $description ); ?>
-                    </p>
+                    </div>
                 <?php else : ?>
-                    <p class="area-coverage-v1__description">
+                    <div class="area-coverage-v1__description">
                         From central city neighborhoods to surrounding communities, our crew delivers consistent craftsmanship across the greater Orlando region with dependable response times and local expertise you can trust.
-                    </p>
+                    </div>
                 <?php endif; ?>
 
                 <p class="area-coverage-v1__radius" role="status" aria-label="Current service radius">
