@@ -423,7 +423,274 @@ function rms_run_landing_lifecycle_protection_tests(): int {
 	rms_lpb_assert( ! isset( $neutral_data['declared_keyword_intent'] ), 'neutral sections stay keyword-free' );
 	echo "PASS reviewer-keyword-context-authorization\n";
 	++$passed;
+
+	// =========================================================================
+	// 9. Keyword generation fidelity: green path + focus keyword persistence
+	// =========================================================================
+
+	rms_lpb_reset();
+	rms_lpb_seed_page( 21, 'home', 'Home' );
+	$sm_green = rms_lpb_seed_landing_state();
+	$st_green                    = $sm_green->get_state();
+	$st_green['generated_pages'] = array( array( 'id' => 21, 'slug' => 'home', 'role' => 'home' ) );
+	$st_green['home_page_slug']  = 'home';
+	$sm_green->save_state( $st_green );
+	$GLOBALS['_yoast_active'] = true;
+	$green_builder = new Step_Landing_Page_Builder( new Logger(), $sm_green );
+	$green_res     = $green_builder->run(
+		array(
+			'landing_action' => 'start',
+			'landings'       => array( rms_lpb_landing_payload_item( 'lk_kw', 'keyword-page' ) ),
+		)
+	);
+	rms_lpb_assert( ! is_wp_error( $green_res ), 'keyword landing start succeeds' );
+	$safety = 0;
+	while ( true ) {
+		$run = $sm_green->get_state()['landing_run'];
+		if ( is_array( $run ) && in_array( (string) ( $run['status'] ?? '' ), array( 'completed', 'failed' ), true ) ) {
+			break;
+		}
+		if ( ++$safety > 8 ) {
+			break;
+		}
+		$green_builder->run( array( 'landing_action' => 'process' ) );
+	}
+	$green_pages = $sm_green->get_state()['landing_pages'];
+	rms_lpb_assert( 1 === count( $green_pages ), 'keyword landing completed' );
+	$green_post_id = (int) ( $green_pages[0]['id'] ?? 0 );
+	$green_sections = is_array( $GLOBALS['_post_meta'][ $green_post_id ]['page_sections'] ?? null ) ? $GLOBALS['_post_meta'][ $green_post_id ]['page_sections'] : array();
+	$green_hero = null;
+	$green_seo  = null;
+	foreach ( $green_sections as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		if ( 'hero' === ( $row['acf_fc_layout'] ?? '' ) && null === $green_hero ) {
+			$green_hero = $row;
+		}
+		if ( 'seo-content' === ( $row['acf_fc_layout'] ?? '' ) && null === $green_seo ) {
+			$green_seo = $row;
+		}
+	}
+	rms_lpb_assert( is_array( $green_hero ) && false !== strpos( (string) ( $green_hero['hero_title'] ?? '' ), 'concrete repair' ), 'hero title contains the exact primary keyword' );
+	rms_lpb_assert( is_array( $green_seo ) && false !== strpos( (string) ( $green_seo['seo_headline'] ?? '' ), 'concrete repair' ), 'first SEO section contains the primary keyword' );
+	rms_lpb_assert( 'concrete repair' === (string) ( $GLOBALS['_post_meta'][ $green_post_id ][ Yoast_Meta_Writer::FOCUS_KEYWORD_KEY ] ?? '' ), 'sanitized focus keyword persisted on the landing' );
+
+	// Canonical/reusable generation stayed keyword-neutral: reviewer critique/rewrite
+	// prompts legitimately carry the generated payload, so scope the check to generation.
+	$green_neutral = true;
+	foreach ( $GLOBALS['_ai_prompt_log'] as $entry ) {
+		$entry_prompt = (string) ( $entry['prompt'] ?? '' );
+		$entry_ctx    = is_array( $entry['context'] ?? null ) ? $entry['context'] : array();
+		$is_review    = '' !== (string) ( $entry_ctx['review_stage'] ?? '' );
+
+		if ( ! $is_review && false === strpos( $entry_prompt, 'KEYWORD CONTEXT (mandatory' ) && false !== strpos( $entry_prompt, 'concrete repair' ) ) {
+			$green_neutral = false;
+			break;
+		}
+	}
+	rms_lpb_assert( $green_neutral, 'only landing keyword prompts contain the primary keyword' );
+	echo "PASS keyword-generation-fidelity-green\n";
+	++$passed;
+
+	// =========================================================================
+	// 10. Keyword omission: bounded rewrite then fail closed (new landing)
+	// =========================================================================
+
+	rms_lpb_reset();
+	rms_lpb_seed_page( 21, 'home', 'Home' );
+	$sm_miss = rms_lpb_seed_landing_state();
+	$st_miss                    = $sm_miss->get_state();
+	$st_miss['generated_pages'] = array( array( 'id' => 21, 'slug' => 'home', 'role' => 'home' ) );
+	$st_miss['home_page_slug']  = 'home';
+	$st_miss['ai_config']       = array( 'provider' => 'test', 'model' => 'test-keyword-miss', 'has_credentials' => true );
+	$sm_miss->save_state( $st_miss );
+	$miss_builder = new Step_Landing_Page_Builder( new Logger(), $sm_miss );
+	$miss_res     = $miss_builder->run(
+		array(
+			'landing_action' => 'start',
+			'landings'       => array( rms_lpb_landing_payload_item( 'lk_miss', 'miss-page' ) ),
+		)
+	);
+	// The single-item run may fail inside start or during the first process tick:
+	// either surface is acceptable, only the terminal state is asserted below.
+	$safety = 0;
+	while ( true ) {
+		$run = $sm_miss->get_state()['landing_run'];
+		if ( is_array( $run ) && in_array( (string) ( $run['status'] ?? '' ), array( 'completed', 'failed' ), true ) ) {
+			break;
+		}
+		if ( ++$safety > 8 ) {
+			break;
+		}
+		$miss_builder->run( array( 'landing_action' => 'process' ) );
+	}
+	$run = $sm_miss->get_state()['landing_run'];
+	rms_lpb_assert( 'failed' === (string) ( $run['status'] ?? '' ), 'keyword omission run fails' );
+	$failed_items = array_values(
+		array_filter(
+			is_array( $run['items'] ?? null ) ? $run['items'] : array(),
+			static function ( $item ) {
+				return is_array( $item ) && 'failed' === ( $item['status'] ?? '' );
+			}
+		)
+	);
+	rms_lpb_assert( 1 === count( $failed_items ) && 'rms_wizard_landing_keyword_fidelity_failed' === ( $failed_items[0]['error_code'] ?? '' ), 'omission fails closed with the fidelity error code' );
+	rms_lpb_assert( array() === ( $sm_miss->get_state()['landing_pages'] ?? array() ), 'deficient landing never persisted' );
+	rms_lpb_assert( ! isset( $GLOBALS['_page_by_path']['miss-page'] ), 'deficient landing never published' );
+
+	// The bounded rewrite path ran inside the existing two-pass maximum.
+	$rewrite_attempts = 0;
+	foreach ( $GLOBALS['_ai_prompt_log'] as $entry ) {
+		$entry_ctx = is_array( $entry['context'] ?? null ) ? $entry['context'] : array();
+		if ( 'rewrite' === ( $entry_ctx['review_stage'] ?? '' ) ) {
+			++$rewrite_attempts;
+		}
+	}
+	rms_lpb_assert( 2 === $rewrite_attempts, 'bounded rewrite attempts ran exactly at the existing two-pass budget' );
+	echo "PASS keyword-omission-fails-closed\n";
+	++$passed;
+
+	// =========================================================================
+	// 11. Keyword omission preserves existing landing content
+	// =========================================================================
+
+	rms_lpb_reset();
+	rms_lpb_seed_page( 21, 'home', 'Home' );
+	$sm_keep = rms_lpb_seed_landing_state(
+		array(
+			array( 'id' => 202, 'landing_key' => 'lk_keep', 'slug' => 'keep-page', 'landing_type' => 'seo', 'menu_eligible' => true, 'primary_keyword' => 'concrete repair', 'subkeywords' => array() ),
+		)
+	);
+	$st_keep                    = $sm_keep->get_state();
+	$st_keep['generated_pages'] = array( array( 'id' => 21, 'slug' => 'home', 'role' => 'home' ) );
+	$st_keep['home_page_slug']  = 'home';
+	$st_keep['ai_config']       = array( 'provider' => 'test', 'model' => 'test-keyword-miss', 'has_credentials' => true );
+	$sm_keep->save_state( $st_keep );
+	rms_lpb_seed_page( 202, 'keep-page', 'Keep Page' );
+	$GLOBALS['_post_meta'][202]['rms_landing_type']  = 'seo';
+	$GLOBALS['_post_meta'][202]['_wp_page_template'] = 'pages/landing-page.php';
+	$GLOBALS['_post_meta'][202]['page_sections']     = array(
+		array( 'acf_fc_layout' => 'hero', 'hero_title' => 'Original Hero', 'hero_description' => 'Original copy.' ),
+		array( 'acf_fc_layout' => 'seo-content', 'seo_headline' => 'Original SEO', 'seo_subheadline' => 'Original subheadline', 'seo_text' => 'Original body.' ),
+	);
+	$keep_builder = new Step_Landing_Page_Builder( new Logger(), $sm_keep );
+	$keep_res     = $keep_builder->run(
+		array(
+			'landing_action' => 'start',
+			'landings'       => array( rms_lpb_landing_payload_item( 'lk_keep', 'keep-page', array( 'id' => 202 ) ) ),
+		)
+	);
+	// Same as scenario 10: the fidelity failure may surface on start or process.
+	$safety = 0;
+	while ( true ) {
+		$run = $sm_keep->get_state()['landing_run'];
+		if ( is_array( $run ) && in_array( (string) ( $run['status'] ?? '' ), array( 'completed', 'failed' ), true ) ) {
+			break;
+		}
+		if ( ++$safety > 8 ) {
+			break;
+		}
+		$keep_builder->run( array( 'landing_action' => 'process' ) );
+	}
+	$run = $sm_keep->get_state()['landing_run'];
+	// Preservation completes the run: the existing landing stays published with
+	// untouched sections instead of a fidelity-failed rebuild.
+	rms_lpb_assert( 'completed' === (string) ( $run['status'] ?? '' ), 'preservation completes the run without rebuilding' );
+	$keep_pages = $sm_keep->get_state()['landing_pages'];
+	rms_lpb_assert( 1 === count( $keep_pages ) && 202 === (int) ( $keep_pages[0]['id'] ?? 0 ) && true === ( $keep_pages[0]['preserved'] ?? false ), 'existing landing preserved after fidelity failure' );
+	$keep_sections = is_array( $GLOBALS['_post_meta'][202]['page_sections'] ?? null ) ? $GLOBALS['_post_meta'][202]['page_sections'] : array();
+	rms_lpb_assert( 'Original Hero' === ( $keep_sections[0]['hero_title'] ?? '' ), 'existing hero copy untouched' );
+	rms_lpb_assert( 'Original SEO' === ( $keep_sections[1]['seo_headline'] ?? '' ), 'existing SEO copy untouched' );
+	rms_lpb_assert( 'concrete repair' === (string) ( $GLOBALS['_post_meta'][202][ Yoast_Meta_Writer::FOCUS_KEYWORD_KEY ] ?? '' ), 'focus keyword refreshed on the preserved landing' );
+	echo "PASS keyword-omission-preserves-existing\n";
+	++$passed;
+
+	// =========================================================================
+	// 12. Review-disabled omission still fails closed deterministically
+	// =========================================================================
+
+	// WIZARD_REVIEW_ENABLED=false leaves the builder's deterministic fidelity gate
+	// as the only enforcement layer: no reviewer loop, no rewrite, no publication.
+	// PHP constants cannot be undefined, so this scenario runs last in this file;
+	// each suite is a separate PHP process, and the trailing reset restores every
+	// mutable global so later scenarios in this process cannot leak state.
+	define( 'WIZARD_REVIEW_ENABLED', false );
+	rms_lpb_reset();
+	$noreview = rms_lpb_run_omission_to_terminal( rms_lpb_landing_payload_item( 'lk_noreview', 'noreview-page' ) );
+	rms_lpb_assert( 'failed' === (string) ( $noreview['run']['status'] ?? '' ), 'review-disabled omission run still fails' );
+	$noreview_failed_items = array_values(
+		array_filter(
+			is_array( $noreview['run']['items'] ?? null ) ? $noreview['run']['items'] : array(),
+			static function ( $item ) {
+				return is_array( $item ) && 'failed' === ( $item['status'] ?? '' );
+			}
+		)
+	);
+	rms_lpb_assert( 1 === count( $noreview_failed_items ) && 'rms_wizard_landing_keyword_fidelity_failed' === ( $noreview_failed_items[0]['error_code'] ?? '' ), 'review-disabled omission fails closed with the deterministic fidelity error code' );
+	rms_lpb_assert( array() === ( $noreview['state']->get_state()['landing_pages'] ?? array() ), 'review-disabled deficient landing never persisted' );
+	rms_lpb_assert( ! isset( $GLOBALS['_page_by_path']['noreview-page'] ), 'review-disabled omission never published' );
+	$noreview_review_prompts = 0;
+	foreach ( $GLOBALS['_ai_prompt_log'] as $entry ) {
+		$entry_ctx = is_array( $entry['context'] ?? null ) ? $entry['context'] : array();
+		if ( '' !== (string) ( $entry_ctx['review_stage'] ?? '' ) ) {
+			++$noreview_review_prompts;
+		}
+	}
+	rms_lpb_assert( 0 === $noreview_review_prompts, 'review-disabled run never invoked the reviewer' );
+	rms_lpb_reset();
+	echo "PASS keyword-omission-review-disabled-fails-closed\n";
+	++$passed;
+
 	return $passed;
+}
+
+/**
+ * Shared keyword-omission scenario runner: resets the harness globals, seeds the
+ * home page and landing wizard state with the persistent-omission model, applies
+ * scenario overrides, starts the landing run with the given payload item, and
+ * drives process ticks until the run reaches a terminal status.
+ *
+ * The single-item run may fail inside start or during the first process tick;
+ * either surface is acceptable, only the terminal state is asserted by callers.
+ *
+ * @param array<string,mixed> $landing_item    Landing payload item.
+ * @param array<string,mixed> $state_overrides Extra wizard-state overrides.
+ *
+ * @return array{state:\Inc\Wizard\State_Manager,run:array<string,mixed>}
+ */
+function rms_lpb_run_omission_to_terminal( array $landing_item, array $state_overrides = array() ): array {
+	rms_lpb_reset();
+	rms_lpb_seed_page( 21, 'home', 'Home' );
+	$sm                    = rms_lpb_seed_landing_state();
+	$st                    = $sm->get_state();
+	$st['generated_pages'] = array( array( 'id' => 21, 'slug' => 'home', 'role' => 'home' ) );
+	$st['home_page_slug']  = 'home';
+	$st['ai_config']       = array( 'provider' => 'test', 'model' => 'test-keyword-miss', 'has_credentials' => true );
+	foreach ( $state_overrides as $key => $value ) {
+		$st[ $key ] = $value;
+	}
+	$sm->save_state( $st );
+	$builder = new Step_Landing_Page_Builder( new Logger(), $sm );
+	$builder->run(
+		array(
+			'landing_action' => 'start',
+			'landings'       => array( $landing_item ),
+		)
+	);
+	$safety = 0;
+	while ( true ) {
+		$run = $sm->get_state()['landing_run'];
+		if ( is_array( $run ) && in_array( (string) ( $run['status'] ?? '' ), array( 'completed', 'failed' ), true ) ) {
+			break;
+		}
+		if ( ++$safety > 8 ) {
+			break;
+		}
+		$builder->run( array( 'landing_action' => 'process' ) );
+	}
+
+	return array( 'state' => $sm, 'run' => $sm->get_state()['landing_run'] );
 }
 
 if ( basename( $argv[0] ?? '' ) === basename( __FILE__ ) ) {

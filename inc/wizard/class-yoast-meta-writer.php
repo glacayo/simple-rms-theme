@@ -16,6 +16,7 @@ class Yoast_Meta_Writer {
 	public const TITLE_KEY       = '_yoast_wpseo_title';
 	public const DESCRIPTION_KEY = '_yoast_wpseo_metadesc';
 	public const NOINDEX_KEY     = '_yoast_wpseo_meta-robots-noindex';
+	public const FOCUS_KEYWORD_KEY = '_yoast_wpseo_focuskw';
 
 	/** Common SERP-friendly max length for SEO titles. */
 	public const TITLE_MAX_LENGTH = 60;
@@ -83,6 +84,8 @@ class Yoast_Meta_Writer {
 	/**
 	 * Write per-landing Yoast title/metadesc from keyword + type when Yoast is active.
 	 *
+	 * The focus keyword (`_yoast_wpseo_focuskw`) is Yoast storage and is written
+	 * regardless of plugin activation, mirroring the Ads noindex storage convention.
 	 * When Yoast is absent, skips title/metadesc writes and logs once per request.
 	 *
 	 * @param int    $post_id         Landing page ID.
@@ -101,6 +104,10 @@ class Yoast_Meta_Writer {
 		if ( $post_id <= 0 || '' === $primary_keyword ) {
 			return false;
 		}
+
+		// Focus keyword is Yoast storage: persist regardless of activation, like the
+		// Ads noindex key, so downstream SEO tooling can read it without Yoast active.
+		\update_post_meta( $post_id, self::FOCUS_KEYWORD_KEY, $primary_keyword );
 
 		if ( ! self::is_yoast_active() ) {
 			if ( ! self::$missing_yoast_logged ) {
