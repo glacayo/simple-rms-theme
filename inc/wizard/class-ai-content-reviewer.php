@@ -86,8 +86,18 @@ final class AI_Content_Reviewer {
 		],
 	];
 
+	/**
+	 * Occurrence-specific landing placement rules; '' is the neutral no-scope rule.
+	 */
+	private const LANDING_OCCURRENCE_RULES = [
+		'hero'      => 'hero_title must contain the exact primary keyword once.',
+		'first_seo' => 'the first SEO section must contain it in seo_headline or within the first 100 words of seo_text.',
+		'later_seo' => 'later SEO sections must not force or repeat the primary keyword; write naturally.',
+		''          => 'no keyword placement is enforced for this section.',
+	];
+
 	private const PROMPT_CRITIQUE = <<<'PROMPT'
-You are the quality reviewer for one WordPress wizard home-page section.
+You are the quality reviewer for one WordPress wizard section.
 
 Evaluate the decoded JSON against these primary quality sources only:
 - Google Helpful Content: people-first, useful, original content.
@@ -144,11 +154,20 @@ PROMPT;
 			}
 
 			$diagnoses = $this->diagnose( $critique );
+
+			// Deterministic fidelity gate feeds intent_mismatch even when the model critique misses it.
+			$keyword_status = $this->landing_keyword_status( $layout, $current, $ai_config );
+
+			if ( 'missing_required_occurrence' === $keyword_status && ! in_array( 'intent_mismatch', $diagnoses, true ) ) {
+				$diagnoses[] = 'intent_mismatch';
+			}
+
 			$history[] = [
 				'pass'      => $pass,
 				'verdict'   => (string) ( $critique['verdict'] ?? 'fail' ),
 				'diagnoses' => $diagnoses,
 				'fields'    => is_array( $critique['fields'] ?? null ) ? $critique['fields'] : [],
+				'keyword_fidelity' => $keyword_status,
 			];
 
 			if ( [] === $diagnoses ) {
@@ -291,6 +310,11 @@ PROMPT;
 
 			if ( [] !== $keyword_intent ) {
 				$data['declared_keyword_intent'] = $keyword_intent;
+
+				// Preservation directives only apply where an occurrence is actually forced.
+				if ( AI_Content_Harness::PAGE_LANDING === (string) ( $keyword_intent['page_type'] ?? '' ) && in_array( (string) ( $keyword_intent['occurrence'] ?? '' ), [ 'hero', 'first_seo' ], true ) ) {
+					$data['keyword_preservation_directive'] = 'Preserve all valid existing copy. When a required keyword occurrence is missing, insert it naturally into the required field without removing supportable content or inventing facts.';
+				}
 			}
 
 		$json = \wp_json_encode( $data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
@@ -315,12 +339,46 @@ PROMPT;
 				? $raw['secondary_keywords']
 				: ( is_array( $raw['subkeywords'] ?? null ) ? $raw['subkeywords'] : [] );
 
-			return [
+			$is_landing = AI_Content_Harness::PAGE_LANDING === (string) ( $raw['page_type'] ?? '' );
+
+			$intent = [
 				'primary_keyword'     => $primary,
 				'secondary_keywords'  => array_values( array_map( 'strval', $secondary ) ),
-				'role'                => 'Editorial search intent for this homepage section only. Not evidence. Distinguish natural target-keyword usage from keyword stuffing and flag intent mismatch. Do not invent services, locations, credentials, guarantees, statistics, or business facts.',
+				'role'                => $is_landing
+					? 'Declared landing keyword intent for this section. ' . ( self::LANDING_OCCURRENCE_RULES[ (string) ( $raw['occurrence'] ?? '' ) ] ?? self::LANDING_OCCURRENCE_RULES[''] ) . ' One or two natural exact occurrences are not keyword stuffing. Flag intent_mismatch when a required occurrence is missing and keyword_stuffing only for clearly forced repetition. Do not invent services, locations, credentials, guarantees, statistics, or business facts.'
+					: 'Editorial search intent for this homepage section only. Not evidence. Distinguish natural target-keyword usage from keyword stuffing and flag intent mismatch. Do not invent services, locations, credentials, guarantees, statistics, or business facts.',
 			];
+
+			if ( $is_landing ) {
+				$intent['page_type']  = AI_Content_Harness::PAGE_LANDING;
+				$intent['occurrence'] = (string) ( $raw['occurrence'] ?? '' );
+			}
+
+			return $intent;
 		}
+
+	/**
+	 * Deterministic landing keyword fidelity status for the current payload:
+	 * 'n/a' when no landing keyword placement applies, 'ok', or 'missing_required_occurrence'.
+	 */
+	private function landing_keyword_status( string $layout, array $payload, array $ai_config ): string {
+		$raw       = is_array( $ai_config['keyword_intent'] ?? null ) ? $ai_config['keyword_intent'] : [];
+		$page_type = (string) ( $raw['page_type'] ?? '' );
+
+		if ( AI_Content_Harness::PAGE_LANDING !== $page_type ) {
+			return 'n/a';
+		}
+
+		$occurrence = (string) ( $raw['occurrence'] ?? '' );
+
+		if ( '' === $occurrence || 'later_seo' === $occurrence ) {
+			return 'n/a';
+		}
+
+		return $this->harness->check_landing_keyword_fidelity( $layout, $payload, $raw, $occurrence )
+			? 'ok'
+			: 'missing_required_occurrence';
+	}
 
 		private function decode_json( string $content ): array {
 		$content = trim( preg_replace( '/^```(?:json)?|```$/m', '', $content ) ?? $content );
