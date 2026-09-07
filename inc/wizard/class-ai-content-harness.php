@@ -75,7 +75,7 @@ final class AI_Content_Harness {
 		'portfolio-v1' => [ 'portfolio_v1_projects', 'project_image', 'project_label' ],
 		'portfolio-v2' => [ 'portfolio_v2_projects', 'project_image', 'project_label' ],
 		'portfolio-v3' => [ 'portfolio_v3_filters', 'portfolio_v3_projects', 'filter_label', 'project_image', 'project_label', 'project_category' ],
-		'seo-content' => [ 'seo_image', 'seo_modifier', 'seo_bg_style', 'seo_bg_image' ],
+		'seo-content' => [ 'seo_image', 'seo_modifier', 'seo_bg_style', 'seo_bg_image', 'seo_header_alignment' ],
 		'services-v1' => [ 'services_v1_bg_image', 'service_title', 'services_v1_cta_url' ],
 		'services-v2' => [ 'service_image', 'service_title', 'services_v2_cta_url' ],
 		'services-v3' => [ 'service_image', 'service_name', 'services_v3_cta_url' ],

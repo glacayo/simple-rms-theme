@@ -168,6 +168,43 @@
   }
 }
 
+// --- Header alignment modifiers ---
+
+// Center: center the optional header block (container and text alignment).
+// The body copy column and media are untouched.
+.seo-content--align-center {
+  .seo-content__header {
+    margin-inline: auto;
+    text-align: center;
+  }
+}
+
+// Right: at >=640px place the header block exactly over the right-hand grid
+// column — start at 50% + half the current grid gap, span the column width
+// (50% - half the gap). Headline and subheadline stay text-align:left.
+// Below 640px the header is full width and left aligned (base styles).
+// The gap follows .seo-content__grid: $space-10 at >=640px, $space-16 at
+// >=1024px. Header start + width always sum to 100%, so no horizontal overflow.
+.seo-content--align-right {
+  .seo-content__header {
+    text-align: left;
+  }
+
+  @include breakpoint($breakpoint-sm) {
+    .seo-content__header {
+      margin-left: calc(50% + #{$space-10} / 2);
+      width: calc(50% - #{$space-10} / 2);
+    }
+  }
+
+  @include breakpoint($breakpoint-lg) {
+    .seo-content__header {
+      margin-left: calc(50% + #{$space-16} / 2);
+      width: calc(50% - #{$space-16} / 2);
+    }
+  }
+}
+
 // --- Text column ---
 
 .seo-content__text {

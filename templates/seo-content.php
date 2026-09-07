@@ -7,9 +7,15 @@ $modifier   = get_sub_field('seo_modifier') ?: 'default';
 $bg_style   = get_sub_field('seo_bg_style') ?: 'light';
 $bg_image   = get_sub_field('seo_bg_image');
 
+// Header alignment: strict whitelist; anything else falls back to left.
+$alignment = get_sub_field('seo_header_alignment');
+if (!is_string($alignment) || !in_array($alignment, ['left', 'center', 'right'], true)) $alignment = 'left';
+
 // Build section classes
 $classes = 'seo-content';
 if ($modifier === 'reverse') $classes .= ' seo-content--reverse';
+if ($alignment === 'center') $classes .= ' seo-content--align-center';
+elseif ($alignment === 'right') $classes .= ' seo-content--align-right';
 if ($bg_style === 'dark') $classes .= ' seo-content--bg-dark';
 elseif ($bg_style === 'light') $classes .= ' seo-content--bg-light';
 if ($bg_image) $classes .= ' seo-content--has-bg-image seo-content--overlay-dark';
@@ -24,6 +30,8 @@ $bg_style_attr = $bg_image ? "--seo-bg-image: url('" . esc_url($bg_image) . "');
     .seo-content--bg-dark         -> dark background ($color-gray-900)
     .seo-content--has-bg-image    -> background image via CSS variable --seo-bg-image
     .seo-content--overlay-dark    -> dark overlay on top of background image
+    .seo-content--align-center   -> center the optional header block (container + text)
+    .seo-content--align-right     -> header over the right grid column at >=640px (left-emitting "left" adds no class)
 
   CSS custom properties:
     --seo-bg-image: url('...')    -> background image when using .seo-content--has-bg-image
