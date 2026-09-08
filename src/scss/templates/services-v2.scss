@@ -72,4 +72,10 @@
   padding: 0 $space-6 $space-6;
 }
 
-// Button uses global .btn — no section-specific override needed
+    // ─── CTA ─────────────────────────────────────────────────────
+    .services-v2__cta {
+      text-align: center;
+      margin-top: $space-12;
+    }
+
+    // Button uses global .btn — no section-specific override needed
