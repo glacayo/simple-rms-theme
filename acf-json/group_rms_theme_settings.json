@@ -942,11 +942,31 @@
             "default_value": "",
             "new_lines": "",
             "maxlength": "",
-            "placeholder": "",
-            "rows": ""
-        },
-        {
-            "key": "field_rms_tab_header",
+                "placeholder": "",
+                "rows": ""
+            },
+            {
+                "key": "field_rms_company_footer_copyright",
+                "label": "Footer Copyright",
+                "name": "company_footer_copyright",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "Optional copyright line shared by every footer template. Leave empty to use the current year and site identity.",
+                "required": false,
+                "conditional_logic": false,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "placeholder": "e.g. © 2026 Acme Painting. All rights reserved.",
+                "default_value": "",
+                "maxlength": "",
+                "prepend": "",
+                "append": ""
+            },
+            {
+                "key": "field_rms_tab_header",
             "label": "Header",
             "name": "",
             "aria-label": "",
@@ -1500,5 +1520,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1788036197
+    "modified": 1788905238
 }

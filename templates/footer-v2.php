@@ -203,7 +203,7 @@
 
     <div class="footer-v2__copyright">
         <div class="container">
-            <p>© 2026 Simple RMS Theme. All rights reserved.</p>
+            <p><?php echo esc_html(rms_get_footer_copyright()); ?></p>
         </div>
     </div>
 </footer>
