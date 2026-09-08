@@ -13,13 +13,11 @@
             <div class="footer-v2__column footer-v2__column--brand">
                 <div class="footer-v2__logo-wrap">
                     <?php
-                $footer_logo = rms_get_option('company_logo_footer');
-                if (has_custom_logo()) :
-                    the_custom_logo();
-                elseif (!empty($footer_logo)) :
+                $footer_logo_url = rms_get_footer_logo_url();
+                if ('' !== $footer_logo_url) :
                     ?>
                     <a href="<?php echo esc_url(home_url('/')); ?>">
-                        <img src="<?php echo esc_url($footer_logo); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="200" height="60">
+                        <img src="<?php echo esc_url($footer_logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="200" height="60">
                     </a>
                     <?php
                 else :
@@ -29,9 +27,10 @@
                 endif;
                 ?>
                 </div>
-                <p class="footer-v2__about">
-                    We provide dependable roofing and exterior solutions built for long-term protection, honest service, and local expertise homeowners can trust.
-                </p>
+                <?php $footer_about = rms_get_footer_about_text(); ?>
+                <?php if ('' !== $footer_about) : ?>
+                    <p class="footer-v2__about"><?php echo esc_html($footer_about); ?></p>
+                <?php endif; ?>
                 <?php
                 $socials = rms_get_social_links();
                 $social_icons = [
@@ -82,27 +81,35 @@
                 <?php endif; ?>
             </div>
 
+            <?php if (function_exists('has_nav_menu') && has_nav_menu('footer-menu')) : ?>
             <div class="footer-v2__column">
-                <h2 class="footer-v2__heading">Menu</h2>
-                <ul class="footer-v2__list">
-                    <li><a href="#">Home</a></li>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Blog</a></li>
-                    <li><a href="#">Contact</a></li>
-                </ul>
+                <h2 class="footer-v2__heading"><?php echo esc_html__('Menu', 'simple-rms-theme'); ?></h2>
+                <?php
+                wp_nav_menu([
+                    'theme_location' => 'footer-menu',
+                    'container'      => false,
+                    'menu_class'     => 'footer-v2__list',
+                    'depth'          => 1,
+                    'fallback_cb'    => false,
+                ]);
+                ?>
             </div>
+            <?php endif; ?>
 
+            <?php if (function_exists('has_nav_menu') && has_nav_menu('footer-services')) : ?>
             <div class="footer-v2__column">
-                <h2 class="footer-v2__heading">Services</h2>
-                <ul class="footer-v2__list">
-                    <li><a href="#">Roof Installation</a></li>
-                    <li><a href="#">Roof Repair</a></li>
-                    <li><a href="#">Roof Replacement</a></li>
-                    <li><a href="#">Roof Inspection</a></li>
-                    <li><a href="#">Gutter Installation</a></li>
-                    <li><a href="#">Emergency Services</a></li>
-                </ul>
+                <h2 class="footer-v2__heading"><?php echo esc_html__('Services', 'simple-rms-theme'); ?></h2>
+                <?php
+                wp_nav_menu([
+                    'theme_location' => 'footer-services',
+                    'container'      => false,
+                    'menu_class'     => 'footer-v2__list',
+                    'depth'          => 1,
+                    'fallback_cb'    => false,
+                ]);
+                ?>
             </div>
+            <?php endif; ?>
 
             <div class="footer-v2__column footer-v2__column--info">
                 <h2 class="footer-v2__heading">Company Info</h2>

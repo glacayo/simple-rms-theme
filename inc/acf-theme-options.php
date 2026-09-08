@@ -154,6 +154,44 @@ if (function_exists('add_filter')) {
 }
 
 /**
+ * Resolve the footer branding logo URL by Theme Options precedence.
+ *
+ * The footer logo wins, then the header logo, otherwise an empty string
+ * instructs templates to render the accessible linked site name.
+ * `has_custom_logo()` is deliberately not consulted so Theme Options
+ * remain the single source of truth for footer branding.
+ *
+ * @return string Image URL, or '' when no option logo is configured.
+ */
+function rms_get_footer_logo_url(): string {
+    $footer_logo = rms_get_option('company_logo_footer');
+    if (is_string($footer_logo) && '' !== trim($footer_logo)) {
+        return trim($footer_logo);
+    }
+
+    $header_logo = rms_get_option('company_logo_header');
+    if (is_string($header_logo) && '' !== trim($header_logo)) {
+        return trim($header_logo);
+    }
+
+    return '';
+}
+
+/**
+ * Retrieve the trimmed Footer V2 About text.
+ *
+ * Whitespace-only and unconfigured values return '' so callers can skip
+ * rendering instead of inventing a generic fallback paragraph.
+ *
+ * @return string Trimmed plain text, or ''.
+ */
+function rms_get_footer_about_text(): string {
+    $about = rms_get_option('company_footer_about');
+
+    return is_string($about) ? trim($about) : '';
+}
+
+/**
  * Get the primary phone number from theme options.
  *
  * @return string

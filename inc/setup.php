@@ -29,9 +29,10 @@ function simple_rms_setup() {
 
     // ─── Navigation Menus ──────────────────────────────────────────
     register_nav_menus([
-        'primary'   => __('Primary Menu', 'simple-rms-theme'),
-        'footer'    => __('Footer Menu', 'simple-rms-theme'),
-        'mobile'    => __('Mobile Menu', 'simple-rms-theme'),
+        'primary'         => __('Primary Menu', 'simple-rms-theme'),
+        'footer-menu'     => __('Footer Menu', 'simple-rms-theme'),
+        'footer-services' => __('Services Footer', 'simple-rms-theme'),
+        'mobile'          => __('Mobile Menu', 'simple-rms-theme'),
     ]);
 
     // ─── Custom Image Sizes ────────────────────────────────────────
