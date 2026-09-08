@@ -224,6 +224,42 @@ function rms_get_footer_copyright(): string {
 }
 
 /**
+ * Resolve the Footer V2 CTA strip copy and destination.
+ *
+ * Optional Theme Settings values win after trimming. Empty headline/label
+ * fall back to generic translatable defaults in this helper, not in the
+ * template. Empty, whitespace, or bare-hash URLs use the Contact page
+ * permalink (then `home_url('/#contact')`).
+ *
+ * @return array{headline:string,title:string,url:string}
+ */
+function rms_get_footer_cta(): array {
+$headline = rms_get_option('company_footer_cta_headline');
+$headline = is_string($headline) ? trim($headline) : '';
+if ('' === $headline) {
+$headline = __('Need a Free Estimate?', 'simple-rms-theme');
+}
+
+$title = rms_get_option('company_footer_cta_label');
+$title = is_string($title) ? trim($title) : '';
+if ('' === $title) {
+$title = __('Get a Free Estimate', 'simple-rms-theme');
+}
+
+$url = rms_get_option('company_footer_cta_url');
+$url = is_string($url) ? trim($url) : '';
+if ('' === $url || '#' === $url) {
+$url = rms_get_contact_page_url();
+}
+
+return array(
+'headline' => $headline,
+'title'    => $title,
+'url'      => $url,
+);
+}
+
+/**
  * Get the primary phone number from theme options.
  *
  * @return string

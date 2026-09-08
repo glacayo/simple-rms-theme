@@ -1,9 +1,10 @@
 <!-- Footer V2 — Brand-heavy footer with CTA strip -->
 <footer class="footer-v2" role="contentinfo">
+    <?php $footer_cta = rms_get_footer_cta(); ?>
     <div class="footer-v2__cta-strip">
         <div class="container footer-v2__cta-inner">
-            <p class="footer-v2__cta-text">Need a Free Estimate?</p>
-            <a href="#contact" class="btn footer-v2__cta-button">Get a Free Estimate</a>
+            <p class="footer-v2__cta-text"><?php echo esc_html($footer_cta['headline']); ?></p>
+            <a href="<?php echo esc_url($footer_cta['url']); ?>" class="btn footer-v2__cta-button"><?php echo esc_html($footer_cta['title']); ?></a>
         </div>
     </div>
 
