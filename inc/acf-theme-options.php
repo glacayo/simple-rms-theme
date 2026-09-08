@@ -192,6 +192,38 @@ function rms_get_footer_about_text(): string {
 }
 
 /**
+ * Resolve the shared footer copyright line.
+ *
+ * A trimmed Theme Settings value wins. Otherwise the helper builds a
+ * safe fallback from wp_date('Y') plus company name, then the site name.
+ *
+ * @return string Plain text ready for escaping at the template boundary.
+ */
+function rms_get_footer_copyright(): string {
+    $configured = rms_get_option('company_footer_copyright');
+    if (is_string($configured)) {
+        $configured = trim($configured);
+        if ('' !== $configured) {
+            return $configured;
+        }
+    }
+
+    $year = function_exists('wp_date') ? (string) wp_date('Y') : (string) gmdate('Y');
+
+    $identity = rms_get_option('company_name');
+    if (!is_string($identity) || '' === trim($identity)) {
+        $identity = function_exists('get_bloginfo') ? get_bloginfo('name') : '';
+    }
+    $identity = is_string($identity) ? trim($identity) : '';
+
+    if ('' !== $identity) {
+        return '© ' . $year . ' ' . $identity . '. All rights reserved.';
+    }
+
+    return '© ' . $year . '. All rights reserved.';
+}
+
+/**
  * Get the primary phone number from theme options.
  *
  * @return string

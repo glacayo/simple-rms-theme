@@ -12,7 +12,6 @@ $footer_logo   = rms_get_option('company_logo_footer');
 $phone         = rms_get_primary_phone();
 $email         = rms_get_primary_email();
 $socials       = rms_get_social_links();
-$year          = (int) gmdate('Y');
 
 $addr_line1 = rms_get_option('company_address_line_1');
 $addr_city  = rms_get_option('company_city');
@@ -125,11 +124,7 @@ if (is_array($socials)) {
         <?php endif; ?>
 
         <p class="footer-v1__copyright">
-            <?php if ($identity_name !== '') : ?>
-                <?php echo esc_html('© ' . $year . ' ' . $identity_name . '. All rights reserved.'); ?>
-            <?php else : ?>
-                <?php echo esc_html('© ' . $year . '. All rights reserved.'); ?>
-            <?php endif; ?>
+            <?php echo esc_html(rms_get_footer_copyright()); ?>
         </p>
     </div>
 </footer>
