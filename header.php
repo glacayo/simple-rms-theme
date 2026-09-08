@@ -76,8 +76,15 @@
     $rms_internal_templates = ['pages/about-us.php', 'pages/services.php', 'pages/contact-us.php', 'pages/projects.php', 'pages/testimonials.php'];
     if (is_page_template($rms_internal_templates)) {
         echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-internal');
-        foreach (rms_page_section_layouts((int) get_queried_object_id()) as $section) {
+        $rms_internal_layouts = rms_page_section_layouts((int) get_queried_object_id());
+        foreach ($rms_internal_layouts as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
+        }
+
+        // Empty page_sections still renders the default testimonials-v1 section,
+        // so request its stylesheet even when no stored layouts exist.
+        if ([] === $rms_internal_layouts && is_page_template('pages/testimonials.php')) {
+            $vite->get_deferred_style('section-testimonials-v1', 'src/scss/templates/testimonials-v1.scss');
         }
     }
 
