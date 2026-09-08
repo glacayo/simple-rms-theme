@@ -180,6 +180,17 @@ echo "PASS testimonial-rows-render\n";
 ++$passed;
 
 rms_render_reset();
+ob_start();
+include $theme_root . '/pages/testimonials.php';
+$tm_empty_out = (string) ob_get_clean();
+rms_render_assert( 1 === $GLOBALS['rms_headers'] && 1 === $GLOBALS['rms_footers'], 'empty state keeps chrome' );
+rms_render_assert( in_array( 'templates/testimonials-v1', $GLOBALS['rms_parts'], true ), 'empty state renders default section part' );
+rms_render_assert( ! in_array( 'templates/page-sections-loop', $GLOBALS['rms_parts'], true ), 'empty state skips flexible loop' );
+rms_render_assert( false !== strpos( $tm_empty_out, 'What Our Clients Say' ) && false !== strpos( $tm_empty_out, 'Maria Johnson' ), 'empty state renders default testimonials markup' );
+echo "PASS testimonials-empty-state-default-section\n";
+++$passed;
+
+rms_render_reset();
 $GLOBALS['rms_loop_rows'] = array( 'about-us' );
 $GLOBALS['rms_fields'] = array( 'about_headline' => 'Placeholder Company Services You Can Trust' );
 ob_start();
