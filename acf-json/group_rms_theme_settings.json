@@ -880,7 +880,25 @@
             "save_options": 0
         },
         {
-            "key": "field_rms_company_footer_version",
+            "key": "field_rms_tab_footer",
+            "label": "Footer",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+            {
+                "key": "field_rms_company_footer_version",
             "label": "Footer Version",
             "name": "company_footer_version",
             "aria-label": "",
@@ -906,6 +924,26 @@
             "return_format": "value",
             "create_options": 0,
             "save_options": 0
+        },
+        {
+            "key": "field_rms_company_footer_about",
+            "label": "Footer About",
+            "name": "company_footer_about",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "Optional short company blurb for the Footer V2 brand column. Leave empty to hide the paragraph.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "new_lines": "",
+            "maxlength": "",
+            "placeholder": "",
+            "rows": ""
         },
         {
             "key": "field_rms_tab_header",

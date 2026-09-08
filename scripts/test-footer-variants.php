@@ -156,6 +156,18 @@ if (!function_exists('the_custom_logo')) {
     function the_custom_logo() {}
 }
 
+if (!function_exists('has_nav_menu')) {
+    function has_nav_menu($location) {
+return false;
+    }
+}
+
+if (!function_exists('wp_nav_menu')) {
+    function wp_nav_menu($args = []) {
+return '';
+    }
+}
+
 if (!function_exists('language_attributes')) {
     function language_attributes() {
         echo 'en';
