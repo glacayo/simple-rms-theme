@@ -962,11 +962,68 @@
                 "placeholder": "e.g. © 2026 Acme Painting. All rights reserved.",
                 "default_value": "",
                 "maxlength": "",
-                "prepend": "",
-                "append": ""
-            },
-            {
-                "key": "field_rms_tab_header",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_rms_company_footer_cta_headline",
+                    "label": "Footer CTA Headline",
+                    "name": "company_footer_cta_headline",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "Optional Footer V2 CTA headline. Leave empty to use the generic estimate prompt.",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Need a Free Estimate?",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_rms_company_footer_cta_label",
+                    "label": "Footer CTA Button Label",
+                    "name": "company_footer_cta_label",
+                    "aria-label": "",
+                    "type": "text",
+                    "instructions": "Optional Footer V2 CTA button label. Leave empty to use the generic estimate label.",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. Get a Free Estimate",
+                    "default_value": "",
+                    "maxlength": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_rms_company_footer_cta_url",
+                    "label": "Footer CTA URL",
+                    "name": "company_footer_cta_url",
+                    "aria-label": "",
+                    "type": "url",
+                    "instructions": "Optional Footer V2 CTA destination. Leave empty to use the published Contact page.",
+                    "required": false,
+                    "conditional_logic": false,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "placeholder": "e.g. https://example.com/contact/",
+                    "default_value": ""
+                },
+                {
+                    "key": "field_rms_tab_header",
             "label": "Header",
             "name": "",
             "aria-label": "",
@@ -1520,5 +1577,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1788905238
+    "modified": 1788909234
 }
