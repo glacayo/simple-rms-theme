@@ -33,6 +33,9 @@ require_once get_template_directory() . '/inc/tgmpa.php';
 // ─── Wizard Setup Module ──────────────────────────────────────────
 require_once get_template_directory() . '/inc/wizard/wizard-init.php';
 
+// ─── CF7 Landing Form Service (inert when CF7 inactive) ─────────────
+require_once get_template_directory() . '/inc/cf7-landing-form.php';
+
 // ─── Favicon Filter ──────────────────────────────────────────────
 add_filter('get_site_icon_url', 'rms_acf_favicon_filter', 20);
 
