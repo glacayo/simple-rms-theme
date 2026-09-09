@@ -134,7 +134,7 @@ switch ( $scenario ) {
 		require $kernel_path; $h =& $GLOBALS['rms_harness'];
 		rms_harness_assert( isset( $h['hooks']['acf/load_field/key=field_rms_cf7_landing_form_control'], $h['hooks']['admin_post_rms_cf7_generate_landing_form'], $h['hooks']['admin_footer'], $h['hooks']['admin_notices'] ), 'control filter, handler, footer form, and notices must be hooked' );
 
-		$msg = (string) ( rms_cf7_landing_form_control_field( array( 'key' => 'field_rms_cf7_landing_form_control', 'message' => '' ) )['message'] ?? '' );
+		$msg = rms_harness_capture( 'rms_cf7_landing_form_control_render' );
 		rms_harness_contains( $msg, array( 'Enable the Contact Form 7 plugin before adding the theme form.', 'Generate RMS Landing Form', 'form="rms-cf7-landing-form-generate"', 'disabled', 'color:#b32d2e' ) );
 		rms_harness_contains( $msg, array( 'readonly', '[contact-form-7' ), false );
 		rms_harness_assert( 0 === $h['save_calls'] && 0 === $h['option_writes'] && 0 === $h['meta_stamps'], 'inactive render must not create or persist anything' );
@@ -155,7 +155,7 @@ switch ( $scenario ) {
 		require $kernel_path; $h =& $GLOBALS['rms_harness'];
 
 		// Ready state: enabled primary button, no warning, no shortcode, no creation.
-		$msg = (string) ( rms_cf7_landing_form_control_field( array( 'key' => 'field_rms_cf7_landing_form_control', 'message' => '' ) )['message'] ?? '' );
+		$msg = rms_harness_capture( 'rms_cf7_landing_form_control_render' );
 		rms_harness_contains( $msg, array( 'Generate RMS Landing Form', 'form="rms-cf7-landing-form-generate"', 'button-primary' ) );
 		rms_harness_contains( $msg, array( 'disabled', 'readonly', 'Enable the Contact Form 7' ), false );
 		rms_harness_assert( 0 === $h['save_calls'] && 0 === $h['option_writes'] && 0 === $h['meta_stamps'], 'Theme Settings render must not create a form' );
@@ -176,7 +176,7 @@ switch ( $scenario ) {
 		rms_harness_assert( $id > 0 && 1 === $h['save_calls'] && 1 === $h['meta_stamps'] && 'landing_form' === get_post_meta( $id, '_rms_theme_managed', true ), 'kernel must create exactly one marked form and persist it' );
 
 		// Existing state: escaped readonly shortcode, enabled button, no overwrite.
-		$msg = (string) ( rms_cf7_landing_form_control_field( array( 'key' => 'field_rms_cf7_landing_form_control', 'message' => '' ) )['message'] ?? '' );
+		$msg = rms_harness_capture( 'rms_cf7_landing_form_control_render' );
 		rms_harness_contains( $msg, array( 'readonly', 'html_class=&quot;hero__form&quot;', 'id=&quot;' . $id . '&quot;', 'Generate RMS Landing Form', 'form="rms-cf7-landing-form-generate"' ) );
 		rms_harness_contains( $msg, array( 'disabled' ), false );
 		rms_harness_assert( 1 === $h['save_calls'] && 1 === $h['meta_stamps'], 'existing-state render must not overwrite or restamp the form' );

@@ -1554,6 +1554,42 @@
             "max_height": 0,
             "max_size": 0,
             "mime_types": ""
+        },
+        {
+            "key": "field_rms_tab_cf7",
+            "label": "Contact Form 7",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_cf7_landing_form_control",
+            "label": "Landing Form Control",
+            "name": "cf7_landing_form_control",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "Read-only control for the theme-managed hero form. Generate creates the form once and reuses it afterwards; the shortcode goes into the Hero Form Shortcode field.",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "rms-cf7-control",
+                "id": ""
+            },
+            "message": "",
+            "new_lines": "",
+            "esc_html": 1
         }
     ],
     "location": [

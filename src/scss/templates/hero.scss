@@ -221,3 +221,54 @@
 
   @include focus-ring;
 }
+
+// ─── Contact Form 7 — Managed Landing Form ───────────────────────────
+// CF7 wraps the managed form in its own containers. Every override is
+// scoped under .hero__form-card so other CF7 usages keep stock styling.
+.hero__form-card {
+  .wpcf7 {
+    position: relative;
+  }
+
+  .wpcf7-form-control-wrap {
+    display: block;
+    position: relative;
+
+    .hero__form-input {
+      @include focus-ring;
+
+      &.wpcf7-not-valid {
+        border-color: $color-error;
+      }
+    }
+    }
+
+  // Validation tips sit directly under the invalid field
+  .wpcf7-not-valid-tip {
+    display: block;
+    margin-top: $space-1;
+    color: $color-error;
+    font-size: $font-size-sm;
+  }
+
+  // CF7 response output (success/error status messages)
+  .wpcf7-response-output {
+    margin: $space-4 0 0;
+    padding: $space-3 $space-4;
+    border: 1px solid $color-gray-300;
+    border-radius: $radius-md;
+    color: $color-gray-700;
+    font-size: $font-size-sm;
+  }
+
+  // Spinner rendered by CF7 next to the submit button while sending
+  .wpcf7-spinner {
+    visibility: hidden;
+    margin-left: $space-2;
+    vertical-align: middle;
+
+    &.is-active {
+      visibility: visible;
+    }
+  }
+}
