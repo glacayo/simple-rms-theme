@@ -10,6 +10,10 @@
  * `rms_cf7_landing_form_id`. A form is never adopted or modified because
  * of its title alone.
  *
+ * The admin-only Theme Settings control (ACF `message` field) renders a
+ * read-only state machine and a separate POST target; it never creates
+ * forms at render time and is inert without ACF/CF7.
+ *
  * @package Simple_RMS_Theme
  */
 
@@ -21,6 +25,11 @@ define( 'RMS_CF7_LANDING_FORM_OPTION', 'rms_cf7_landing_form_id' );
 define( 'RMS_CF7_LANDING_FORM_META', '_rms_theme_managed' );
 define( 'RMS_CF7_LANDING_FORM_META_VALUE', 'landing_form' );
 define( 'RMS_CF7_LANDING_FORM_TITLE', 'RMS Landing Form' );
+
+// Theme Settings control contracts (exact English strings, per issue #121).
+define( 'RMS_CF7_CONTROL_ACTION', 'rms_cf7_generate_landing_form' );
+define( 'RMS_CF7_CONTROL_FORM_ID', 'rms-cf7-landing-form-generate' );
+define( 'RMS_CF7_CONTROL_WARNING', 'Enable the Contact Form 7 plugin before adding the theme form.' );
 
 /** Whether the canonical Contact Form 7 APIs are callable. */
 function rms_cf7_landing_form_available(): bool {
@@ -129,28 +138,35 @@ function rms_cf7_landing_form_id(): int {
 		return 0;
 	}
 
-	$stored = (int) get_option( RMS_CF7_LANDING_FORM_OPTION );
-	if ( $stored > 0 && rms_cf7_landing_form_is_managed( $stored ) ) {
-		return $stored;
-	}
+	$found = rms_cf7_landing_form_lookup();
+	if ( $found > 0 ) {
+		if ( (int) get_option( RMS_CF7_LANDING_FORM_OPTION ) !== $found ) {
+			update_option( RMS_CF7_LANDING_FORM_OPTION, $found );
+		}
 
-	$recovered = rms_cf7_landing_form_recover();
-	if ( $recovered > 0 ) {
-		update_option( RMS_CF7_LANDING_FORM_OPTION, $recovered );
-		return $recovered;
+		return $found;
 	}
 
 	return rms_cf7_landing_form_create();
 }
 
-/** Canonical CF7 shortcode augmented with the hero form class; fails closed to an empty string. */
-function rms_cf7_landing_form_shortcode(): string {
+/** Non-creating lookup: the stored managed id, then exact-marker recovery only. Never creates. */
+function rms_cf7_landing_form_lookup(): int {
 	if ( ! rms_cf7_landing_form_available() ) {
-		return '';
+		return 0;
 	}
 
-	$post_id = rms_cf7_landing_form_id();
-	if ( $post_id < 1 ) {
+	$stored = (int) get_option( RMS_CF7_LANDING_FORM_OPTION );
+	if ( $stored > 0 && rms_cf7_landing_form_is_managed( $stored ) ) {
+		return $stored;
+	}
+
+	return rms_cf7_landing_form_recover();
+}
+
+/** Format the canonical shortcode for one already-resolved managed id; fails closed to ''. */
+function rms_cf7_landing_form_shortcode_for_id( int $post_id ): string {
+	if ( ! rms_cf7_landing_form_available() || $post_id < 1 ) {
 		return '';
 	}
 
@@ -164,4 +180,142 @@ function rms_cf7_landing_form_shortcode(): string {
 		$post_id,
 		esc_attr( $form->title() )
 	);
+}
+
+/** Canonical CF7 shortcode augmented with the hero form class; fails closed to an empty string. */
+function rms_cf7_landing_form_shortcode(): string {
+	if ( ! rms_cf7_landing_form_available() ) {
+		return '';
+	}
+
+	return rms_cf7_landing_form_shortcode_for_id( rms_cf7_landing_form_id() );
+}
+
+// ─── Theme Settings control (admin-only; inert without ACF/CF7) ─────────
+
+/** Read the current Theme Settings control state without creating or mutating forms. */
+function rms_cf7_landing_form_control_state(): array {
+	$available = rms_cf7_landing_form_available();
+	$id        = $available ? rms_cf7_landing_form_lookup() : 0;
+
+	if ( $id > 0 ) {
+		return array(
+			'status'    => 'existing',
+			'shortcode' => rms_cf7_landing_form_shortcode_for_id( $id ),
+		);
+	}
+
+	return array(
+		'status'    => $available ? 'ready' : 'inactive',
+		'shortcode' => '',
+	);
+}
+
+/** Inject the read-only control markup into the ACF message field. */
+function rms_cf7_landing_form_control_field( array $field ): array {
+	$state = rms_cf7_landing_form_control_state();
+	$html  = '';
+
+	if ( 'inactive' === $state['status'] ) {
+		$html .= sprintf(
+			'<p class="rms-cf7-control__warning" style="color:#b32d2e;font-weight:600;">%s</p>',
+			esc_html( RMS_CF7_CONTROL_WARNING )
+		);
+	}
+
+	if ( '' !== $state['shortcode'] ) {
+		$html .= sprintf(
+			'<input type="text" class="rms-cf7-control__shortcode widefat" readonly value="%s" aria-label="Managed hero form shortcode" />',
+			esc_attr( $state['shortcode'] )
+		);
+	}
+
+	$html .= sprintf(
+		'<button type="submit" class="button%1$s" form="%2$s"%3$s>%4$s</button>',
+		'ready' === $state['status'] ? ' button-primary' : '',
+		esc_attr( RMS_CF7_CONTROL_FORM_ID ),
+		'inactive' === $state['status'] ? ' disabled' : '',
+		esc_html( 'Generate RMS Landing Form' )
+	);
+
+	$field['message'] = $html;
+
+	return $field;
+}
+
+/** Print the separate POST target after the ACF options form (no nested forms). */
+function rms_cf7_landing_form_control_hidden_form(): void {
+	if ( 'rms-theme-settings' !== rms_cf7_landing_form_admin_page() ) {
+		return;
+	}
+
+	printf(
+		'<form id="%1$s" method="post" action="%2$s" hidden><input type="hidden" name="action" value="%3$s" />%4$s</form>',
+		esc_attr( RMS_CF7_CONTROL_FORM_ID ),
+		esc_url( admin_url( 'admin-post.php' ) ),
+		esc_attr( RMS_CF7_CONTROL_ACTION ),
+		wp_nonce_field( RMS_CF7_CONTROL_ACTION, 'rms_cf7_nonce', false, false )
+	);
+}
+
+/** Sanitized current admin page slug from the request, or '' when absent. */
+function rms_cf7_landing_form_admin_page(): string {
+	if ( ! isset( $_GET['page'] ) || ! function_exists( 'wp_unslash' ) || ! function_exists( 'sanitize_key' ) ) {
+		return '';
+	}
+
+	$page = wp_unslash( $_GET['page'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page routing
+
+	return is_string( $page ) ? sanitize_key( $page ) : '';
+}
+
+/** admin-post handler: capability + dedicated nonce + CF7 recheck + idempotent kernel + safe redirect. */
+function rms_cf7_landing_form_handle_generate(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html( 'You are not allowed to manage the theme landing form.' ), 403 );
+	}
+
+	check_admin_referer( RMS_CF7_CONTROL_ACTION, 'rms_cf7_nonce' );
+
+	$target = admin_url( 'admin.php?page=rms-theme-settings' );
+
+	if ( ! rms_cf7_landing_form_available() ) {
+		wp_safe_redirect( add_query_arg( array( 'rms_cf7_status' => 'inactive' ), $target ) );
+		exit;
+	}
+
+	$id = rms_cf7_landing_form_id();
+
+	wp_safe_redirect(
+		add_query_arg( array( 'rms_cf7_status' => $id > 0 ? 'success' : 'error' ), $target )
+	);
+	exit;
+}
+
+/** Escaped admin notice for the allowlisted generate status, on the settings page only. */
+function rms_cf7_landing_form_admin_notice(): void {
+	$status = isset( $_GET['rms_cf7_status'] ) ? sanitize_key( wp_unslash( $_GET['rms_cf7_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only status display
+
+	if ( '' === $status || ! in_array( $status, array( 'success', 'error', 'inactive' ), true ) || 'rms-theme-settings' !== rms_cf7_landing_form_admin_page() ) {
+		return;
+	}
+
+	$messages = array(
+		'success'  => 'RMS Landing Form is ready. Copy the shortcode below into the Hero form field.',
+		'error'    => 'The RMS Landing Form could not be created. Check the Contact Form 7 plugin and try again.',
+		'inactive' => RMS_CF7_CONTROL_WARNING,
+	);
+
+	printf(
+		'<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>',
+		'success' === $status ? 'success' : 'error',
+		esc_html( $messages[ $status ] )
+	);
+}
+
+if ( function_exists( 'is_admin' ) && is_admin() ) {
+	add_filter( 'acf/load_field/key=field_rms_cf7_landing_form_control', 'rms_cf7_landing_form_control_field' );
+	add_action( 'admin_footer', 'rms_cf7_landing_form_control_hidden_form', 20 );
+	add_action( 'admin_post_' . RMS_CF7_CONTROL_ACTION, 'rms_cf7_landing_form_handle_generate' );
+	add_action( 'admin_notices', 'rms_cf7_landing_form_admin_notice' );
 }
