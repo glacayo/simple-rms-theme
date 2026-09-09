@@ -10,8 +10,9 @@
  * `rms_cf7_landing_form_id`. A form is never adopted or modified because
  * of its title alone.
  *
- * The admin-only Theme Settings control (ACF `message` field) renders a
- * read-only state machine and a separate POST target; it never creates
+ * The admin-only Theme Settings control (ACF `message` field) forces an
+ * empty sanitized message and delivers its read-only state machine plus
+ * separate POST target through a dedicated render hook; it never creates
  * forms at render time and is inert without ACF/CF7.
  *
  * @package Simple_RMS_Theme
@@ -211,8 +212,17 @@ function rms_cf7_landing_form_control_state(): array {
 	);
 }
 
-/** Inject the read-only control markup into the ACF message field. */
+/** Force an empty harmless message: the control markup never depends on ACF sanitization. */
 function rms_cf7_landing_form_control_field( array $field ): array {
+	$field['message'] = '';
+
+	return $field;
+}
+
+/** Echo the already escaped control markup after ACF's default field output. */
+function rms_cf7_landing_form_control_render( array $field = array() ): void {
+	unset( $field );
+
 	$state = rms_cf7_landing_form_control_state();
 	$html  = '';
 
@@ -238,9 +248,7 @@ function rms_cf7_landing_form_control_field( array $field ): array {
 		esc_html( 'Generate RMS Landing Form' )
 	);
 
-	$field['message'] = $html;
-
-	return $field;
+	echo $html;
 }
 
 /** Print the separate POST target after the ACF options form (no nested forms). */
@@ -315,6 +323,7 @@ function rms_cf7_landing_form_admin_notice(): void {
 
 if ( function_exists( 'is_admin' ) && is_admin() ) {
 	add_filter( 'acf/load_field/key=field_rms_cf7_landing_form_control', 'rms_cf7_landing_form_control_field' );
+	add_action( 'acf/render_field/key=field_rms_cf7_landing_form_control', 'rms_cf7_landing_form_control_render' );
 	add_action( 'admin_footer', 'rms_cf7_landing_form_control_hidden_form', 20 );
 	add_action( 'admin_post_' . RMS_CF7_CONTROL_ACTION, 'rms_cf7_landing_form_handle_generate' );
 	add_action( 'admin_notices', 'rms_cf7_landing_form_admin_notice' );
