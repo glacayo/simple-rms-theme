@@ -137,6 +137,13 @@
         foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1'] as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
         }
+
+        // Portfolio V1 tiles carry data-lightbox — shared zoom modal runtime.
+        $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
+        $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
+        if ($lightbox_js) {
+            wp_enqueue_script('lightbox-js', $lightbox_js, [], null, true);
+        }
     }
 
      // Header — loaded as separate <link> (not inline)
