@@ -1263,6 +1263,19 @@ function rms_wizard_home_section_has_fillable_fields( string $layout ): bool {
  * Return the default AI harness item count for a Home section layout.
  */
 function rms_wizard_home_section_default_item_count( string $layout ): int {
+	$layout = sanitize_key( $layout );
+	$layout = 'cta-bar' === $layout ? 'cta-v1' : $layout;
+
+	if ( ! rms_wizard_home_section_has_fillable_fields( $layout ) ) {
+		return 0;
+	}
+
+	$harness = new Inc\Wizard\AI_Content_Harness();
+
+	if ( $harness->has_fixed_item_count( $layout ) ) {
+		return $harness->get_fixed_item_count( $layout );
+	}
+
 	$defaults = [
 		'slider'            => 2,
 		'area-coverage-v1'  => 4,
@@ -1281,16 +1294,9 @@ function rms_wizard_home_section_default_item_count( string $layout ): int {
 		'testimonials-v2'   => 3,
 		'testimonials-v3'   => 3,
 		'video-v2'          => 2,
-		'vision-mission-v1' => 2,
+		'vision-mission-v1' => 3,
 		'vision-mission-v2' => 3,
 	];
-
-	$layout = sanitize_key( $layout );
-	$layout = 'cta-bar' === $layout ? 'cta-v1' : $layout;
-
-	if ( ! rms_wizard_home_section_has_fillable_fields( $layout ) ) {
-		return 0;
-	}
 
 	return max( 1, min( 12, $defaults[ $layout ] ?? 1 ) );
 }
