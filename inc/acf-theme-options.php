@@ -673,3 +673,101 @@ function rms_enqueue_palette_bridge(): void {
 }
 
 add_action('wp_enqueue_scripts', 'rms_enqueue_palette_bridge', 20);
+
+// ─── Breadcrumb Hero → Sanitized Style Contract ───────────────────────────
+
+/** Allowlisted breadcrumb background types/angles plus compiled defaults. */
+function rms_get_breadcrumb_style_options(): array {
+    return [
+        'types'         => ['image', 'solid', 'gradient'],
+        'default_type'  => 'image',
+        'angles'        => [0, 45, 90, 135, 180, 225, 270, 315],
+        'default_angle' => 180,
+    ];
+}
+
+/** Sanitize a breadcrumb background type against the allowlist. */
+function rms_sanitize_breadcrumb_background_type($value): string {
+    $options = rms_get_breadcrumb_style_options();
+    $type    = is_string($value) ? strtolower(trim($value)) : '';
+
+    return in_array($type, $options['types'], true) ? $type : $options['default_type'];
+}
+
+/** Sanitize a breadcrumb gradient angle against the allowlist. */
+function rms_sanitize_breadcrumb_angle($value): int {
+    $options = rms_get_breadcrumb_style_options();
+
+    if (is_string($value) && preg_match('/^\d+$/', trim($value))) {
+        $value = (int) trim($value);
+    }
+
+    return is_int($value) && in_array($value, $options['angles'], true)
+        ? $value
+        : $options['default_angle'];
+}
+
+/**
+ * Sanitize a breadcrumb image URL to a trimmed http/https URL.
+ *
+ * Rejects non-strings, fragments, whitespace, and any character that could
+ * break out of a CSS url()/HTML attribute; invalid input returns ''.
+ */
+function rms_sanitize_breadcrumb_image_url($value): string {
+    if (!is_string($value)) {
+        return '';
+    }
+
+    $url = trim($value);
+    if ('' === $url || '#' === $url || preg_match('/[\x00-\x1F\x7F\s<>"\'()\\\\]/', $url)) {
+        return '';
+    }
+
+    $parts  = function_exists('wp_parse_url') ? wp_parse_url($url) : parse_url($url);
+    $scheme = is_array($parts) ? strtolower((string) ($parts['scheme'] ?? '')) : '';
+    if (('http' !== $scheme && 'https' !== $scheme) || '' === (string) ($parts['host'] ?? '')) {
+        return '';
+    }
+
+    if (!function_exists('esc_url_raw')) {
+        return $url;
+    }
+
+    $safe    = esc_url_raw($url);
+    $recheck = is_string($safe) && '' !== trim($safe)
+        ? (function_exists('wp_parse_url') ? wp_parse_url($safe) : parse_url($safe))
+        : null;
+    $safe_scheme = is_array($recheck) ? strtolower((string) ($recheck['scheme'] ?? '')) : '';
+
+    return ('http' === $safe_scheme || 'https' === $safe_scheme) ? (string) $safe : '';
+}
+
+/**
+ * Resolve the sanitized breadcrumb hero style contract.
+ *
+ * Missing/invalid values keep the neutral compiled defaults; has_image and
+ * overlay are true only for image mode with a usable URL.
+ */
+function rms_get_breadcrumb_style(): array {
+    $type      = rms_sanitize_breadcrumb_background_type(rms_get_option('company_breadcrumb_background_type'));
+    $image_url = 'image' === $type
+        ? rms_sanitize_breadcrumb_image_url(rms_get_option('company_breadcrumb_background_image'))
+        : '';
+    $has_image = 'image' === $type && '' !== $image_url;
+
+    // Read the angle directly: rms_get_option() treats the allowlisted "0" as
+    // empty, and 0 is a valid gradient angle.
+    $angle = function_exists('get_field') ? get_field('company_breadcrumb_gradient_angle', 'option') : null;
+
+    return [
+        'type'           => $type,
+        'image_url'      => $image_url,
+        'solid_color'    => rms_sanitize_palette_hex(rms_get_option('company_breadcrumb_solid_color')),
+        'gradient_start' => rms_sanitize_palette_hex(rms_get_option('company_breadcrumb_gradient_start')),
+        'gradient_end'   => rms_sanitize_palette_hex(rms_get_option('company_breadcrumb_gradient_end')),
+        'angle'          => rms_sanitize_breadcrumb_angle($angle),
+        'text_color'     => rms_sanitize_palette_hex(rms_get_option('company_breadcrumb_text_color')),
+        'has_image'      => $has_image,
+        'overlay'        => $has_image,
+    ];
+}
