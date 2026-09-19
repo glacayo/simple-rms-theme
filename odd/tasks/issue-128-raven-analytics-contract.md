@@ -13,7 +13,7 @@ Provide stable, client-agnostic Raven selectors and safe dataLayer lifecycle eve
 - Keep each reviewed slice at or below 400 changed lines.
 
 ## Tasks
-- [ ] **I128-01 — Bootstrap and document the contract.** Add the pre-GTM dataLayer bootstrap, canonical analytics contract documentation, and focused source/order/no-ID tests.
+- [x] **I128-01 — Bootstrap and document the contract.** Added the pre-GTM dataLayer bootstrap, canonical analytics contract documentation, and 30 focused source/order/no-ID assertions; independently verified and approved through native review.
 - [ ] **I128-02 — Instrument CTA and call surfaces.** Add stable attributes to existing primary CTA and click-to-call controls, preserve real URLs/E.164-compatible tel formatting, and prove complete surface coverage without false share/related labels.
 - [ ] **I128-03 — Emit safe form lifecycle events and deliver.** Add once-only form start plus CF7 successful-submit events, enforce no-PII payloads, verify build/browser behavior, complete native review, publish/merge the chain, and synchronize main.
 
@@ -22,11 +22,13 @@ Provide stable, client-agnostic Raven selectors and safe dataLayer lifecycle eve
 | Slice | Responsibility | Budget |
 |---|---|---:|
 | 1 — Bootstrap/docs | dataLayer bootstrap, docs, focused contract harness | 389 / 400 |
-| 2 — CTA/call hooks | Existing CTA/tel templates and coverage harness | ≤400 |
+| 2 — CTA/call hooks | Existing CTA/tel templates and coverage harness | 315 / 400 |
 | 3 — Forms/delivery | Global analytics module, CF7 lifecycle, behavioral harness, ODD evidence | ≤400 |
 
 ## Evidence
 - Baseline: `main` at `2011ec45ae198ed4174a2d1b20fb1923eeabf238`.
 - Tracker: `feat/issue-128-raven-analytics-contract` at `042159c6826e4b074f46104cabd08331acd5f655`.
 - Exploration found no share buttons and no related-post/service component; those selectors remain documented but are not falsely attached to social profiles or navigation.
-- Slice 1 pre-review: bootstrap contract 30/30, PHP lint, header regressions, diff check, and production build PASS; no GTM/GA identifier, snippet, event push, or external analytics URL added.
+- Slice 1: commit `470931ddc2c6fa7ab2a0b06a1c7c05fd5d13e2e2`, 389/400 lines; bootstrap contract 30/30, PHP lint, header regressions, diff check, production build, clean scope, and independent verification PASS.
+- Slice 1 native review: lineage `review-bbe0cb9a304465f0` approved and acknowledged at revision `sha256:fd97ea29df7e7da9633854d6f0fd2eecc2161ebac5f8ee9a4f05923c9fcd331c`.
+- Slice 2 pre-review: selector contract 247/247 and services-v2 regression 4/4 PASS; relevant header, footer, CTA, slider, blog, area, vision, and internal-page harnesses, PHP lint, diff check, and production build PASS.

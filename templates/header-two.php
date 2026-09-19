@@ -11,7 +11,7 @@ $header_cta         = rms_get_header_primary_cta();
             <div class="rms-header-v2__top-bar-inner">
                 <div class="rms-header-v2__top-bar-left">
                     <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
-                    <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" class="rms-header-v2__phone"><?php echo esc_html($header_phone); ?></a>
+                    <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" class="rms-header-v2__phone" data-raven-call><?php echo esc_html($header_phone); ?></a>
                     <?php endif; ?>
                     <?php if ($header_email !== '') : ?>
                     <a href="mailto:<?php echo esc_attr($header_email); ?>" class="rms-header-v2__email"><?php echo esc_html($header_email); ?></a>
@@ -53,7 +53,7 @@ $header_cta         = rms_get_header_primary_cta();
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
-                    <a href="<?php echo esc_url($header_cta['url']); ?>" class="btn rms-header-v2__cta-btn" target="<?php echo esc_attr($header_cta['target']); ?>"<?php if ('_blank' === $header_cta['target']) : ?> rel="noopener noreferrer"<?php endif; ?>><?php echo esc_html($header_cta['title']); ?></a>
+                    <a href="<?php echo esc_url($header_cta['url']); ?>" class="btn rms-header-v2__cta-btn" target="<?php echo esc_attr($header_cta['target']); ?>" data-raven-cta<?php if ('_blank' === $header_cta['target']) : ?> rel="noopener noreferrer"<?php endif; ?>><?php echo esc_html($header_cta['title']); ?></a>
                 </div>
             </div>
         </div>

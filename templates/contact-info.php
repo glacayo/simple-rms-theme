@@ -28,14 +28,14 @@
                         <div>
                             <strong class="contact-info__item-label">Phone</strong>
                             <?php if (count($phones) === 1) : ?>
-                                <a href="tel:<?php echo esc_attr($primary_phone_clean); ?>" class="contact-info__item-value"><?php echo esc_html($primary_phone); ?></a>
+                                <a href="tel:<?php echo esc_attr($primary_phone_clean); ?>" class="contact-info__item-value" data-raven-call><?php echo esc_html($primary_phone); ?></a>
                             <?php else : ?>
                                 <?php foreach ($phones as $phone) : ?>
                                     <?php
                                     $phone_clean = preg_replace('/[^0-9+]/', '', $phone['phone_number'] ?? '');
                                     $phone_label = esc_html($phone['phone_label'] ?? '');
                                     ?>
-                                    <a href="tel:<?php echo esc_attr($phone_clean); ?>" class="contact-info__item-value"><?php echo esc_html($phone['phone_number'] ?? ''); ?></a>
+                                    <a href="tel:<?php echo esc_attr($phone_clean); ?>" class="contact-info__item-value" data-raven-call><?php echo esc_html($phone['phone_number'] ?? ''); ?></a>
                                     <?php if (!empty($phone_label)) : ?>
                                         <span class="contact-info__item-meta"><?php echo esc_html($phone_label); ?></span>
                                     <?php endif; ?>

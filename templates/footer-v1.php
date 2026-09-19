@@ -84,7 +84,7 @@ if (is_array($socials)) {
             <ul class="footer-v1__contact">
                 <?php if ($phone !== '' && $phone_clean !== '') : ?>
                     <li>
-                        <a class="footer-v1__contact-link" href="<?php echo esc_url('tel:' . $phone_clean); ?>">
+                        <a class="footer-v1__contact-link" href="<?php echo esc_url('tel:' . $phone_clean); ?>" data-raven-call>
                             <span class="footer-v1__sr-only"><?php esc_html_e('Phone', 'simple-rms-theme'); ?></span>
                             <?php echo esc_html($phone); ?>
                         </a>

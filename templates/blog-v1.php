@@ -20,7 +20,7 @@ $cta_href = ( '' !== $cta_url && function_exists( 'esc_url' ) ) ? esc_url( $cta_
 		<?php endif; ?>
 		<?php if ( '' !== $cta_text && '' !== $cta_href ) : ?>
 			<div class="blog-v1__cta-wrap">
-				<a href="<?php echo esc_url( $cta_href ); ?>" class="btn blog-v1__cta"><?php echo esc_html( $cta_text ); ?></a>
+				<a href="<?php echo esc_url( $cta_href ); ?>" class="btn blog-v1__cta" data-raven-cta><?php echo esc_html( $cta_text ); ?></a>
 			</div>
 		<?php endif; ?>
 	</div>

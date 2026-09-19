@@ -69,7 +69,7 @@ if ( ! $vm_v1_has_valid_cards( $cards ) ) {
         </div>
 
         <div class="vision-mission-v1__cta-wrap">
-            <a class="btn vision-mission-v1__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text . ' from our team' ); ?>"><?php echo esc_html( $cta_text ); ?></a>
+            <a class="btn vision-mission-v1__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text . ' from our team' ); ?>" data-raven-cta><?php echo esc_html( $cta_text ); ?></a>
         </div>
     </div>
 </section>

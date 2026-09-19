@@ -29,6 +29,7 @@ $header_cta = rms_get_header_primary_cta();
                         class="rms-header__cta-btn"
                         target="<?php echo esc_attr($header_cta['target']); ?>"
                         <?php if ('_blank' === $header_cta['target']) : ?>rel="noopener noreferrer"<?php endif; ?>
+                        data-raven-cta
                     ><?php echo esc_html($header_cta['title']); ?></a>
                 </div>
                 <div class="rms-header__top-bar-right">
@@ -114,7 +115,7 @@ $header_cta = rms_get_header_primary_cta();
                         <?php if ($header_phone !== '' && $header_phone_clean !== '') : ?>
                         <li>
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.82 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.73 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.78 5.78l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                            <a href="tel:<?php echo esc_attr($header_phone_clean); ?>"><?php echo esc_html($header_phone); ?></a>
+                            <a href="tel:<?php echo esc_attr($header_phone_clean); ?>" data-raven-call><?php echo esc_html($header_phone); ?></a>
                         </li>
                         <?php endif; ?>
                         <?php if ($header_address !== '') : ?>
