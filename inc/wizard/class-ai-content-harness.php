@@ -103,6 +103,21 @@ final class AI_Content_Harness {
 		'services-v3' => [ 'field' => 'services_v3_services', 'description' => 'service_overlay_text' ],
 	];
 
+	/**
+	 * Layouts whose repeater row count is a fixed semantic contract.
+	 *
+	 * vision-mission-v1 always renders exactly three ordered value cards, so an
+	 * explicit requested count must never widen or narrow that set.
+	 */
+	private const FIXED_ITEM_COUNTS = [
+		'vision-mission-v1' => 3,
+	];
+
+	/**
+	 * Ordered value-card titles required by the vision-mission-v1 contract.
+	 */
+	public const VISION_MISSION_V1_CARD_TITLES = [ 'Our Vision', 'Our Mission', 'Why Choose Us' ];
+
 	private const EDITORIAL_RULES = [
 		'global'  => [
 			'headline_range'              => [ 'description' => '6 to 12 words', 'words' => [ 'min' => 6, 'max' => 12 ] ],
@@ -724,6 +739,7 @@ PROMPT;
 	 */
 	public function get_layer3( string $layout, int $item_count, array $client_context, string $page_type = self::PAGE_HOME, array $keywords = [], string $occurrence = '' ): string {
 		$layout        = $this->normalize_layout_key( $layout );
+		$item_count    = $this->resolve_item_count( $layout, $item_count );
 		$fillable      = $this->get_fillable_fields( $layout );
 		$blocked       = $this->get_blocked_fields( $layout );
 		$client_json   = \wp_json_encode( $client_context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
@@ -956,10 +972,11 @@ Editorial rules:
 - vm_v1_eyebrow: {{label_range}}, title case.
 - vm_v1_headline: {{headline_range}}. Communicate purpose and commitment without unverifiable claims.
 - vm_v1_intro: {{textarea_paragraph_min_50}} introducing the company's vision and mission in human language.
-- vm_v1_cards: return exactly {{item_count}} value-card rows.
-- card_title: {{cta_range}} naming a value or principle without inventing credentials.
-- card_text: {{copy_min_40}} explaining the value in plain, human language.
+- vm_v1_cards: return exactly {{item_count}} value-card rows in this exact order: "Our Vision", "Our Mission", "Why Choose Us".
+- card_title: use the exact required title for each row; never rename, reorder, merge, or add rows.
+- card_text: {{copy_min_40}} explaining the value in plain, human language using only supplied client facts.
 - vm_v1_cta_text: {{cta_range}}, action verb first.
+- Do not invent credentials, warranties, guarantees, longevity, availability, or industry-specific claims.
 - Do not return card_highlight.
 RULES,
 			'vision-mission-v2' => <<<'RULES'
@@ -1075,6 +1092,137 @@ RULES,
 		return [] !== $this->get_fillable_fields( $layout );
 	}
 
+	/**
+	 * Return the fixed repeater row count for a layout, or 0 when dynamic.
+	 */
+	public function get_fixed_item_count( string $layout ): int {
+		$layout = $this->normalize_layout_key( $layout );
+
+		return (int) ( self::FIXED_ITEM_COUNTS[ $layout ] ?? 0 );
+	}
+
+	/**
+	 * Whether a layout ignores requested counts in favor of a fixed contract.
+	 */
+	public function has_fixed_item_count( string $layout ): bool {
+		return 0 < $this->get_fixed_item_count( $layout );
+	}
+
+	/**
+	 * Resolve a requested row count, honoring fixed-count layouts.
+	 */
+	public function resolve_item_count( string $layout, int $requested ): int {
+		$fixed = $this->get_fixed_item_count( $layout );
+
+		if ( $fixed > 0 ) {
+			return $fixed;
+		}
+
+		return max( 0, $requested );
+	}
+
+	/**
+	 * Validate the raw (pre-sanitization) ordered three-card payload shape.
+	 *
+	 * Runs before row-dropping sanitization so a malformed extra row cannot be
+	 * silently dropped and collapse the payload to an accepted three-card set.
+	 * Extra blocked keys such as card_highlight are tolerated here and stripped by
+	 * sanitization; tags that sanitize to empty text stay rejected by the
+	 * post-sanitization contract check.
+	 *
+	 * @param mixed $rows Raw provider rows.
+	 */
+	public static function has_valid_value_card_shape( $rows ): bool {
+		if ( ! is_array( $rows ) ) {
+			return false;
+		}
+
+		$rows   = array_values( $rows );
+		$titles = array_values( self::VISION_MISSION_V1_CARD_TITLES );
+
+		if ( count( $rows ) !== count( $titles ) ) {
+			return false;
+		}
+
+		foreach ( $titles as $index => $expected_title ) {
+			$row = $rows[ $index ];
+
+			if ( ! is_array( $row ) ) {
+				return false;
+			}
+
+			if ( trim( (string) ( $row['card_title'] ?? '' ) ) !== $expected_title ) {
+				return false;
+			}
+
+			if ( ! array_key_exists( 'card_text', $row ) || ! is_scalar( $row['card_text'] ) || '' === trim( (string) $row['card_text'] ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validate the ordered three-card vision-mission-v1 contract.
+	 *
+	 * A payload is valid only when there are exactly three rows, the titles match
+	 * the ordered contract, and every row carries nonempty card text.
+	 *
+	 * @param array<int,mixed> $rows Card rows.
+	 */
+	public static function is_valid_value_cards( array $rows ): bool {
+		$titles = array_values( self::VISION_MISSION_V1_CARD_TITLES );
+		$rows   = array_values( $rows );
+
+		if ( count( $rows ) !== count( $titles ) ) {
+			return false;
+		}
+
+		foreach ( $titles as $index => $expected_title ) {
+			$row = $rows[ $index ];
+
+			if ( ! is_array( $row ) ) {
+				return false;
+			}
+
+			if ( trim( (string) ( $row['card_title'] ?? '' ) ) !== $expected_title ) {
+				return false;
+			}
+
+			if ( '' === trim( \strip_tags( (string) ( $row['card_text'] ?? '' ) ) ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Neutral, non-factual fallback cards for the vision-mission-v1 layout.
+	 *
+	 * Shared by the Section Assembler and the template so the safe fallback can
+	 * never drift between generation and rendering.
+	 *
+	 * @return array<int,array{card_title:string,card_text:string}>
+	 */
+	public static function vision_mission_v1_default_cards(): array {
+		return [
+			[
+				'card_title' => 'Our Vision',
+				'card_text'  => 'To be a company clients can rely on for careful work and honest communication.',
+			],
+			[
+				'card_title' => 'Our Mission',
+				'card_text'  => 'To deliver dependable service and keep every client informed at each step.',
+			],
+			[
+				'card_title' => 'Why Choose Us',
+				'card_text'  => 'Clients choose us for straightforward communication and attention to detail.',
+			],
+		];
+	}
+
 	public function get_blocked_fields( string $layout ): array {
 		$layout = $this->normalize_layout_key( $layout );
 
@@ -1101,9 +1249,27 @@ RULES,
 				continue;
 			}
 
+			// vision-mission-v1 cards are an all-or-nothing contract. Validate the
+			// raw provider shape before row-dropping sanitization so a malformed
+			// extra row cannot collapse to an accepted three-card set, then
+			// re-validate after sanitization so tag-only text stays rejected.
+			if ( 'vision-mission-v1' === $layout && 'vm_v1_cards' === $key && ! self::has_valid_value_card_shape( $value ) ) {
+				$this->log_warning( 'vision-mission-v1 card payload discarded: raw ordered three-card contract violated.' );
+
+				continue;
+			}
+
 			$sanitized = $this->sanitize_allowed_value( $layout, $key, $value );
 
 			if ( isset( $text_repeaters[ $key ] ) && [] === $sanitized ) {
+				continue;
+			}
+
+			// Keep the post-sanitization check so tags/scripts that sanitize to
+			// empty text are rejected instead of silently kept.
+			if ( 'vision-mission-v1' === $layout && 'vm_v1_cards' === $key && ! self::is_valid_value_cards( is_array( $sanitized ) ? $sanitized : [] ) ) {
+				$this->log_warning( 'vision-mission-v1 card payload discarded: sanitized ordered three-card contract violated.' );
+
 				continue;
 			}
 

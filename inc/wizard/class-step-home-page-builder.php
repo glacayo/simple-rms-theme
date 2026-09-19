@@ -205,6 +205,10 @@ class Step_Home_Page_Builder {
 			return 0;
 		}
 
+		if ( $this->harness->has_fixed_item_count( $section_key ) ) {
+			return $this->harness->get_fixed_item_count( $section_key );
+		}
+
 		$defaults = [
 			'slider'            => 2,
 			'area-coverage-v1'  => 4,
@@ -223,7 +227,7 @@ class Step_Home_Page_Builder {
 			'testimonials-v2'   => 3,
 			'testimonials-v3'   => 3,
 			'video-v2'          => 2,
-			'vision-mission-v1' => 2,
+			'vision-mission-v1' => 3,
 			'vision-mission-v2' => 3,
 		];
 
