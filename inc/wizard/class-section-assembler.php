@@ -42,6 +42,12 @@ final class Section_Assembler {
 			}
 
 			if ( isset( $allowed[ $field ] ) ) {
+				// Never accept a drifted or partial card set: keep the safe fallback
+				// already produced by placeholder_copy() for the whole payload.
+				if ( 'vision-mission-v1' === $section_key && 'vm_v1_cards' === $field && ! AI_Content_Harness::is_valid_value_cards( is_array( $value ) ? array_values( $value ) : [] ) ) {
+					continue;
+				}
+
 				$section[ $field ] = $this->section_value( $value );
 			}
 		}
@@ -84,6 +90,12 @@ final class Section_Assembler {
 		}
 
 		foreach ( $text_repeaters as $field => $sub_fields ) {
+			if ( 'vision-mission-v1' === $section_key && 'vm_v1_cards' === $field ) {
+				$copy[ $field ] = AI_Content_Harness::vision_mission_v1_default_cards();
+
+				continue;
+			}
+
 			$copy[ $field ] = $this->placeholder_repeater_rows( $sub_fields, $company, $item_count );
 		}
 
