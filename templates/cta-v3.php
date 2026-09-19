@@ -30,7 +30,7 @@ $fallback_stats = [
         </div>
         <div class="cta-v3__action">
             <h2 class="cta-v3__headline"><?php echo esc_html($headline); ?></h2>
-            <a href="<?php echo esc_url($button_url); ?>" class="btn cta-v3__button"><?php echo esc_html($button_text); ?></a>
+            <a href="<?php echo esc_url($button_url); ?>" class="btn cta-v3__button" data-raven-cta><?php echo esc_html($button_text); ?></a>
         </div>
     </div>
 </section>

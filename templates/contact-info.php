@@ -28,14 +28,14 @@
                         <div>
                             <strong class="contact-info__item-label">Phone</strong>
                             <?php if (count($phones) === 1) : ?>
-                                <a href="tel:<?php echo esc_attr($primary_phone_clean); ?>" class="contact-info__item-value"><?php echo esc_html($primary_phone); ?></a>
+                                <a href="tel:<?php echo esc_attr($primary_phone_clean); ?>" class="contact-info__item-value" data-raven-call><?php echo esc_html($primary_phone); ?></a>
                             <?php else : ?>
                                 <?php foreach ($phones as $phone) : ?>
                                     <?php
                                     $phone_clean = preg_replace('/[^0-9+]/', '', $phone['phone_number'] ?? '');
                                     $phone_label = esc_html($phone['phone_label'] ?? '');
                                     ?>
-                                    <a href="tel:<?php echo esc_attr($phone_clean); ?>" class="contact-info__item-value"><?php echo esc_html($phone['phone_number'] ?? ''); ?></a>
+                                    <a href="tel:<?php echo esc_attr($phone_clean); ?>" class="contact-info__item-value" data-raven-call><?php echo esc_html($phone['phone_number'] ?? ''); ?></a>
                                     <?php if (!empty($phone_label)) : ?>
                                         <span class="contact-info__item-meta"><?php echo esc_html($phone_label); ?></span>
                                     <?php endif; ?>
@@ -223,7 +223,7 @@
                     <?php echo do_shortcode($form_shortcode); ?>
                 <?php else : ?>
                 <h3 class="contact-info__form-headline">Request a Free Estimate</h3>
-                <form class="contact-info__form" action="#" method="POST" novalidate>
+                <form class="contact-info__form" action="#" method="POST" novalidate data-raven-form-id="contact-info-default" data-raven-form-name="Contact Form">
 
                     <div class="contact-info__form-row contact-info__form-row--2col">
                         <div class="contact-info__field">

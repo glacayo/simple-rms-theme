@@ -57,7 +57,7 @@ $cta_url     = get_sub_field('services_v1_cta_url') ?: '#';
         </div>
 
         <div class="services-v1__cta">
-            <a href="<?php echo esc_url($cta_url); ?>" class="btn btn--outline-white services-v1__cta-btn"><?php echo esc_html($cta_text); ?></a>
+            <a href="<?php echo esc_url($cta_url); ?>" class="btn btn--outline-white services-v1__cta-btn" data-raven-cta><?php echo esc_html($cta_text); ?></a>
         </div>
     </div>
 </section>
