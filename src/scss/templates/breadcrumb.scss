@@ -1,9 +1,9 @@
 // ============================================
 // Breadcrumb Page — Internal Page Hero Banner
 // ============================================
-// Full-width hero-style breadcrumb with background image,
-// dark overlay, centered H1 + breadcrumb navigation.
-// Neutral premium style — works with all header variants.
+// Full-width hero-style breadcrumb with a mode-driven background
+// (image | solid | gradient), dark overlay, centered H1 + breadcrumb
+// navigation. Neutral premium style — works with all header variants.
 // ============================================
 @use '../base/variables' as *;
 @use '../base/mixins' as *;
@@ -16,7 +16,8 @@
   justify-content: center;
   min-height: 320px;
   padding: $space-24 $container-padding $space-16;
-  background-image: var(--breadcrumb-bg);
+  // Neutral compiled background: image mode without a usable URL stays dark.
+  background-color: $color-gray-900;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -28,6 +29,26 @@
   }
 }
 
+// ─── Mode: Image ────────────────────────────────────────────────────
+.breadcrumb-page--image {
+  background-image: var(--breadcrumb-image, none);
+}
+
+// ─── Mode: Solid ────────────────────────────────────────────────────
+.breadcrumb-page--solid {
+  background-color: var(--breadcrumb-solid, $color-gray-900);
+  background-image: none;
+}
+
+// ─── Mode: Gradient ─────────────────────────────────────────────────
+.breadcrumb-page--gradient {
+  background-image: linear-gradient(
+    var(--breadcrumb-gradient-angle, 180deg),
+    var(--breadcrumb-gradient-from, $color-gray-900),
+    var(--breadcrumb-gradient-to, $color-gray-800)
+  );
+}
+
 // ─── Dark Overlay ───────────────────────────────────────────────────
 .breadcrumb-page__overlay {
   position: absolute;
@@ -35,6 +56,12 @@
   background-color: rgba($color-black, 0.7);
   pointer-events: none;
   z-index: 1;
+}
+
+// The overlay is meaningful only behind a real image; solid/gradient hide it.
+.breadcrumb-page--solid .breadcrumb-page__overlay,
+.breadcrumb-page--gradient .breadcrumb-page__overlay {
+  display: none;
 }
 
 // ─── Content — above the overlay ────────────────────────────────────
@@ -46,7 +73,7 @@
 
 // ─── Page Title (H1) ────────────────────────────────────────────────
 .breadcrumb-page__title {
-  color: $color-white;
+  color: var(--breadcrumb-text, $color-white);
   font-family: $font-family-heading;
   font-size: $font-size-4xl;
   font-weight: $font-weight-bold;
@@ -67,6 +94,7 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: $space-2;
+  color: var(--breadcrumb-text, $color-gray-300);
   font-size: $font-size-sm;
 
   @include breakpoint($breakpoint-md) {
@@ -80,12 +108,13 @@
   display: inline-flex;
   align-items: center;
   gap: $space-2;
-  color: $color-gray-300;
+  color: var(--breadcrumb-text, $color-gray-300);
   text-decoration: none;
   transition: color $transition-fast;
 
   &:hover {
-    color: $color-white;
+    color: var(--breadcrumb-text, $color-white);
+    text-decoration: underline;
   }
 
   @include focus-ring;
@@ -106,28 +135,29 @@
 
 // ─── Current Page Label ─────────────────────────────────────────────
 .breadcrumb-page__current {
-  color: $color-white;
+  color: var(--breadcrumb-text, $color-white);
   font-weight: $font-weight-medium;
 }
 
 // ─── Yoast Breadcrumb Output ────────────────────────────────────────
 .breadcrumb-page__yoast {
-  color: $color-gray-300;
+  color: var(--breadcrumb-text, $color-gray-300);
 
   a {
-    color: $color-gray-300;
+    color: var(--breadcrumb-text, $color-gray-300);
     text-decoration: none;
     transition: color $transition-fast;
 
     &:hover {
-      color: $color-white;
+      color: var(--breadcrumb-text, $color-white);
+      text-decoration: underline;
     }
 
     @include focus-ring;
   }
 
   .breadcrumb_last {
-    color: $color-white;
+    color: var(--breadcrumb-text, $color-white);
     font-weight: $font-weight-medium;
   }
 }
@@ -141,7 +171,7 @@
   border: 1px solid rgba($color-white, 0.2);
   border-radius: $radius-full;
   background-color: rgba($color-white, 0.08);
-  color: $color-white;
+  color: var(--breadcrumb-text, $color-white);
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
 }
