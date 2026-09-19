@@ -503,11 +503,11 @@
         },
         {
             "key": "field_rms_company_google_maps_url",
-            "label": "Google Maps URL",
+            "label": "Google Maps Embed URL",
             "name": "company_google_maps_url",
             "aria-label": "",
             "type": "url",
-            "instructions": "",
+            "instructions": "Map embed URL used as the Contact page iframe source only. Paste the Google Maps embed address (…/maps/embed…), not the Google Business Profile share link.",
             "required": false,
             "conditional_logic": false,
             "wrapper": {
@@ -515,7 +515,24 @@
                 "class": "",
                 "id": ""
             },
-            "placeholder": "e.g. https://maps.google.com/?q=...",
+            "placeholder": "e.g. https://www.google.com/maps/embed?pb=...",
+            "default_value": ""
+        },
+        {
+            "key": "field_rms_company_gbp_share_url",
+            "label": "Google Business Profile Share URL",
+            "name": "company_gbp_share_url",
+            "aria-label": "",
+            "type": "url",
+            "instructions": "Google Business Profile share/profile link used by the Get Directions button. This is separate from the map embed URL above and never feeds the iframe.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "e.g. https://g.page/r/your-business",
             "default_value": ""
         },
         {
