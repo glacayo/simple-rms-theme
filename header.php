@@ -164,7 +164,12 @@
     if ($footer_version !== '') {
         $vite->get_deferred_style("layout-{$footer_version}", "src/scss/layout/{$footer_version}.scss");
     }
+
+    // GTM/dataLayer bootstrap. Must precede wp_head() so any later
+    // client/plugin-injected container can consume the queue. Harmless
+    // without GTM: it only initializes an empty array.
     ?>
+    <script>window.dataLayer = window.dataLayer || [];</script>
     <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
