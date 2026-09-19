@@ -51,7 +51,7 @@ main
 | Slice | Work unit | Files | Observed changed lines | Budget |
 |-------|-----------|-------|------------------------|--------|
 | 1 — Contract | Split URL contract: schema, helper, template, contract harness (37 assertions) | `acf-json/group_rms_theme_settings.json`, `inc/acf-theme-options.php`, `templates/contact-map.php`, `tests/gbp-share-url-contract-harness.php` | 327 | 327 / 400 |
-| 2 — Overlay assets | Additive overlay SCSS, preserved heights, header enqueue scoping (14 assertions) | `src/scss/templates/contact-map.scss`, `tests/contact-map-overlay-assets-harness.php`, `odd/tasks/issue-126-contact-map-urls.md` | 224 | 224 / 400 |
+| 2 — Overlay assets | Additive overlay SCSS, preserved heights, header enqueue scoping (14 assertions) | `src/scss/templates/contact-map.scss`, `tests/contact-map-overlay-assets-harness.php`, `odd/tasks/issue-126-contact-map-urls.md` | 226 | 226 / 400 |
 
 Chain context: slice 1 starts at the `main` baseline; slice 2 depends on slice 1;
 follow-up is I126-02 delivery. Out of scope for the chain: landing-page map
@@ -69,4 +69,6 @@ with the production unit it covers.
 - Independent verification: 110/110 focused and relevant regression assertions/scenarios, PHP lint, JSON parse, diff check, and production build PASS.
 - Tracker commit: `57f08673c60d789aaee84600f43495d2df9b60cd`.
 - Slice 1 commit: `b9ae533b9040a8f0809c2b07f5bf9e1b46a18573`; native lineage `review-835409c217685e05` approved and acknowledged at revision `sha256:6038a644fb13dffb27c882ab9488eba48a07352738c1ac69d895dde8f7ef3636`.
-- Slice 2 commit: pending.
+- Slice 2 commit: `b68a323a4869cd39660e5c35fe873b55195e499b`; native lineage `review-22f58effa23de039` approved and acknowledged at revision `sha256:f13f3796286d458c7045dc49ee4f7338686ff35cf489e2bfa3593e915496d08c`.
+- Live verification: private Contact page returned HTTP 200 with valid TLS; iframe and directions used distinct URLs; overlay markup/CSS, focus treatment, and 400px/550px heights passed; desktop and settled mobile screenshots confirmed a centered bottom overlay.
+- Cleanup: temporary template assignment and four ACF option rows were removed; Contact page remained HTTP 200. Evidence: `/home/glacayom/backups/simple-rms-theme/issue-126-live-20260919T041627Z`.
