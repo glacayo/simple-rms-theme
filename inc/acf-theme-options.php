@@ -56,6 +56,21 @@ function rms_get_option(string $field_name, $default = null) {
 }
 
 /**
+ * Retrieve the trimmed Google Business Profile share URL.
+ *
+ * The GBP share/profile link is a separate Theme Options value from the map
+ * embed URL. This helper never falls back to `company_google_maps_url`, so the
+ * Get Directions control renders only when a share link is configured.
+ *
+ * @return string Trimmed URL, or '' when unconfigured or malformed.
+ */
+function rms_get_gbp_share_url(): string {
+    $share = rms_get_option('company_gbp_share_url');
+
+    return is_string($share) ? trim($share) : '';
+}
+
+/**
  * Map stored footer version values to canonical slugs.
  *
  * Offered choices are footer-v1 and footer-v2. Legacy aliases remain
