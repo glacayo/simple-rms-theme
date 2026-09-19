@@ -25,7 +25,7 @@ Separate the Google Maps iframe embed URL from the Google Business Profile share
 ## Tasks
 
 - [x] **I126-01 — Implement and verify the split URL contract.** Added focused RED coverage, updated the ACF schema/helper/template/SCSS, split the unchanged 51 assertions across review slices, and made focused/regression checks green.
-- [ ] **I126-02 — Verify delivery and publish.** Run independent regressions/build, complete native review, verify the Contact page behavior, update evidence, commit, push, open and merge the issue-linked PR, then synchronize `main`.
+- [x] **I126-02 — Verify delivery and publish.** Ran independent regressions/build, completed native review, verified the Contact page behavior, published and merged the issue-linked chain, synchronized `main`, and passed post-merge verification.
 
 ## Delivery Strategy — Feature Branch Chain
 
@@ -72,3 +72,5 @@ with the production unit it covers.
 - Slice 2 commit: `b68a323a4869cd39660e5c35fe873b55195e499b`; native lineage `review-22f58effa23de039` approved and acknowledged at revision `sha256:f13f3796286d458c7045dc49ee4f7338686ff35cf489e2bfa3593e915496d08c`.
 - Live verification: private Contact page returned HTTP 200 with valid TLS; iframe and directions used distinct URLs; overlay markup/CSS, focus treatment, and 400px/550px heights passed; desktop and settled mobile screenshots confirmed a centered bottom overlay.
 - Cleanup: temporary template assignment and four ACF option rows were removed; Contact page remained HTTP 200. Evidence: `/home/glacayom/backups/simple-rms-theme/issue-126-live-20260919T041627Z`.
+- Delivery: child PRs #136 and #137 merged into draft tracker #135; tracker merged to `main` as `a91843cd47bef40ee41cc3be64666491de2313f1`; issue #126 closed.
+- Post-merge verification: final tree matched the reviewed child tree; 110/110 focused/regression checks, PHP lint, JSON parse, diff check, production build, cleanup state, and artifact scan PASS.
