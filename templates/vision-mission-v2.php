@@ -95,7 +95,7 @@ $cta_url  = get_sub_field('vm_v2_cta_url') ?: '#contact';
                         </li>
                     <?php endif; ?>
                 </ul>
-                <a class="btn vision-mission-v2__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text ); ?>"><?php echo esc_html( $cta_text ); ?></a>
+                <a class="btn vision-mission-v2__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text ); ?>" data-raven-cta><?php echo esc_html( $cta_text ); ?></a>
             </aside>
         </div>
     </div>

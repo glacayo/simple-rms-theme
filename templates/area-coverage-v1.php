@@ -60,7 +60,7 @@ $color_style = rms_get_area_coverage_color_style( array(
                     <?php endif; ?>
                 </ul>
 
-                <a class="btn area-coverage-v1__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text ); ?>"><?php echo esc_html( $cta_text ); ?></a>
+                <a class="btn area-coverage-v1__cta" href="<?php echo esc_url( $cta_url ); ?>" aria-label="<?php echo esc_attr( $cta_text ); ?>" data-raven-cta><?php echo esc_html( $cta_text ); ?></a>
             </div>
 
             <div class="area-coverage-v1__map" aria-hidden="true">

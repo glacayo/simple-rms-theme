@@ -4,7 +4,7 @@
     <div class="footer-v2__cta-strip">
         <div class="container footer-v2__cta-inner">
             <p class="footer-v2__cta-text"><?php echo esc_html($footer_cta['headline']); ?></p>
-            <a href="<?php echo esc_url($footer_cta['url']); ?>" class="btn footer-v2__cta-button"><?php echo esc_html($footer_cta['title']); ?></a>
+            <a href="<?php echo esc_url($footer_cta['url']); ?>" class="btn footer-v2__cta-button" data-raven-cta><?php echo esc_html($footer_cta['title']); ?></a>
         </div>
     </div>
 
@@ -132,7 +132,7 @@
                             ?>
                             <li>
                                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.82 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.73 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.78 5.78l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                <a href="tel:<?php echo esc_attr($phone_clean); ?>"><?php echo esc_html($phone_num); ?></a>
+                                <a href="tel:<?php echo esc_attr($phone_clean); ?>" data-raven-call><?php echo esc_html($phone_num); ?></a>
                                 <?php if (!empty($phone_label)) : ?>
                                     <span class="footer-v2__item-label">(<?php echo esc_html($phone_label); ?>)</span>
                                 <?php endif; ?>

@@ -21,9 +21,9 @@ $v1_scss = (string) file_get_contents( $theme_root . '/src/scss/templates/servic
 $v2_php  = (string) file_get_contents( $theme_root . '/templates/services-v2.php' );
 
 rms_s2_assert(
-	(bool) preg_match( '/<div class="services-v2__cta">\s*<a href="[^"]+" class="btn services-v2__cta-btn">/', $v2_php ),
+	(bool) preg_match( '/<div class="services-v2__cta">\s*<a href="[^"]+" class="btn services-v2__cta-btn"(?:\s+data-raven-cta)?>/', $v2_php ),
 	'test_services_v2_template_keeps_cta_wrapper',
-	'templates/services-v2.php must keep the existing CTA wrapper and global button class'
+	'templates/services-v2.php must keep the existing CTA wrapper and global button class (an intentional trailing data-raven-cta marker is allowed)'
 );
 
 rms_s2_assert(

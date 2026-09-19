@@ -84,7 +84,7 @@ $embed_url = $youtube_id ? 'https://www.youtube.com/embed/' . $youtube_id . '?au
                 <?php else : ?>
                     <p>Watch how our team transformed this Milwaukee home with a complete roof replacement. From initial inspection to final cleanup, see the quality craftsmanship and attention to detail that sets us apart.</p>
                 <?php endif; ?>
-                <a href="<?php echo esc_url( $cta_url ); ?>" class="btn video-v1__cta"><?php echo esc_html( $cta_text ); ?></a>
+                <a href="<?php echo esc_url( $cta_url ); ?>" class="btn video-v1__cta" data-raven-cta><?php echo esc_html( $cta_text ); ?></a>
             </div>
         </div>
     </div>
