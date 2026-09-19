@@ -13,7 +13,7 @@ Replace the hardcoded breadcrumb hero placeholder with operator-controlled image
 
 ## Tasks
 - [x] **I125-01 — Define schema and sanitization contract.** Added the Breadcrumb Theme Settings fields, strict style resolver/sanitizers, JSON parity, and 80 focused assertions; independently verified and approved through native review.
-- [ ] **I125-02 — Render and style the breadcrumb hero.** Replace the placeholder with scoped CSS variables, type-specific classes/overlay behavior, text-color styling, slim regression coverage, live verification, review, chain publication/merge, and synchronized `main`.
+- [x] **I125-02 — Render and style the breadcrumb hero.** Replaced the placeholder with scoped CSS variables, type-specific classes/overlay behavior, text-color styling, and slim regression coverage; completed live verification, native review, chain merge, main synchronization, and post-merge checks.
 
 ## Planned Chain
 
@@ -29,3 +29,5 @@ Replace the hardcoded breadcrumb hero placeholder with operator-controlled image
 - Slice 2: `5e91bb3cfdf8fffda5a6a3ce151f17bea6654071`; render harness 28/28, schema harness 80/80, internal-page template/render and landing render harnesses PASS; PHP lint, diff check, production build, byte-identical slim template, and independent contrast checks PASS.
 - Slice 2 native review: lineage `review-af15d1b6a83b8706` approved and acknowledged at revision `sha256:abae91b6b6644299f7868934362acf1cecaa2bd3135eb4999d987ff3b507b158`.
 - Live verification: gradient mode rendered on the private Contact page at desktop/mobile with HTTP 200, valid TLS, correct scoped variables, no overlay/placeholder; empty image mode emitted neither image URL nor overlay. Database restored from rollback and cleanup HTTP 200. Evidence: `/home/glacayom/backups/simple-rms-theme/issue-125-live-20260919T054334Z`.
+- Delivery: child PRs #140 and #141 merged into tracker #139; tracker merged to `main` as `3a67ba43d1e4bdb8c8935b1ba924a0d33c010835`; issue #125 closed.
+- Post-merge: schema 80/80, render 28/28, production build, ref parity, clean tree, artifact scan, and database rollback state PASS.
