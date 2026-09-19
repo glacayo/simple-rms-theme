@@ -1,10 +1,56 @@
 <?php
 $eyebrow  = get_sub_field('vm_v1_eyebrow') ?: 'Who We Are';
-$headline = get_sub_field('vm_v1_headline') ?: 'Our Vision, Mission & Why Homeowners Trust Us';
-$intro    = get_sub_field('vm_v1_intro') ?: 'We built this company on a simple promise: protect every home like it\'s our own. Here\'s what drives us every day.';
+$headline = get_sub_field('vm_v1_headline') ?: 'Our Vision, Mission and Values';
+$intro    = get_sub_field('vm_v1_intro') ?: 'These principles guide how we work with our clients every day.';
 $cards    = get_sub_field('vm_v1_cards');
-$cta_text = get_sub_field('vm_v1_cta_text') ?: 'Get Your Free Estimate';
-$cta_url  = get_sub_field('vm_v1_cta_url') ?: '#contact';
+$cta_text = get_sub_field('vm_v1_cta_text') ?: 'Contact Us';
+
+// An empty CTA URL resolves through the Contact-page helper; if that helper is
+// unexpectedly unavailable, fall back to an absolute home contact anchor and
+// never to a bare on-page anchor.
+$cta_url = trim( (string) get_sub_field('vm_v1_cta_url') );
+
+if ( '' === $cta_url && function_exists( 'rms_get_contact_page_url' ) ) {
+    $cta_url = trim( (string) rms_get_contact_page_url() );
+}
+
+if ( '' === $cta_url ) {
+    $cta_url = home_url( '/#contact' );
+}
+
+// The layout contract is exactly three ordered, grounded cards. The template
+// owns this neutral fallback set and its local three-row validator so the
+// section renders safely when the wizard autoloader or AI harness class is
+// unavailable. The harness stays the generation boundary, never a render
+// dependency; drifted stored rows fall back to the same neutral set.
+$vm_v1_card_titles   = array( 'Our Vision', 'Our Mission', 'Why Choose Us' );
+$vm_v1_neutral_cards = array(
+    array( 'card_title' => 'Our Vision', 'card_text' => 'To be a company clients can rely on for careful work and honest communication.' ),
+    array( 'card_title' => 'Our Mission', 'card_text' => 'To deliver dependable service and keep every client informed at each step.' ),
+    array( 'card_title' => 'Why Choose Us', 'card_text' => 'Clients choose us for straightforward communication and attention to detail.' ),
+);
+
+$vm_v1_has_valid_cards = static function ( $rows ) use ( $vm_v1_card_titles ) {
+    if ( ! is_array( $rows ) || count( $rows ) !== count( $vm_v1_card_titles ) ) {
+        return false;
+    }
+
+    foreach ( array_values( $rows ) as $index => $row ) {
+        if ( ! is_array( $row ) || trim( (string) ( $row['card_title'] ?? '' ) ) !== $vm_v1_card_titles[ $index ] ) {
+            return false;
+        }
+
+        if ( '' === trim( strip_tags( (string) ( $row['card_text'] ?? '' ) ) ) ) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+if ( ! $vm_v1_has_valid_cards( $cards ) ) {
+    $cards = $vm_v1_neutral_cards;
+}
 ?>
 <!-- Vision Mission V1 — Three-Card Trust Section -->
 <section class="vision-mission-v1" aria-labelledby="vision-mission-v1-heading">
@@ -14,47 +60,12 @@ $cta_url  = get_sub_field('vm_v1_cta_url') ?: '#contact';
         <p class="vision-mission-v1__intro"><?php echo wp_kses_post( $intro ); ?></p>
 
         <div class="vision-mission-v1__grid">
-            <?php if ( ! empty( $cards ) ) : ?>
-                <?php foreach ( $cards as $card ) :
-                    $card_title     = $card['card_title'] ?? '';
-                    $card_text      = $card['card_text'] ?? '';
-                    $card_highlight = ! empty( $card['card_highlight'] );
-                    $card_class     = 'vision-mission-v1__card' . ( $card_highlight ? ' vision-mission-v1__card--highlight' : '' );
-                ?>
-                <article class="<?php echo esc_attr( $card_class ); ?>">
-                    <span class="vision-mission-v1__icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                    </span>
-                    <h3 class="vision-mission-v1__title"><?php echo esc_html( $card_title ); ?></h3>
-                    <p class="vision-mission-v1__text"><?php echo wp_kses_post( $card_text ); ?></p>
-                </article>
-                <?php endforeach; ?>
-            <?php else : ?>
-                <!-- Fallback hardcoded cards -->
-                <article class="vision-mission-v1__card">
-                    <span class="vision-mission-v1__icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                    </span>
-                    <h3 class="vision-mission-v1__title">Our Vision</h3>
-                    <p class="vision-mission-v1__text">To become the most trusted roofing and exterior contractor in our region by delivering exceptional craftsmanship, honest communication, and lasting value for every client.</p>
-                </article>
-
-                <article class="vision-mission-v1__card">
-                    <span class="vision-mission-v1__icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-                    </span>
-                    <h3 class="vision-mission-v1__title">Our Mission</h3>
-                    <p class="vision-mission-v1__text">Our mission is to protect homes and businesses through dependable service, premium materials, and solutions built to perform for years to come.</p>
-                </article>
-
+            <?php foreach ( $cards as $card ) : ?>
                 <article class="vision-mission-v1__card vision-mission-v1__card--highlight">
-                    <span class="vision-mission-v1__icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-                    </span>
-                    <h3 class="vision-mission-v1__title">Why Choose Us</h3>
-                    <p class="vision-mission-v1__text">Homeowners choose us because we deliver transparent estimates, licensed and insured workmanship, premium materials, reliable turnaround times, and long-term warranty-backed results.</p>
+                    <h3 class="vision-mission-v1__title"><?php echo esc_html( $card['card_title'] ?? '' ); ?></h3>
+                    <p class="vision-mission-v1__text"><?php echo wp_kses_post( $card['card_text'] ?? '' ); ?></p>
                 </article>
-            <?php endif; ?>
+            <?php endforeach; ?>
         </div>
 
         <div class="vision-mission-v1__cta-wrap">
