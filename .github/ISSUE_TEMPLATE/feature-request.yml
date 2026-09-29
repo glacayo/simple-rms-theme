@@ -1,0 +1,55 @@
+name: Feature request
+description: Propose a new theme capability or improvement.
+title: "[Feature]: "
+labels:
+  - type:feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Simple RMS Theme. Describe the user need and the smallest useful outcome. Remove credentials, tracking secrets, and private data before submitting.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Explain who needs this feature and what they cannot do today.
+      placeholder: What task is blocked, and how do you handle it now?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed behavior
+      description: Describe the desired user-facing behavior, not just an implementation.
+      placeholder: What should the theme let the user do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable outcomes that would make the request complete.
+      placeholder: |
+        - The user can ...
+        - The theme does not ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention current workarounds or other approaches, if any.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add sanitized screenshots, references, or related issues. Never paste live tracking snippets or credentials.
+    validations:
+      required: false
