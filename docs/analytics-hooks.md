@@ -22,6 +22,43 @@ call:
 - The theme does not compute channels. It only exposes markup, attributes, and
   event names.
 
+## Tracking code tab (administrator-managed GTM)
+
+Theme Settings → **Tracking code** stores two optional fragments:
+
+- **GTM head script**: rendered verbatim inside `wp_head()` at priority 1, after
+  the `dataLayer` bootstrap above.
+- **GTM body noscript**: rendered verbatim on `wp_body_open` (priority 1),
+  immediately after `<body>` opens. For logged-in users, core renders the admin
+  bar first (priority 0); this does not affect GTM.
+
+Rules:
+
+- Empty fields render nothing. Each fragment renders at most once per request,
+  site-wide (Home, standard pages, landing pages).
+- Paste Google's snippets unchanged. Do not add your own
+  `window.dataLayer = [...]` assignment: it would clobber the queue the theme
+  already initialized.
+- Only users with `manage_options` (Theme Settings) **and** `unfiltered_html`
+  can see or change the fields. Saves from any other user, including direct
+  writes through `wp-admin/options.php`, keep the stored value.
+  Fragments are not escaped, so the capability is the security boundary.
+- Container IDs live only in the database. Never commit them to `acf-json/` or
+  theme code.
+
+### Migrating from a hardcoded installation
+
+Loading the same container twice double-fires every event, including the form
+lifecycle events below. To switch to the tab:
+
+1. Find the current install: view the page source and search for
+   `googletagmanager.com/gtm.js`. Note where it comes from (a child theme, an
+   edited `header.php`, or a plugin such as Site Kit or GTM4WP).
+2. Remove the hardcoded snippet or disable the plugin's GTM output.
+3. Paste the head and body snippets into the Tracking code tab and save.
+4. Reload the front end and confirm `gtm.js?id=` and `ns.html?id=` each appear
+   exactly once in the source.
+
 ## Stable selector attributes
 
 GTM triggers and variables bind to these attributes. They are part of the

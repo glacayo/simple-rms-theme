@@ -216,6 +216,10 @@ if (!function_exists('wp_head')) {
     function wp_head() {}
 }
 
+if (!function_exists('wp_body_open')) {
+    function wp_body_open() {}
+}
+
 if (!function_exists('wp_footer')) {
     function wp_footer() {}
 }
