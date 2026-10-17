@@ -48,8 +48,10 @@ export function initHeaderMenu(): void {
     menu.classList.remove(CLASS_OPEN)
     document.body.classList.remove(CLASS_BODY_LOCK)
 
-    menu.querySelectorAll<HTMLUListElement>('.rms-header__mobile-submenu').forEach((sub) => {
+    // Collapse every open submenu instantly so the drawer reopens collapsed
+    menu.querySelectorAll<HTMLUListElement>('.rms-header__mobile-submenu.' + CLASS_OPEN).forEach((sub) => {
       sub.classList.remove(CLASS_OPEN)
+      sub.style.maxHeight = ''
     })
     menu.querySelectorAll<HTMLButtonElement>('[aria-expanded="true"]').forEach((btn) => {
       btn.setAttribute('aria-expanded', 'false')
@@ -84,9 +86,13 @@ export function initHeaderMenu(): void {
   menu.addEventListener('keydown', (e) => {
     if (e.key !== 'Tab') return
 
-    const focusable = menu.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )
+    const focusable = Array.from(
+      menu.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(isReachable)
+    if (focusable.length === 0) return
+
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
 
@@ -104,23 +110,54 @@ export function initHeaderMenu(): void {
   })
 
   // ─── Mobile submenu accordion ───────────────────────────────────
-  menu.querySelectorAll<HTMLAnchorElement>('.rms-header__mobile-nav-item--has-submenu > a[aria-haspopup]').forEach((link) => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault()
-      const isExpanded = link.getAttribute('aria-expanded') === 'true'
-      const submenu = link.nextElementSibling as HTMLUListElement | null
-
+  menu.querySelectorAll<HTMLButtonElement>('.rms-header__mobile-nav-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('aria-controls')
+      const submenu = id ? document.getElementById(id) : null
       if (!submenu) return
 
-      if (isExpanded) {
-        link.setAttribute('aria-expanded', 'false')
-        submenu.classList.remove(CLASS_OPEN)
-      } else {
-        link.setAttribute('aria-expanded', 'true')
-        submenu.classList.add(CLASS_OPEN)
-      }
+      setSubmenuOpen(btn, submenu, btn.getAttribute('aria-expanded') !== 'true')
     })
   })
+}
+
+/**
+ * Animate a submenu between 0 and its real content height. Once open, the cap
+ * is lifted (`none`) so nested submenus can grow; closing starts from the
+ * measured height so the collapse still animates.
+ */
+function setSubmenuOpen(btn: HTMLButtonElement, submenu: HTMLElement, open: boolean): void {
+  btn.setAttribute('aria-expanded', String(open))
+
+  const animated = parseFloat(getComputedStyle(submenu).transitionDuration) > 0
+
+  if (open) {
+    submenu.classList.add(CLASS_OPEN)
+    if (!animated) {
+      submenu.style.maxHeight = 'none'
+      return
+    }
+    submenu.style.maxHeight = `${submenu.scrollHeight}px`
+    submenu.addEventListener(
+      'transitionend',
+      function liftCap(e: TransitionEvent) {
+        if (e.target !== submenu || e.propertyName !== 'max-height') return
+        submenu.removeEventListener('transitionend', liftCap)
+        if (submenu.classList.contains(CLASS_OPEN)) submenu.style.maxHeight = 'none'
+      }
+    )
+    return
+  }
+
+  submenu.style.maxHeight = `${submenu.scrollHeight}px`
+  void submenu.offsetHeight // commit the start height before collapsing
+  submenu.classList.remove(CLASS_OPEN)
+  submenu.style.maxHeight = ''
+}
+
+// Links inside collapsed submenus are hidden and must not join the focus trap.
+function isReachable(el: HTMLElement): boolean {
+  return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
 }
 
 // Auto-init

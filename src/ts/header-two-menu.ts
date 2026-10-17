@@ -48,9 +48,9 @@ export function initHeaderTwoMenu(): void {
     menu.classList.remove(CLASS_OPEN)
     document.body.classList.remove(CLASS_BODY_LOCK)
 
-    // Reset all open submenus and aria-expanded
-    menu.querySelectorAll<HTMLUListElement>('.rms-header-v2__mobile-submenu').forEach((sub) => {
-      sub.classList.remove(CLASS_OPEN)
+    // Collapse every open submenu; the parent <li> carries the open state
+    menu.querySelectorAll<HTMLLIElement>('.rms-header-v2__mobile-nav-item--has-submenu.' + CLASS_OPEN).forEach((li) => {
+      li.classList.remove(CLASS_OPEN)
     })
     menu.querySelectorAll<HTMLButtonElement>('[aria-expanded="true"]').forEach((btn) => {
       btn.setAttribute('aria-expanded', 'false')
@@ -85,9 +85,13 @@ export function initHeaderTwoMenu(): void {
   menu.addEventListener('keydown', (e) => {
     if (e.key !== 'Tab') return
 
-    const focusable = menu.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )
+    const focusable = Array.from(
+      menu.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(isReachable)
+    if (focusable.length === 0) return
+
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
 
@@ -106,24 +110,20 @@ export function initHeaderTwoMenu(): void {
 
   // ─── Mobile submenu accordion ───────────────────────────────────
   menu.querySelectorAll<HTMLButtonElement>('.rms-header-v2__mobile-nav-toggle').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      // Let inner <a> clicks navigate normally
-      if ((e.target as HTMLElement).closest('a')) return
-
+    btn.addEventListener('click', () => {
       const li = btn.closest<HTMLLIElement>('.rms-header-v2__mobile-nav-item--has-submenu')
       if (!li) return
 
-      const isExpanded = btn.getAttribute('aria-expanded') === 'true'
-
-      if (isExpanded) {
-        btn.setAttribute('aria-expanded', 'false')
-        li.classList.remove(CLASS_OPEN)
-      } else {
-        btn.setAttribute('aria-expanded', 'true')
-        li.classList.add(CLASS_OPEN)
-      }
+      const expand = btn.getAttribute('aria-expanded') !== 'true'
+      btn.setAttribute('aria-expanded', String(expand))
+      li.classList.toggle(CLASS_OPEN, expand)
     })
   })
+}
+
+// Links inside collapsed submenus are hidden and must not join the focus trap.
+function isReachable(el: HTMLElement): boolean {
+  return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
 }
 
 // Auto-init

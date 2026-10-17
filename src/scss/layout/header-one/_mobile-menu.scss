@@ -82,7 +82,8 @@
 .rms-header__mobile-nav-list {
   padding: $space-4 0;
 
-  > li > a {
+  > li > a,
+  > li > .rms-header__mobile-nav-toggle {
     display: flex;
     align-items: center;
     width: 100%;
@@ -92,31 +93,59 @@
     text-align: left;
 
     @include interactive-link($color-gray-800, $color-primary, $color-gray-50, $font-size-base);
+  }
 
-    &[aria-haspopup='true'] {
-      justify-content: space-between;
+  // Parent with a URL: link and icon-only toggle share one row
+  > .rms-header__mobile-nav-item--has-submenu {
+    display: flex;
+    flex-wrap: wrap;
 
-      &::after {
-        content: '›';
-        font-size: $font-size-xl;
-        transition: transform $transition-fast;
-      }
+    > a {
+      flex: 1;
+      width: auto;
+    }
 
-      &[aria-expanded='true']::after {
-        transform: rotate(90deg);
-      }
+    > .rms-header__mobile-nav-toggle--icon {
+      flex: 0 0 auto;
+      width: auto;
+    }
+
+    > .rms-header__mobile-submenu {
+      flex-basis: 100%;
     }
   }
 }
 
+.rms-header__mobile-nav-toggle {
+  justify-content: space-between;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.rms-header__mobile-nav-chevron::after {
+  content: '›';
+  display: inline-block;
+  font-size: $font-size-xl;
+  line-height: 1;
+  transition: transform $transition-fast;
+
+  [aria-expanded='true'] > & {
+    transform: rotate(90deg);
+  }
+}
+
+// Collapsed by default; JS animates max-height to the real content height.
+// visibility keeps collapsed links out of the tab order and the a11y tree.
 .rms-header__mobile-submenu {
   max-height: 0;
   overflow: hidden;
+  visibility: hidden;
   background-color: $color-gray-50;
-  transition: max-height $transition-base;
+  transition: max-height $transition-base, visibility $transition-base;
 
   &.is-open {
-    max-height: 500px;
+    visibility: visible;
   }
 
   li a {
