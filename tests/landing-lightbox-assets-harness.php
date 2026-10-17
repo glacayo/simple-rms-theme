@@ -56,6 +56,7 @@ if ( ! function_exists( 'language_attributes' ) ) { function language_attributes
 if ( ! function_exists( 'bloginfo' ) ) { function bloginfo( $show = '' ) { unset( $show ); } }
 if ( ! function_exists( 'body_class' ) ) { function body_class( $class = '' ) { unset( $class ); } }
 if ( ! function_exists( 'wp_head' ) ) { function wp_head() { $GLOBALS['rms_lb_log'][] = 'wp_head'; } }
+if ( ! function_exists( 'wp_body_open' ) ) { function wp_body_open() {} }
 if ( ! function_exists( 'add_filter' ) ) { function add_filter( $h, $cb, $p = 10, $a = 1 ) { unset( $h, $cb, $p, $a ); return true; } }
 if ( ! function_exists( 'get_template_directory' ) ) { function get_template_directory() { return dirname( __DIR__ ); } }
 if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $v ) { return rtrim( (string) $v, '/\\' ) . '/'; } }

@@ -51,6 +51,7 @@ if ( ! function_exists( 'language_attributes' ) ) { function language_attributes
 if ( ! function_exists( 'bloginfo' ) ) { function bloginfo( $show = '' ) { unset( $show ); } }
 if ( ! function_exists( 'body_class' ) ) { function body_class( $class = '' ) { unset( $class ); } }
 if ( ! function_exists( 'wp_head' ) ) { function wp_head() { $GLOBALS['rms_guard_log'][] = 'wp_head'; } }
+if ( ! function_exists( 'wp_body_open' ) ) { function wp_body_open() {} }
 if ( ! function_exists( 'wp_enqueue_style' ) ) { function wp_enqueue_style( $h = '', $src = '', $d = array(), $v = false ) { unset( $h, $src, $d, $v ); } }
 if ( ! function_exists( 'wp_enqueue_script' ) ) { function wp_enqueue_script( $h = '', $src = '', $d = array(), $v = false, $f = false ) { unset( $h, $src, $d, $v, $f ); } }
 if ( ! function_exists( 'is_front_page' ) ) { function is_front_page() { return false; } }

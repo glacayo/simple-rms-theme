@@ -1752,6 +1752,66 @@
             "message": "",
             "new_lines": "",
             "esc_html": 1
+        },
+        {
+            "key": "field_rms_tab_tracking",
+            "label": "Tracking code",
+            "name": "",
+            "aria-label": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "left",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_rms_tracking_code_head",
+            "label": "GTM Head Script",
+            "name": "tracking_code_head",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "Paste the Google Tag Manager <script> snippet unchanged. It renders once, site-wide, early in <head>. Leave empty to render nothing. Remove any hardcoded or plugin GTM install first so the container does not load twice.",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "allow_in_bindings": 0,
+            "rows": 8,
+            "placeholder": "",
+            "new_lines": ""
+        },
+        {
+            "key": "field_rms_tracking_code_body",
+            "label": "GTM Body Noscript",
+            "name": "tracking_code_body",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "Paste the Google Tag Manager <noscript> snippet unchanged. It renders once, site-wide, immediately after <body> opens. Leave empty to render nothing.",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "allow_in_bindings": 0,
+            "rows": 4,
+            "placeholder": "",
+            "new_lines": ""
         }
     ],
     "location": [
@@ -1775,5 +1835,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1788909234
+    "modified": 1792193493
 }
