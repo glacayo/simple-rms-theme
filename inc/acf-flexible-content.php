@@ -1848,6 +1848,18 @@ function rms_register_acf_page_sections(): void {
                                         'placeholder'   => 'e.g. Complete new roof installation...',
                                         'parent_repeater' => 'field_rms_services_v1_services',
                                     ],
+                                    [
+                                        'key'           => 'field_rms_services_v1_url',
+                                        'label'         => 'Title URL',
+                                        'name'          => 'service_url',
+                                        'type'          => 'url',
+                                        'instructions'  => 'Optional. A full http(s) address turns the card title into a link. Leave empty for a plain title.',
+                                        'required'      => 0,
+                                        'default_value' => '',
+                                        'wrapper'       => ['width' => '100'],
+                                        'placeholder'   => 'e.g. https://example.com/roof-installation/',
+                                        'parent_repeater' => 'field_rms_services_v1_services',
+                                    ],
                                 ],
                             ],
                             [
