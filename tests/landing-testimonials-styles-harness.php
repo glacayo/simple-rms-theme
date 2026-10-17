@@ -6,10 +6,13 @@
  *   1. The SEO landing template defers the Testimonials V1, V2 and V3
  *      stylesheets exactly once each, through get_deferred_style() (which
  *      emits the media=print link plus the noscript fallback).
- *   2. Landing keeps every other asset it requested on main (sections,
- *      breadcrumb critical CSS, lightbox) and gains only V2 and V3.
- *   3. Home and the dedicated Testimonials template request exactly what
- *      they requested on main.
+ *   2. Landing requests exactly the pinned asset list: every asset it had
+ *      before #162 (sections, breadcrumb critical CSS, lightbox) plus V2/V3.
+ *   3. Home, the dedicated Testimonials template and a default page request
+ *      exactly their pinned pre-#162 asset lists.
+ *
+ * Expected lists are literals (not a git baseline) so the harness stays
+ * meaningful after merge and works in checkouts without a `main` ref.
  *
  * Stubs mirror tests/landing-lightbox-assets-harness.php.
  *
@@ -190,12 +193,6 @@ function rms_lt_handles( array $records ): array {
 $variants = array( 'testimonials-v1', 'testimonials-v2', 'testimonials-v3' );
 $landing  = array( 'template' => 'pages/landing-page.php' );
 
-// Baseline header.php from main for "unchanged behavior" comparisons.
-$baseline = tempnam( sys_get_temp_dir(), 'rms-header-main-' ) . '.php';
-exec( 'git -C ' . escapeshellarg( $theme_root ) . ' show main:header.php 2>/dev/null', $lines, $rc );
-file_put_contents( $baseline, implode( "\n", $lines ) . "\n" );
-rms_lt_check( 0 === $rc && filesize( $baseline ) > 0, 'baseline header.php from main is available' );
-
 // ── 1. Landing defers all three Testimonials variants ─────────────────────
 
 $now = rms_lt_capture( $landing );
@@ -231,45 +228,72 @@ rms_lt_check(
 	'get_deferred_style emits the print-media link and the noscript fallback'
 );
 
-// ── 2. Landing gains exactly V2 and V3, nothing else changes ──────────────
+// ── 2. Landing requests exactly its pinned asset list ────────────────────
 
-$before = rms_lt_capture( $landing, $baseline );
-$added  = array_values( array_diff( rms_lt_handles( $now ), rms_lt_handles( $before ) ) );
 rms_lt_check(
-	array( 'section-testimonials-v2', 'section-testimonials-v3' ) === $added,
-	'landing adds exactly section-testimonials-v2 and section-testimonials-v3 (got ' . implode( ', ', $added ) . ')'
+	array(
+		'section-hero',
+		'section-seo-content',
+		'section-vision-mission-v1',
+		'section-badges',
+		'section-portfolio-v1',
+		'section-testimonials-v1',
+		'section-testimonials-v2',
+		'section-testimonials-v3',
+		'lightbox',
+		'layout-footer-v2',
+	) === rms_lt_handles( $now ),
+	'landing defers exactly the pre-#162 sections plus testimonials-v2/v3, in order (got ' . implode( ', ', rms_lt_handles( $now ) ) . ')'
 );
 rms_lt_check(
-	array() === array_values( array_diff( rms_lt_handles( $before ), rms_lt_handles( $now ) ) ),
-	'landing keeps every stylesheet it requested on main, including testimonials-v1 and lightbox'
-);
-rms_lt_check(
-	$before['styles'] === $now['styles'] && $before['scripts'] === $now['scripts'],
-	'landing enqueued styles and scripts are unchanged from main'
+	array( 'header-one' ) === array_column( $now['styles'], 'handle' )
+		&& array( 'lightbox-js', 'header-one-menu' ) === array_column( $now['scripts'], 'handle' ),
+	'landing enqueued styles and scripts are unchanged'
 );
 rms_lt_check(
 	in_array( 'critical:critical-breadcrumb-slim', $now['log'], true ),
 	'landing still inlines the breadcrumb-slim critical CSS'
 );
 
-// ── 3. Home and the dedicated Testimonials template are untouched ─────────
+// ── 3. Home, Testimonials template and default pages are untouched ────────
 
-foreach ( array(
-	'front page'            => array( 'front' => true ),
-	'testimonials template' => array( 'template' => 'pages/testimonials.php', 'queried_id' => 7 ),
-	'default page'          => array(),
-) as $label => $context ) {
+$pinned = array(
+	'front page' => array(
+		'context'  => array( 'front' => true ),
+		'deferred' => array(
+			'section-about-us', 'section-services-v1', 'section-services-v2', 'section-services-v3',
+			'section-cta-v1', 'section-cta-v2', 'section-cta-v3',
+			'section-portfolio-v1', 'section-portfolio-v2', 'section-portfolio-v3',
+			'section-testimonials-v1', 'section-testimonials-v2', 'section-testimonials-v3',
+			'section-blog-v1', 'section-area-coverage-v1', 'section-vision-mission-v1', 'section-vision-mission-v2',
+			'section-seo-content', 'lightbox', 'section-faq-v1', 'section-faq-v2', 'section-video-v1', 'section-video-v2',
+			'layout-footer-v2',
+		),
+		'styles'   => array( 'section-slider', 'section-badges', 'header-one' ),
+		'scripts'  => array( 'slider-js', 'lightbox-js', 'portfolio-filter-js', 'faq-js', 'video-v1-js', 'video-v2-js', 'header-one-menu' ),
+	),
+	'testimonials template' => array(
+		'context'  => array( 'template' => 'pages/testimonials.php', 'queried_id' => 7 ),
+		'deferred' => array( 'section-testimonials-v1', 'layout-footer-v2' ),
+		'styles'   => array( 'header-one' ),
+		'scripts'  => array( 'header-one-menu' ),
+	),
+	'default page' => array(
+		'context'  => array(),
+		'deferred' => array( 'layout-footer-v2' ),
+		'styles'   => array( 'header-one' ),
+		'scripts'  => array( 'header-one-menu' ),
+	),
+);
+foreach ( $pinned as $label => $expected ) {
+	$got = rms_lt_capture( $expected['context'] );
 	rms_lt_check(
-		rms_lt_capture( $context, $baseline ) === rms_lt_capture( $context ),
-		"{$label} requests exactly the same assets as on main"
+		$expected['deferred'] === rms_lt_handles( $got )
+			&& $expected['styles'] === array_column( $got['styles'], 'handle' )
+			&& $expected['scripts'] === array_column( $got['scripts'], 'handle' ),
+		"{$label} requests exactly its pinned pre-#162 assets"
 	);
 }
-$home = rms_lt_capture( array( 'front' => true ) );
-foreach ( $variants as $variant ) {
-	rms_lt_check( in_array( 'section-' . $variant, rms_lt_handles( $home ), true ), "front page still defers section-{$variant}" );
-}
-
-unlink( $baseline );
 
 // ── Summary ────────────────────────────────────────────────────────────────
 
