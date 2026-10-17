@@ -13,6 +13,10 @@ if ( PHP_SAPI !== 'cli' ) {
 	exit( 1 );
 }
 
+// CLI runs with max_execution_time=0; the landing orchestrator requires a
+// finite budget, so emulate the bounded web request for every landing harness.
+ini_set( 'max_execution_time', '30' );
+
 require_once __DIR__ . '/wizard-landing-phase4-stubs.php';
 
 // Theme classes required by the landing change.
