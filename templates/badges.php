@@ -18,13 +18,22 @@ $badges_items = get_sub_field( 'badges_items' );
                     $badge_url  = $badge['badge_url'] ?? '';
                     $badge_icon = $badge['badge_icon'] ?? '';
                     $badge_name = $badge['badge_name'] ?? '';
+                    // Empty alt: the badge name is already the visible label and aria-label.
+                    $badge_logo = ! empty( $badge['badge_logo'] )
+                        ? wp_get_attachment_image( (int) $badge['badge_logo'], 'medium', false, array(
+                            'class'    => 'badges__logo',
+                            'alt'      => '',
+                            'loading'  => 'lazy',
+                            'decoding' => 'async',
+                        ) )
+                        : '';
                     ?>
                     <?php if ( ! empty( $badge_url ) ) : ?>
                         <a class="badges__item" href="<?php echo esc_url( $badge_url ); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr( $badge_name ); ?>">
                     <?php else : ?>
                         <div class="badges__item">
                     <?php endif; ?>
-                        <span class="badges__icon"><?php echo esc_html( $badge_icon ); ?></span>
+                        <span class="<?php echo $badge_logo ? 'badges__icon badges__icon--logo' : 'badges__icon'; ?>"><?php echo $badge_logo ? $badge_logo : esc_html( $badge_icon ); // phpcs:ignore WordPress.Security.EscapeOutput -- core-escaped <img>. ?></span>
                         <span class="badges__name"><?php echo esc_html( $badge_name ); ?></span>
                     <?php if ( ! empty( $badge_url ) ) : ?>
                         </a>

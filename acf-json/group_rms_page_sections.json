@@ -793,12 +793,38 @@
                             "collapsed": "",
                             "sub_fields": [
                                 {
+                                    "key": "field_rms_badge_item_logo",
+                                    "label": "Logo",
+                                    "name": "badge_logo",
+                                    "aria-label": "",
+                                    "type": "image",
+                                    "instructions": "Optional. Replaces the text icon inside the badge tile.",
+                                    "required": 0,
+                                    "conditional_logic": false,
+                                    "wrapper": {
+                                        "width": "100",
+                                        "class": "",
+                                        "id": ""
+                                    },
+                                    "return_format": "id",
+                                    "preview_size": "thumbnail",
+                                    "library": "all",
+                                    "min_width": 0,
+                                    "min_height": 0,
+                                    "min_size": 0,
+                                    "max_width": 0,
+                                    "max_height": 0,
+                                    "max_size": 0,
+                                    "mime_types": "",
+                                    "parent_repeater": "field_rms_badge_items"
+                                },
+                                {
                                     "key": "field_rms_badge_item_icon",
                                     "label": "Icon",
                                     "name": "badge_icon",
                                     "aria-label": "",
                                     "type": "text",
-                                    "instructions": "",
+                                    "instructions": "Short text shown in the tile when no logo is set.",
                                     "required": 0,
                                     "conditional_logic": false,
                                     "wrapper": {
@@ -2730,5 +2756,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1788820828
+    "modified": 1792204391
 }
