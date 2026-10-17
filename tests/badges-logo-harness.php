@@ -207,6 +207,15 @@ rms_cta_assert(
     'render-missing-attachment-fallback',
     'a logo whose attachment no longer resolves must fall back to the text icon exactly as main'
 );
+rms_badges_render( $template, array(
+    array( 'badge_logo' => array( 'ID' => 42 ), 'badge_icon' => 'A', 'badge_name' => 'Array Logo', 'badge_url' => '' ),
+    array( 'badge_logo' => 'logo.png', 'badge_icon' => 'S', 'badge_name' => 'String Logo', 'badge_url' => '' ),
+) );
+rms_cta_assert(
+    array() === $GLOBALS['rms_badges_image_calls'],
+    'render-non-numeric-logo-ignored',
+    'array or non-numeric logo values must fall back to the text icon without loading any attachment'
+);
 unlink( $baseline );
 
 // ─── 4. AI wizard never fills the logo ─────────────────────────────────────

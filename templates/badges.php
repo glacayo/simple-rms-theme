@@ -19,8 +19,9 @@ $badges_items = get_sub_field( 'badges_items' );
                     $badge_icon = $badge['badge_icon'] ?? '';
                     $badge_name = $badge['badge_name'] ?? '';
                     // Empty alt: the badge name is already the visible label and aria-label.
-                    $badge_logo = ! empty( $badge['badge_logo'] )
-                        ? wp_get_attachment_image( (int) $badge['badge_logo'], 'medium', false, array(
+                    $logo_id    = is_numeric( $badge['badge_logo'] ?? '' ) ? (int) $badge['badge_logo'] : 0;
+                    $badge_logo = $logo_id > 0
+                        ? wp_get_attachment_image( $logo_id, 'medium', false, array(
                             'class'    => 'badges__logo',
                             'alt'      => '',
                             'loading'  => 'lazy',
