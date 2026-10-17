@@ -3,6 +3,7 @@
 // ============================================
 @use '../base/variables' as *;
 @use '../base/mixins' as *;
+@use '../components/hero-form';
 
 // ─── Section ────────────────────────────────────────────────────────
 .contact-info {
@@ -212,8 +213,10 @@ a.contact-info__item-value {
   transition: border-color $transition-fast, box-shadow $transition-fast;
   appearance: none;
 
+  // gray-500 on white is 4.76:1 (WCAG AA for normal text).
   &::placeholder {
-    color: $color-gray-400;
+    color: $color-gray-500;
+    opacity: 1;
   }
 
   &:focus {
