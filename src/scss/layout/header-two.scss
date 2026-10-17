@@ -247,6 +247,26 @@
     padding: 0;
     cursor: pointer;
     text-align: left;
+    font: inherit;
+    color: inherit;
+}
+
+// Parent with a URL: its link and an icon-only toggle share one row
+.rms-header-v2__mobile-nav-item--has-submenu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    > .rms-header-v2__mobile-submenu {
+        flex-basis: 100%;
+    }
+}
+
+.rms-header-v2__mobile-nav-toggle--icon {
+    width: auto;
+    flex: 0 0 auto;
+    align-self: stretch;
+    padding-left: $space-4;
 }
 
 // Shared link style (used for all items)
@@ -393,9 +413,4 @@
             color: $color-primary;
         }
     }
-}
-
-// Mobile nav item with submenu — chevron via dedicated element (see walker)
-.rms-header-v2__mobile-nav-item--has-submenu {
-    // chevron handled by .rms-header-v2__mobile-nav-chevron inside the button
 }

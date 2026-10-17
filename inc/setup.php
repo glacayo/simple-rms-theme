@@ -78,8 +78,6 @@ add_action('widgets_init', 'simple_rms_widgets_init');
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_Primary extends Walker_Nav_Menu {
-    private bool $first_item = true;
-
     public function start_lvl(&$output, $depth = 0, $args = null): void {
         $class = ($depth === 0)
             ? 'rms-header__dropdown'
@@ -88,17 +86,10 @@ class RMS_Walker_Nav_Primary extends Walker_Nav_Menu {
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        // Close previous sibling's <li> (skip first item — no open <li> to close)
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -123,7 +114,66 @@ class RMS_Walker_Nav_Primary extends Walker_Nav_Menu {
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// Shared mobile submenu toggle (used by every mobile walker)
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Renders the parent of a mobile submenu with a real toggle button.
+ *
+ * Placeholder parents (`#` or an empty URL) become the toggle button itself,
+ * so no mobile link points to an empty anchor. Parents with a URL keep their
+ * link plus an icon-only toggle. Each toggle starts collapsed and points at
+ * its submenu through aria-controls.
+ */
+trait RMS_Walker_Mobile_Submenu_Toggle {
+    private string $pending_submenu_id = '';
+
+    private function is_placeholder_url($url): bool {
+        $url = trim((string) $url);
+
+        return $url === '' || $url === '#';
+    }
+
+    /**
+     * @param object $item       Menu item.
+     * @param string $block      BEM block, e.g. 'rms-header-v2'.
+     * @param string $link_class Class for the item label/link ('' for none).
+     */
+    private function mobile_parent_markup($item, string $block, string $link_class): string {
+        $submenu_id = $block . '-submenu-' . (int) $item->ID;
+        $this->pending_submenu_id = $submenu_id;
+
+        $title = esc_html($item->title);
+        $class_attr = $link_class !== '' ? ' class="' . esc_attr($link_class) . '"' : '';
+        $chevron = '<span class="' . esc_attr($block . '__mobile-nav-chevron') . '" aria-hidden="true"></span>';
+        $toggle_attrs = ' type="button" aria-expanded="false" aria-controls="' . esc_attr($submenu_id) . '"';
+
+        if ($this->is_placeholder_url($item->url)) {
+            return '<button class="' . esc_attr($block . '__mobile-nav-toggle') . '"' . $toggle_attrs . '>'
+                . '<span' . $class_attr . '>' . $title . '</span>' . $chevron
+                . '</button>';
+        }
+
+        /* translators: %s: parent menu item title. */
+        $label = sprintf(__('Toggle %s submenu', 'simple-rms-theme'), $item->title);
+
+        return '<a href="' . esc_url($item->url) . '"' . $class_attr . '>' . $title . '</a>'
+            . '<button class="' . esc_attr($block . '__mobile-nav-toggle ' . $block . '__mobile-nav-toggle--icon') . '"'
+            . $toggle_attrs . ' aria-label="' . esc_attr($label) . '">' . $chevron . '</button>';
+    }
+
+    private function mobile_submenu_open_tag(string $class): string {
+        $id_attr = $this->pending_submenu_id !== ''
+            ? ' id="' . esc_attr($this->pending_submenu_id) . '"'
+            : '';
+        $this->pending_submenu_id = '';
+
+        return '<ul class="' . esc_attr($class) . '"' . $id_attr . '>';
     }
 }
 
@@ -132,23 +182,17 @@ class RMS_Walker_Nav_Primary extends Walker_Nav_Menu {
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_Mobile extends Walker_Nav_Menu {
-    private bool $first_item = true;
+    use RMS_Walker_Mobile_Submenu_Toggle;
 
     public function start_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '<ul class="rms-header__mobile-submenu">';
+        $output .= $this->mobile_submenu_open_tag('rms-header__mobile-submenu');
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -157,20 +201,18 @@ class RMS_Walker_Nav_Mobile extends Walker_Nav_Menu {
             $li_class = 'rms-header__mobile-nav-item--has-submenu';
         }
 
-        $aria = '';
+        $output .= '<li' . ($li_class ? ' class="' . esc_attr($li_class) . '"' : '') . '>';
+
         if ($has_children) {
-            $aria = ' aria-haspopup="true" aria-expanded="false"';
+            $output .= $this->mobile_parent_markup($item, 'rms-header', '');
+            return;
         }
 
-        $url = esc_url($item->url);
-        $title = esc_html($item->title);
-
-        $output .= '<li' . ($li_class ? ' class="' . esc_attr($li_class) . '"' : '') . '>';
-        $output .= '<a href="' . $url . '"' . $aria . '>' . $title . '</a>';
+        $output .= '<a href="' . esc_url($item->url) . '">' . esc_html($item->title) . '</a>';
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
     }
 }
 
@@ -179,23 +221,15 @@ class RMS_Walker_Nav_Mobile extends Walker_Nav_Menu {
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_V2_Desktop extends Walker_Nav_Menu {
-    private bool $first_item = true;
-
     public function start_lvl(&$output, $depth = 0, $args = null): void {
         $output .= '<ul class="rms-header-v2__dropdown">';
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -219,7 +253,7 @@ class RMS_Walker_Nav_V2_Desktop extends Walker_Nav_Menu {
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
     }
 }
 
@@ -228,23 +262,17 @@ class RMS_Walker_Nav_V2_Desktop extends Walker_Nav_Menu {
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_V2_Mobile extends Walker_Nav_Menu {
-    private bool $first_item = true;
+    use RMS_Walker_Mobile_Submenu_Toggle;
 
     public function start_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '<ul class="rms-header-v2__mobile-submenu">';
+        $output .= $this->mobile_submenu_open_tag('rms-header-v2__mobile-submenu');
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -253,20 +281,18 @@ class RMS_Walker_Nav_V2_Mobile extends Walker_Nav_Menu {
             $li_class .= ' rms-header-v2__mobile-nav-item--has-submenu';
         }
 
-        $aria = '';
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+
         if ($has_children) {
-            $aria = ' aria-haspopup="true" aria-expanded="false"';
+            $output .= $this->mobile_parent_markup($item, 'rms-header-v2', 'rms-header-v2__mobile-nav-link');
+            return;
         }
 
-        $url = esc_url($item->url);
-        $title = esc_html($item->title);
-
-        $output .= '<li class="' . esc_attr($li_class) . '">';
-        $output .= '<a href="' . $url . '" class="rms-header-v2__mobile-nav-link"' . $aria . '>' . $title . '</a>';
+        $output .= '<a href="' . esc_url($item->url) . '" class="rms-header-v2__mobile-nav-link">' . esc_html($item->title) . '</a>';
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
     }
 }
 
@@ -275,23 +301,15 @@ class RMS_Walker_Nav_V2_Mobile extends Walker_Nav_Menu {
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_V3_Desktop extends Walker_Nav_Menu {
-    private bool $first_item = true;
-
     public function start_lvl(&$output, $depth = 0, $args = null): void {
         $output .= '<ul class="rms-header-v3__dropdown">';
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -315,7 +333,7 @@ class RMS_Walker_Nav_V3_Desktop extends Walker_Nav_Menu {
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
     }
 }
 
@@ -324,23 +342,17 @@ class RMS_Walker_Nav_V3_Desktop extends Walker_Nav_Menu {
 // ══════════════════════════════════════════════════════════════════════════
 
 class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
-    private bool $first_item = true;
+    use RMS_Walker_Mobile_Submenu_Toggle;
 
     public function start_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '<ul class="rms-header-v3__mobile-submenu">';
+        $output .= $this->mobile_submenu_open_tag('rms-header-v3__mobile-submenu');
     }
 
     public function end_lvl(&$output, $depth = 0, $args = null): void {
-        $output .= '</li></ul>';
+        $output .= '</ul>';
     }
 
     public function start_el(&$output, $item, $depth = 0, $args = null, $id = 0): void {
-        if ($this->first_item) {
-            $this->first_item = false;
-        } else {
-            $output .= '</li>';
-        }
-
         $classes = empty($item->classes) ? [] : (array) $item->classes;
         $has_children = in_array('menu-item-has-children', $classes);
 
@@ -349,20 +361,18 @@ class RMS_Walker_Nav_V3_Mobile extends Walker_Nav_Menu {
             $li_class .= ' rms-header-v3__mobile-nav-item--has-submenu';
         }
 
-        $aria = '';
+        $output .= '<li class="' . esc_attr($li_class) . '">';
+
         if ($has_children) {
-            $aria = ' aria-haspopup="true" aria-expanded="false"';
+            $output .= $this->mobile_parent_markup($item, 'rms-header-v3', 'rms-header-v3__mobile-nav-link');
+            return;
         }
 
-        $url = esc_url($item->url);
-        $title = esc_html($item->title);
-
-        $output .= '<li class="' . esc_attr($li_class) . '">';
-        $output .= '<a href="' . $url . '" class="rms-header-v3__mobile-nav-link"' . $aria . '>' . $title . '</a>';
+        $output .= '<a href="' . esc_url($item->url) . '" class="rms-header-v3__mobile-nav-link">' . esc_html($item->title) . '</a>';
     }
 
     public function end_el(&$output, $item, $depth = 0, $args = null): void {
-        // Don't close <li> here — end_lvl closes it after children
+        $output .= '</li>';
     }
 }
 
