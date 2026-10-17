@@ -133,16 +133,48 @@
     // SEO Landing Page template
     if (is_page_template('pages/landing-page.php')) {
         echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-slim');
-        // All sections used by landing page — deferred
-        foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1', 'testimonials-v2', 'testimonials-v3'] as $section) {
+
+        // Styles for the layouts stored on this landing page — deferred.
+        // Empty page_sections renders the hardcoded fallback order, so keep
+        // its legacy list for that case.
+        $rms_landing_layouts = rms_page_section_layouts((int) get_queried_object_id());
+        if ([] === $rms_landing_layouts) {
+            $rms_landing_layouts = ['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1', 'testimonials-v2', 'testimonials-v3'];
+        }
+        foreach ($rms_landing_layouts as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
         }
 
-        // Portfolio V1 tiles carry data-lightbox — shared zoom modal runtime.
+        // Portfolio/gallery tiles carry data-lightbox — shared zoom modal runtime.
         $vite->get_deferred_style('lightbox', 'src/scss/components/lightbox.scss');
         $lightbox_js = $vite->get_asset('src/ts/lightbox.ts');
         if ($lightbox_js) {
             wp_enqueue_script('lightbox-js', $lightbox_js, [], null, true);
+        }
+
+        // Interactive layouts get the same runtime (and handle) as on the home page.
+        $rms_landing_scripts = [
+            'slider'       => ['slider-js', 'src/ts/slider.ts'],
+            'portfolio-v3' => ['portfolio-filter-js', 'src/ts/portfolio-filter.ts'],
+            'faq-v1'       => ['faq-js', 'src/ts/faq.ts'],
+            'faq-v2'       => ['faq-js', 'src/ts/faq.ts'],
+            'video-v1'     => ['video-v1-js', 'src/ts/video-v1.ts'],
+            'video-v2'     => ['video-v2-js', 'src/ts/video-v2.ts'],
+        ];
+        $rms_landing_enqueued = [];
+        foreach ($rms_landing_layouts as $section) {
+            if (!isset($rms_landing_scripts[$section])) {
+                continue;
+            }
+            [$handle, $entry] = $rms_landing_scripts[$section];
+            if (isset($rms_landing_enqueued[$handle])) {
+                continue;
+            }
+            $rms_landing_enqueued[$handle] = true;
+            $script = $vite->get_asset($entry);
+            if ($script) {
+                wp_enqueue_script($handle, $script, [], null, true);
+            }
         }
     }
 
