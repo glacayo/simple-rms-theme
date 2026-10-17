@@ -15,10 +15,16 @@ $cta_url     = get_sub_field('services_v1_cta_url') ?: '#';
 
         <div class="grid-3">
             <?php if ($services) : ?>
-                <?php foreach ($services as $service) : ?>
+                <?php foreach ($services as $service) :
+                    // Only a full http(s) URL links the title; anything else keeps it plain.
+                    $service_url = isset($service['service_url']) && is_string($service['service_url']) ? trim($service['service_url']) : '';
+                    if ($service_url !== '' && (!preg_match('#^https?://#i', $service_url) || false === filter_var($service_url, FILTER_VALIDATE_URL))) {
+                        $service_url = '';
+                    }
+                    ?>
                     <div class="services-v1__card">
                         <span class="services-v1__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2 5 5 0 0 1-5 5 5 5 0 0 1-5-5 2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-                        <h4 class="services-v1__card-title"><?php echo esc_html($service['service_title']); ?></h4>
+                        <h4 class="services-v1__card-title"><?php if ($service_url !== '') : ?><a class="services-v1__card-link" href="<?php echo esc_url($service_url); ?>"><?php echo esc_html($service['service_title']); ?></a><?php else : echo esc_html($service['service_title']); endif; ?></h4>
                         <p class="services-v1__card-text"><?php echo esc_html($service['service_text']); ?></p>
                     </div>
                 <?php endforeach; ?>

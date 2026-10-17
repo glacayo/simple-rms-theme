@@ -94,6 +94,25 @@
   margin-bottom: $space-2;
 }
 
+// Optional title link: keeps the title look, underlines on hover/focus.
+.services-v1__card-link {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  border-radius: $radius-sm;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 3px;
+    text-decoration: underline;
+  }
+}
+
 .services-v1__card-text {
   color: $color-gray-600;
   font-size: $font-size-base;
