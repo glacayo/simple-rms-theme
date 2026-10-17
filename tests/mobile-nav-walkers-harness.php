@@ -271,10 +271,25 @@ $one_scss = (string) file_get_contents( $theme_root . '/src/scss/layout/header-o
 rms_mn_assert( false !== strpos( $one_ts, 'scrollHeight' ), 'ts-one-measures-height', 'header one must open submenus to their real content height' );
 rms_mn_assert( false === strpos( $one_scss, 'max-height: 500px' ), 'scss-one-no-fixed-cap', 'header one must not cap submenus at 500px' );
 rms_mn_assert( false !== strpos( $one_scss, 'visibility: hidden' ), 'scss-one-collapsed-hidden', 'collapsed header one submenus must be visibility: hidden' );
+rms_mn_assert(
+    1 === preg_match( '/^\.rms-header__mobile-nav-toggle \{[^}]*background: none;/m', $one_scss ),
+    'scss-one-toggle-reset',
+    'header one toggles must reset native button background'
+);
+rms_mn_assert(
+    1 === preg_match( '/\.rms-header__mobile-submenu \{.*\n  \.rms-header__mobile-nav-item--has-submenu \{/s', $one_scss ),
+    'scss-one-nested-parent-row',
+    'nested header one parents must get their own row layout inside submenus'
+);
 
 foreach ( array( 'two' => 'rms-header-v2', 'three' => 'rms-header-v3' ) as $key => $block ) {
     $scss = (string) file_get_contents( $theme_root . "/src/scss/layout/header-{$key}.scss" );
     rms_mn_assert( false !== strpos( $scss, "{$block}__mobile-nav-toggle--icon" ), "scss-{$key}-icon-toggle", 'icon-only toggle must be styled' );
+    rms_mn_assert(
+        1 === preg_match( '/^\.' . preg_quote( $block, '/' ) . '__mobile-nav-toggle \{[^}]*background: none;/m', $scss ),
+        "scss-{$key}-toggle-reset",
+        'toggles must reset native button background'
+    );
 }
 
 if ( $failures > 0 ) {

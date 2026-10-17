@@ -116,9 +116,12 @@
   }
 }
 
+// Reset native button chrome; the theme reset only sets `font: inherit`
 .rms-header__mobile-nav-toggle {
   justify-content: space-between;
+  background: none;
   border: none;
+  color: inherit;
   font-family: inherit;
   cursor: pointer;
 }
@@ -156,6 +159,36 @@
 
     &:hover {
       padding-left: $space-10;
+    }
+  }
+
+  // Nested parents: same row layout as the top level, submenu link styling
+  .rms-header__mobile-nav-item--has-submenu {
+    display: flex;
+    flex-wrap: wrap;
+
+    > a {
+      flex: 1;
+    }
+
+    > .rms-header__mobile-nav-toggle {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: $space-3 $space-8;
+      text-align: left;
+
+      @include interactive-link($color-gray-600, $color-primary, transparent, $font-size-sm);
+    }
+
+    > .rms-header__mobile-nav-toggle--icon {
+      flex: 0 0 auto;
+      width: auto;
+      padding: $space-3 $space-5;
+    }
+
+    > .rms-header__mobile-submenu {
+      flex-basis: 100%;
     }
   }
 }
