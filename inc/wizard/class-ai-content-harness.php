@@ -63,7 +63,7 @@ final class AI_Content_Harness {
 		'slider' => [ 'slide_bg_image', 'slide_cta_url' ],
 		'about-us' => [ 'about_image', 'about_badge_years' ],
 		'area-coverage-v1' => [ 'area_radius', 'area_cities', 'city_name', 'area_cta_url', 'area_map_image', 'area_eyebrow_color', 'area_headline_color', 'area_text_color' ],
-		'badges' => [ 'badges_items', 'badge_icon', 'badge_name', 'badge_url' ],
+		'badges' => [ 'badges_items', 'badge_logo', 'badge_icon', 'badge_name', 'badge_url' ],
 		'blog-v1' => [ 'blog_cta_url' ],
 		'contact-info' => [ 'contact_info_form_shortcode' ],
 		'cta-v1' => [ 'cta_v1_button_url' ],

@@ -72,6 +72,21 @@
   }
 }
 
+// Logo tile: a light surface keeps brand logos legible on the dark section.
+// Doubled selector: rms-palette.css loads later and sets .badges__icon
+// background at equal specificity.
+.badges__icon.badges__icon--logo {
+  background-color: $color-white;
+  padding: $space-2;
+}
+
+.badges__logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .badges__name {
   color: $color-gray-400;
   font-size: $font-size-xs;
