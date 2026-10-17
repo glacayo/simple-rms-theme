@@ -12,6 +12,10 @@
  */
 
 namespace {
+	// CLI runs with max_execution_time=0; the landing orchestrator requires a
+	// finite budget, so emulate the bounded web request before any run.
+	ini_set( 'max_execution_time', '30' );
+
 	if ( ! defined( 'ABSPATH' ) ) {
 		define( 'ABSPATH', true );
 	}
