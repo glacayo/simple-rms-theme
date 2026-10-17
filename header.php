@@ -134,7 +134,7 @@
     if (is_page_template('pages/landing-page.php')) {
         echo $vite->get_critical_css('src/scss/templates/breadcrumb.scss', 'critical-breadcrumb-slim');
         // All sections used by landing page — deferred
-        foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1'] as $section) {
+        foreach (['hero', 'seo-content', 'vision-mission-v1', 'badges', 'portfolio-v1', 'testimonials-v1', 'testimonials-v2', 'testimonials-v3'] as $section) {
             $vite->get_deferred_style('section-' . $section, 'src/scss/templates/' . $section . '.scss');
         }
 
