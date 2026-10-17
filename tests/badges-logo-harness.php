@@ -10,7 +10,7 @@
  *      async, empty alt) inside `badges__icon badges__icon--logo` instead of
  *      the text icon.
  *   3. A badge without a logo, or whose attachment no longer resolves,
- *      renders byte-identical to the template on main.
+ *      renders byte-identical to the pinned pre-#158 template output.
  *   4. The AI wizard never fills `badge_logo`.
  *   5. The logo tile keeps its light background over the palette override.
  *
@@ -133,10 +133,78 @@ rms_cta_assert(
 // ─── 2/3. Rendering ────────────────────────────────────────────────────────
 
 $template = $theme_root . '/templates/badges.php';
-$baseline = tempnam( sys_get_temp_dir(), 'rms-badges-main-' );
-exec( 'git -C ' . escapeshellarg( $theme_root ) . ' show main:templates/badges.php 2>/dev/null', $lines, $rc );
-file_put_contents( $baseline, implode( "\n", $lines ) . "\n" );
-rms_cta_assert( 0 === $rc && filesize( $baseline ) > 0, 'baseline-template-available', 'git show main:templates/badges.php must work' );
+
+// Exact output of templates/badges.php before #158 (commit 329c3c4), pinned
+// so no-logo badges are checked against a fixed baseline on any checkout.
+$rms_badges_expected_two_rows = <<<'PRE158'
+<!-- Badges / Directories Section -->
+<section class="badges">
+    <div class="container">
+        <p class="badges__label">Trusted &amp; Verified On</p>
+        <div class="badges__list">
+                                                                        <a class="badges__item" href="https://www.bbb.org/x" target="_blank" rel="noopener noreferrer" aria-label="BBB Accredited">
+                                            <span class="badges__icon">BBB</span>
+                        <span class="badges__name">BBB Accredited</span>
+                                            </a>
+                                                                                <div class="badges__item">
+                                            <span class="badges__icon">YP</span>
+                        <span class="badges__name">Yellow Pages</span>
+                                            </div>
+                                                        </div>
+    </div>
+</section>
+PRE158;
+$rms_badges_expected_two_rows .= "\n";
+$rms_badges_expected_one_row = <<<'PRE158'
+<!-- Badges / Directories Section -->
+<section class="badges">
+    <div class="container">
+        <p class="badges__label">Trusted &amp; Verified On</p>
+        <div class="badges__list">
+                                                                        <a class="badges__item" href="https://www.bbb.org/x" target="_blank" rel="noopener noreferrer" aria-label="BBB Accredited">
+                                            <span class="badges__icon">BBB</span>
+                        <span class="badges__name">BBB Accredited</span>
+                                            </a>
+                                                        </div>
+    </div>
+</section>
+PRE158;
+$rms_badges_expected_one_row .= "\n";
+$rms_badges_expected_placeholder = <<<'PRE158'
+<!-- Badges / Directories Section -->
+<section class="badges">
+    <div class="container">
+        <p class="badges__label">Trusted &amp; Verified On</p>
+        <div class="badges__list">
+                            <a class="badges__item" href="#" target="_blank" rel="noopener noreferrer" aria-label="Home Advisor">
+                    <span class="badges__icon">HA</span>
+                    <span class="badges__name">Home Advisor</span>
+                </a>
+
+                <a class="badges__item" href="#" target="_blank" rel="noopener noreferrer" aria-label="Yellow Pages">
+                    <span class="badges__icon">YP</span>
+                    <span class="badges__name">Yellow Pages</span>
+                </a>
+
+                <a class="badges__item" href="#" target="_blank" rel="noopener noreferrer" aria-label="Cilex">
+                    <span class="badges__icon">CL</span>
+                    <span class="badges__name">Cilex</span>
+                </a>
+
+                <a class="badges__item" href="#" target="_blank" rel="noopener noreferrer" aria-label="Yelp">
+                    <span class="badges__icon">YL</span>
+                    <span class="badges__name">Yelp</span>
+                </a>
+
+                <a class="badges__item" href="#" target="_blank" rel="noopener noreferrer" aria-label="BBB Accredited">
+                    <span class="badges__icon">BBB</span>
+                    <span class="badges__name">BBB Accredited</span>
+                </a>
+                    </div>
+    </div>
+</section>
+PRE158;
+$rms_badges_expected_placeholder .= "\n";
 
 $GLOBALS['rms_badges_attachments'] = array( 42 );
 
@@ -145,9 +213,9 @@ $legacy_rows = array(
     array( 'badge_icon' => 'YP', 'badge_name' => 'Yellow Pages', 'badge_url' => '' ),
 );
 rms_cta_assert(
-    rms_badges_render( $template, $legacy_rows ) === rms_badges_render( $baseline, $legacy_rows ),
+    rms_badges_render( $template, $legacy_rows ) === $rms_badges_expected_two_rows,
     'render-legacy-identical',
-    'rows saved before this change (no badge_logo key) must render byte-identical to main'
+    'rows saved before #158 (no badge_logo key) must render byte-identical to the pre-#158 template'
 );
 
 $empty_logo_rows = array(
@@ -155,14 +223,14 @@ $empty_logo_rows = array(
     array( 'badge_logo' => false, 'badge_icon' => 'YP', 'badge_name' => 'Yellow Pages', 'badge_url' => '' ),
 );
 rms_cta_assert(
-    rms_badges_render( $template, $empty_logo_rows ) === rms_badges_render( $baseline, $legacy_rows ),
+    rms_badges_render( $template, $empty_logo_rows ) === $rms_badges_expected_two_rows,
     'render-empty-logo-identical',
-    'rows with an empty logo must render byte-identical to main'
+    'rows with an empty logo must render byte-identical to the pre-#158 template'
 );
 rms_cta_assert(
-    rms_badges_render( $template, array() ) === rms_badges_render( $baseline, array() ),
+    rms_badges_render( $template, array() ) === $rms_badges_expected_placeholder,
     'render-placeholder-identical',
-    'the no-items placeholder must stay byte-identical to main'
+    'the no-items placeholder must stay byte-identical to the pre-#158 template'
 );
 
 $html  = rms_badges_render( $template, array(
@@ -203,9 +271,9 @@ $missing = rms_badges_render( $template, array(
     array( 'badge_logo' => 999, 'badge_icon' => 'BBB', 'badge_name' => 'BBB Accredited', 'badge_url' => 'https://www.bbb.org/x' ),
 ) );
 rms_cta_assert(
-    $missing === rms_badges_render( $baseline, array( $legacy_rows[0] ) ),
+    $missing === $rms_badges_expected_one_row,
     'render-missing-attachment-fallback',
-    'a logo whose attachment no longer resolves must fall back to the text icon exactly as main'
+    'a logo whose attachment no longer resolves must fall back to the text icon exactly as before #158'
 );
 rms_badges_render( $template, array(
     array( 'badge_logo' => array( 'ID' => 42 ), 'badge_icon' => 'A', 'badge_name' => 'Array Logo', 'badge_url' => '' ),
@@ -216,7 +284,6 @@ rms_cta_assert(
     'render-non-numeric-logo-ignored',
     'array or non-numeric logo values must fall back to the text icon without loading any attachment'
 );
-unlink( $baseline );
 
 // ─── 4. AI wizard never fills the logo ─────────────────────────────────────
 
