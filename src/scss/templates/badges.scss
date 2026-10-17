@@ -72,12 +72,13 @@
   }
 }
 
-// Logo tile: a light surface keeps brand logos legible on the dark section.
-// Doubled selector: rms-palette.css loads later and sets .badges__icon
-// background at equal specificity.
+// Logo tile: the artwork fills the badge area with no frame. Keeps the
+// shared 64px/80px size. Doubled selector: rms-palette.css loads later and
+// sets .badges__icon background at equal specificity.
 .badges__icon.badges__icon--logo {
-  background-color: $color-white;
-  padding: $space-2;
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .badges__logo {

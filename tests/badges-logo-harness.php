@@ -12,7 +12,8 @@
  *   3. A badge without a logo, or whose attachment no longer resolves,
  *      renders byte-identical to the pinned pre-#158 template output.
  *   4. The AI wizard never fills `badge_logo`.
- *   5. The logo tile keeps its light background over the palette override.
+ *   5. The logo tile is transparent with no padding, radius or clipping
+ *      (#172) while text tiles keep their pre-#172 styling.
  *
  * Usage: php tests/badges-logo-harness.php
  */
@@ -299,19 +300,43 @@ rms_cta_assert(
     'validate_fields must drop badge_logo and keep badges_label'
 );
 
-// ─── 5. Logo tile styling ──────────────────────────────────────────────────
+// ─── 5. Logo and text tile styling ─────────────────────────────────────────
 
 $scss = (string) file_get_contents( $theme_root . '/src/scss/templates/badges.scss' );
+
+/**
+ * Body of the first top-level rule whose selector is exactly $selector.
+ */
+function rms_badges_scss_rule( string $scss, string $selector ): string {
+    return 1 === preg_match( '/^' . preg_quote( $selector, '/' ) . '\s*\{(.*?)^\}/ms', $scss, $m ) ? $m[1] : '';
+}
+
+$logo_tile = rms_badges_scss_rule( $scss, '.badges__icon.badges__icon--logo' );
 rms_cta_assert(
-    1 === preg_match( '/\.badges__icon\.badges__icon--logo\s*\{[^}]*background-color:\s*\$color-white;/', $scss ),
-    'scss-logo-tile-light',
-    'the logo tile must use a doubled selector with a white background to beat rms-palette.css'
+    1 === preg_match( '/background-color:\s*transparent;/', $logo_tile ),
+    'scss-logo-tile-transparent',
+    'the logo tile must be transparent (doubled selector beats rms-palette.css)'
 );
+rms_cta_assert( 1 === preg_match( '/padding:\s*0;/', $logo_tile ), 'scss-logo-tile-no-padding', 'the logo tile must have no padding' );
+rms_cta_assert( 1 === preg_match( '/border-radius:\s*0;/', $logo_tile ), 'scss-logo-tile-no-radius', 'the logo tile must not force rounded corners' );
+rms_cta_assert( false === strpos( $logo_tile, 'overflow' ), 'scss-logo-tile-no-clipping', 'the logo tile must not force clipping' );
+rms_cta_assert( false === strpos( $logo_tile, 'width' ) && false === strpos( $logo_tile, 'height' ), 'scss-logo-tile-keeps-size', 'the logo tile must keep the shared 64px/80px badge size' );
+
+$logo_img = rms_badges_scss_rule( $scss, '.badges__logo' );
 rms_cta_assert(
-    1 === preg_match( '/\.badges__logo\s*\{[^}]*object-fit:\s*contain;/', $scss ),
-    'scss-logo-contained',
-    'the logo image must be contained inside its tile'
+    1 === preg_match( '/width:\s*100%;/', $logo_img ) && 1 === preg_match( '/height:\s*100%;/', $logo_img ) && 1 === preg_match( '/object-fit:\s*contain;/', $logo_img ),
+    'scss-logo-fills-contained',
+    'the logo image must fill the badge area with object-fit: contain'
 );
+
+// Text tiles stay exactly as before #172.
+$text_tile = rms_badges_scss_rule( $scss, '.badges__icon' );
+foreach ( array(
+    'width: 64px;', 'height: 64px;', 'background-color: $color-gray-800;', 'color: $color-white;',
+    'font-size: $font-size-xl;', 'border-radius: $radius-lg;', 'width: 80px;', 'height: 80px;',
+) as $decl ) {
+    rms_cta_assert( false !== strpos( $text_tile, $decl ), 'scss-text-tile-' . preg_replace( '/[^a-z0-9]+/', '-', $decl ), "the text tile must keep `{$decl}`" );
+}
 
 // ─── Summary ─────────────────────────────────────────────────────────────────────────
 
