@@ -192,7 +192,42 @@ rms_cta_assert(
     'without logos the footer keeps the linked site-name placeholder'
 );
 
-// ─── Summary ───────────────────────────────────────────────────────────────
+// ─── Footer V1 ──────────────────────────────────────────────────────────────────
+
+$v1 = rms_tlo_render( 'footer-v1.php', array( 'company_logo_footer' => 22 ), $both );
+$v1img = rms_tlo_imgs( $v1, $footer_url )[0] ?? '';
+rms_cta_assert( 'Footer logo description' === rms_tlo_attr( $v1img, 'alt' ), 'footer-v1-uses-footer-alt', 'the footer-v1 logo alt must be the footer attachment alt text (got ' . var_export( rms_tlo_attr( $v1img, 'alt' ), true ) . ')' );
+rms_cta_assert( '140' === rms_tlo_attr( $v1img, 'width' ) && '42' === rms_tlo_attr( $v1img, 'height' ), 'footer-v1-keeps-dimensions', 'the footer-v1 logo keeps 140x42' );
+rms_cta_assert( 1 === preg_match( '#<a class="footer-v1__logo-link" href="https://example\.test/">\s*<img#', $v1 ), 'footer-v1-keeps-home-link', 'the footer-v1 logo stays linked to home' );
+
+$v1_edited = rms_tlo_render( 'footer-v1.php', array( 'company_logo_footer' => 22 ), array( 22 => array( 'url' => $footer_url, 'alt' => 'Edited footer alt' ) ) );
+rms_cta_assert( 'Edited footer alt' === rms_tlo_attr( rms_tlo_imgs( $v1_edited, $footer_url )[0] ?? '', 'alt' ), 'footer-v1-reflects-alt-edit', 'a footer-v1 alt text edit must show on the next render' );
+
+$v1_escaped = rms_tlo_render( 'footer-v1.php', array( 'company_logo_footer' => 22 ), array( 22 => array( 'url' => $footer_url, 'alt' => 'A "quoted" <b>logo</b> & co' ) ) );
+rms_cta_assert(
+    1 === preg_match( '#alt="A &quot;quoted&quot; &lt;b&gt;logo&lt;/b&gt; &amp; co"#', $v1_escaped ) && false === strpos( $v1_escaped, '<b>logo' ),
+    'footer-v1-escapes-alt',
+    'the footer-v1 alt text must be escaped for the attribute'
+);
+
+$v1_no_alt = rms_tlo_render( 'footer-v1.php', array( 'company_logo_footer' => 22 ), array( 22 => array( 'url' => $footer_url, 'alt' => '' ) ) );
+rms_cta_assert( 'Simple RMS' === rms_tlo_attr( rms_tlo_imgs( $v1_no_alt, $footer_url )[0] ?? '', 'alt' ), 'footer-v1-empty-alt-fallback', 'without alt text the footer-v1 logo keeps the identity-name alt' );
+
+$v1_header_only = rms_tlo_render( 'footer-v1.php', array( 'company_logo_header' => 11 ), $both );
+rms_cta_assert(
+    array() === rms_tlo_imgs( $v1_header_only, $header_url ) && 1 === preg_match( '#<a class="footer-v1__wordmark" href="https://example\.test/">\s*Simple RMS\s*</a>#', $v1_header_only ),
+    'footer-v1-source-unchanged',
+    'footer-v1 still renders only the footer logo and keeps the wordmark when it is unset'
+);
+
+$v1_custom = rms_tlo_render( 'footer-v1.php', array( 'company_logo_footer' => 22 ), $both, true );
+rms_cta_assert(
+    false !== strpos( $v1_custom, 'alt="Custom Logo Alt"' ) && array() === rms_tlo_imgs( $v1_custom, $footer_url ),
+    'footer-v1-custom-logo-precedence',
+    'a WordPress Custom Logo must still win in footer-v1'
+);
+
+// ─── Summary ─────────────────────────────────────────────────────────────────────────
 
 if ( $failures > 0 ) {
     fwrite( STDERR, "\nBranding logo alt harness failed: {$failures} check(s).\n" );

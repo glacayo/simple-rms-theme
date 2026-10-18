@@ -64,11 +64,12 @@ if (is_array($socials)) {
             <?php if (has_custom_logo()) : ?>
                 <?php the_custom_logo(); ?>
             <?php elseif (!empty($footer_logo)) : ?>
+                <?php $footer_logo_alt = rms_get_option_image_alt('company_logo_footer'); ?>
                 <a class="footer-v1__logo-link" href="<?php echo esc_url(home_url('/')); ?>">
                     <img
                         class="footer-v1__logo"
                         src="<?php echo esc_url($footer_logo); ?>"
-                        alt="<?php echo esc_attr($identity_name !== '' ? $identity_name : __('Home', 'simple-rms-theme')); ?>"
+                        alt="<?php echo esc_attr($footer_logo_alt !== '' ? $footer_logo_alt : ($identity_name !== '' ? $identity_name : __('Home', 'simple-rms-theme'))); ?>"
                         width="140"
                         height="42"
                     >
