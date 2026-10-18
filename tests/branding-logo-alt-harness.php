@@ -73,10 +73,11 @@ function the_custom_logo() {
 // Shared stubs + rms_cta_* helpers. Also requires inc/acf-theme-options.php.
 require __DIR__ . '/support/header-cta-support.php';
 
-foreach ( array( 'get_template_part', 'wp_body_open' ) as $rms_tlo_fn ) {
-    if ( ! function_exists( $rms_tlo_fn ) ) {
-        eval( "function {$rms_tlo_fn}( ...\$args ) {}" );
-    }
+if ( ! function_exists( 'get_template_part' ) ) {
+    function get_template_part( ...$args ) {}
+}
+if ( ! function_exists( 'wp_body_open' ) ) {
+    function wp_body_open() {}
 }
 
 /**
