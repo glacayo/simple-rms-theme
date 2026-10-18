@@ -18,7 +18,8 @@
                 if ('' !== $footer_logo_url) :
                     ?>
                     <a href="<?php echo esc_url(home_url('/')); ?>">
-                        <img src="<?php echo esc_url($footer_logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>" width="200" height="60">
+                        <?php $footer_logo_alt = rms_get_footer_logo_alt(); ?>
+                        <img src="<?php echo esc_url($footer_logo_url); ?>" alt="<?php echo esc_attr('' !== $footer_logo_alt ? $footer_logo_alt : get_bloginfo('name')); ?>" width="200" height="60">
                     </a>
                     <?php
                 else :

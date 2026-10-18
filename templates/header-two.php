@@ -68,7 +68,8 @@ $header_cta         = rms_get_header_primary_cta();
                 if (!empty($header_logo)) :
                     ?>
                     <a href="/" aria-label="Home">
-                        <img src="<?php echo esc_url($header_logo); ?>" alt="Simple RMS" width="200" height="60">
+                        <?php $header_logo_alt = rms_get_option_image_alt('company_logo_header'); ?>
+                        <img src="<?php echo esc_url($header_logo); ?>" alt="<?php echo esc_attr('' !== $header_logo_alt ? $header_logo_alt : 'Simple RMS'); ?>" width="200" height="60">
                     </a>
                     <?php
                 else :

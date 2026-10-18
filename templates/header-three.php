@@ -11,7 +11,8 @@ $header_phone_clean = rms_format_tel_uri($header_phone);
         if (!empty($header_logo)) :
             ?>
             <a href="/" class="rms-header-v3__logo-link" aria-label="Home">
-                <img src="<?php echo esc_url($header_logo); ?>" alt="Simple RMS" width="200" height="60" fetchpriority="high">
+                <?php $header_logo_alt = rms_get_option_image_alt('company_logo_header'); ?>
+                <img src="<?php echo esc_url($header_logo); ?>" alt="<?php echo esc_attr('' !== $header_logo_alt ? $header_logo_alt : 'Simple RMS'); ?>" width="200" height="60" fetchpriority="high">
             </a>
             <?php
         else :

@@ -88,9 +88,10 @@ $header_cta = rms_get_header_primary_cta();
                         the_custom_logo();
                     elseif (!empty($header_logo)) :
                         ?>
+                        <?php $header_logo_alt = rms_get_option_image_alt('company_logo_header'); ?>
                         <img
                             src="<?php echo esc_url($header_logo); ?>"
-                            alt="<?php bloginfo('name'); ?>"
+                            alt="<?php if ('' !== $header_logo_alt) { echo esc_attr($header_logo_alt); } else { bloginfo('name'); } ?>"
                             width="200"
                             height="100"
                             fetchpriority="high"

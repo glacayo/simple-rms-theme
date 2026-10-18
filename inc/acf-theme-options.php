@@ -193,6 +193,61 @@ function rms_get_footer_logo_url(): string {
 }
 
 /**
+ * Retrieve the current Media Library alt text of a Theme Options image.
+ *
+ * Reads the stored attachment (ID, or a URL for older values) at render
+ * time, so later alt text edits show without re-saving Theme Options.
+ *
+ * @param string $field_name Option image field name, e.g. 'company_logo_header'.
+ *
+ * @return string Trimmed alt text, or '' when unset or unresolvable.
+ */
+function rms_get_option_image_alt(string $field_name): string {
+    if (!function_exists('get_field')) {
+        return '';
+    }
+
+    $raw = get_field($field_name, 'option', false);
+    if (is_numeric($raw)) {
+        $attachment_id = (int) $raw;
+    } elseif (is_string($raw) && '' !== trim($raw) && function_exists('attachment_url_to_postid')) {
+        $attachment_id = (int) attachment_url_to_postid(trim($raw));
+    } else {
+        $attachment_id = 0;
+    }
+
+    if ($attachment_id <= 0) {
+        return '';
+    }
+
+    $alt = get_post_meta($attachment_id, '_wp_attachment_image_alt', true);
+
+    return is_string($alt) ? trim($alt) : '';
+}
+
+/**
+ * Retrieve the alt text for the logo rms_get_footer_logo_url() selects.
+ *
+ * Follows the same precedence (footer logo, then header logo) so the alt
+ * always describes the image actually rendered.
+ *
+ * @return string Trimmed alt text, or '' when none applies.
+ */
+function rms_get_footer_logo_alt(): string {
+    $footer_logo = rms_get_option('company_logo_footer');
+    if (is_string($footer_logo) && '' !== trim($footer_logo)) {
+        return rms_get_option_image_alt('company_logo_footer');
+    }
+
+    $header_logo = rms_get_option('company_logo_header');
+    if (is_string($header_logo) && '' !== trim($header_logo)) {
+        return rms_get_option_image_alt('company_logo_header');
+    }
+
+    return '';
+}
+
+/**
  * Retrieve the trimmed Footer V2 About text.
  *
  * Whitespace-only and unconfigured values return '' so callers can skip
